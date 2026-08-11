@@ -24,7 +24,7 @@ Repositório central do projeto **Lockup (LCKP)**.
    npm install
    ```
 
-### 3. Como Trabalhar na Branch e Abrir o PR
+### Como Trabalhar na Branch e Abrir o PR
 
 1. **Atualize a branch base (`develop`):**
    ```bash
