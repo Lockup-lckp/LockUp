@@ -1,0 +1,336 @@
+/* ==================================================================
+   Checkout — sistema visual
+   Conceito: cada armário vira uma "etiqueta" física — plaqueta de
+   metal numerada, furo de chaveiro, recorte de ticket perfurado.
+   ================================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap');
+
+.checkout-page {
+  /* Os tokens locais viram apelidos dos globais. Antes, este bloco definia uma
+     paleta paralela E um fundo próprio (--ink-950: #0A0D12), o que fazia o
+     checkout ser a única tela fora da identidade do resto do sistema.
+     O efeito de plaqueta metálica é mantido — só passa a ser desenhado em ouro
+     da marca, em vez do latão avulso. */
+  --ink-950: var(--bg-color);
+  --ink-900: var(--surface-color);
+  --ink-800: var(--surface-color);
+  --ink-700: var(--surface-raised);
+  --ink-600: var(--border-color);
+  --brass-300: color-mix(in srgb, var(--primary-color) 70%, #ffffff);
+  --brass-400: var(--primary-color);
+  --brass-600: var(--secondary-color);
+  --mint-400: var(--success);
+  --red-400: var(--danger);
+  --paper-050: var(--on-bg);
+  --paper-400: var(--on-bg-muted);
+  --paper-600: var(--on-bg-muted);
+
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 32px 20px 80px;
+  /* Transparente: o fundo vem do body, que já usa var(--bg-color). */
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--primary-color) 6%, transparent), transparent 45%),
+    transparent;
+  color: var(--paper-050);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.checkout-page * { box-sizing: border-box; }
+
+/* Header */
+.checkout-header { border-bottom: 1px solid var(--ink-600); padding-bottom: 20px; margin-bottom: 24px; }
+
+.btn-back {
+  background: none; border: none; color: var(--brass-400); cursor: pointer;
+  font-family: var(--font-body); font-weight: 600; font-size: 13px; padding: 0;
+  margin-bottom: 14px; display: inline-flex; align-items: center; gap: 6px;
+  transition: color .15s;
+}
+.btn-back:hover { color: var(--brass-300); }
+.btn-back:focus-visible { outline: 2px solid var(--brass-400); outline-offset: 4px; border-radius: 4px; }
+
+.checkout-title { font-family: var(--font-display); font-size: 28px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.02em; }
+.checkout-subtitle { color: var(--paper-400); font-size: 14px; margin: 0 0 20px; }
+
+/* Stepper */
+.stepper { list-style: none; display: flex; gap: 24px; padding: 0; margin: 0; }
+.stepper li { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--paper-600); }
+.stepper li span {
+  width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 12px; border: 1px solid var(--ink-600); font-family: var(--font-mono);
+}
+.stepper li.is-active { color: var(--paper-050); }
+.stepper li.is-active span { background: var(--brass-400); color: var(--on-primary, var(--ink-950)); border-color: var(--brass-400); }
+.stepper li.is-done span { background: var(--mint-400); border-color: var(--mint-400); color: var(--ink-950); }
+
+/* Erro */
+.error-banner {
+  background: rgba(241, 104, 95, 0.08); color: var(--red-400); border: 1px solid rgba(241, 104, 95, 0.35);
+  padding: 13px 16px; border-radius: 10px; margin-bottom: 20px; font-size: 14px;
+  display: flex; align-items: center; gap: 10px; animation: fade-in .25s ease-out;
+}
+
+/* Grid principal */
+.checkout-grid { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; }
+.form-layout { display: flex; flex-direction: column; gap: 20px; flex: 1 1 520px; min-width: 0; animation: fade-in .3s ease-out; }
+
+.card-section { background: var(--ink-800); border: 1px solid var(--ink-600); border-radius: 14px; padding: 24px; }
+.section-title { font-family: var(--font-display); font-size: 16px; color: var(--brass-400); margin: 0 0 18px; font-weight: 600; }
+
+/* Cartões de forma de pagamento */
+.payment-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.payment-card {
+  display: flex; align-items: center; gap: 12px; background: var(--ink-700);
+  border: 1px solid var(--ink-600); border-radius: 12px; padding: 16px; cursor: pointer;
+  transition: border-color .15s, background .15s; position: relative;
+}
+.payment-card:hover { border-color: var(--brass-600); }
+.payment-card.is-selected { border-color: var(--brass-400); background: color-mix(in srgb, var(--primary-color) 7%, transparent); }
+.payment-card input { position: absolute; opacity: 0; }
+.payment-card .icon { color: var(--brass-400); flex-shrink: 0; }
+.option-title { display: block; font-weight: 600; font-size: 14px; }
+.option-subtitle { display: block; font-size: 12px; color: var(--paper-400); margin-top: 2px; }
+
+/* Campos */
+.fields-stack { display: flex; flex-direction: column; gap: 16px; }
+.input-group { display: flex; flex-direction: column; gap: 6px; }
+.input-label { font-size: 12.5px; font-weight: 600; color: var(--paper-400); text-transform: uppercase; letter-spacing: .03em; }
+.input-element {
+  padding: 12px 14px; background: var(--ink-700); border: 1px solid var(--ink-600); border-radius: 9px;
+  color: var(--paper-050); font-size: 14px; font-family: var(--font-body); width: 100%; outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.input-element::placeholder { color: var(--paper-600); }
+.input-element:focus { border-color: var(--brass-400); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 15%, transparent); }
+.form-grid-half { display: flex; flex-wrap: wrap; gap: 14px; }
+.form-grid-half > * { flex: 1 1 180px; }
+
+.card-fields { margin-top: 6px; padding-top: 18px; border-top: 1px dashed var(--ink-600); display: flex; flex-direction: column; gap: 16px; }
+
+.test-banner {
+  background: color-mix(in srgb, var(--primary-color) 8%, transparent); border: 1px solid color-mix(in srgb, var(--primary-color) 30%, transparent); border-radius: 9px;
+  padding: 12px 14px; font-size: 12.5px; color: var(--paper-400); line-height: 1.55;
+}
+.test-banner strong { color: var(--brass-400); }
+
+/* Botão principal */
+.btn-submit {
+  width: 100%; padding: 15px; border: none; border-radius: 12px; font-weight: 700; font-size: 15px;
+  font-family: var(--font-body); background: var(--brass-400); color: var(--on-primary, var(--ink-950)); cursor: pointer;
+  margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 10px;
+  transition: background .15s, transform .1s; box-shadow: 0 6px 20px color-mix(in srgb, var(--primary-color) 18%, transparent);
+}
+.btn-submit:hover:not(:disabled) { background: var(--brass-300); }
+.btn-submit:active:not(:disabled) { transform: scale(.99); }
+.btn-submit:disabled { background: var(--ink-600); color: var(--paper-600); cursor: not-allowed; box-shadow: none; }
+.btn-submit:focus-visible { outline: 2px solid var(--brass-300); outline-offset: 3px; }
+
+/* Spinner */
+.spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(0, 0, 0, 0.25); border-top-color: currentColor; animation: spin .7s linear infinite; flex-shrink: 0; }
+.spinner.large { width: 34px; height: 34px; border-width: 3px; color: var(--brass-400); margin: 0 auto 16px; border-top-color: var(--brass-400); border-color: color-mix(in srgb, var(--primary-color) 20%, transparent); border-top-color: var(--brass-400); }
+
+/* Etapa Pix / QR Code */
+.qr-card { text-align: center; }
+.qr-frame { display: inline-block; background: var(--paper-050); padding: 16px; border-radius: 14px; margin: 18px 0; position: relative; }
+.qr-frame::before {
+  content: ''; position: absolute; inset: -6px; border-radius: 18px; border: 1px dashed var(--brass-400);
+  animation: pulse-ring 2.2s ease-out infinite;
+}
+.qr-frame img { width: 210px; height: 210px; display: block; border-radius: 4px; }
+.btn-copy {
+  width: 100%; max-width: 360px; margin: 0 auto; display: block; background: var(--ink-700); color: var(--brass-400);
+  border: 1px solid var(--brass-600); padding: 12px; border-radius: 9px; font-weight: 600; cursor: pointer;
+  font-family: var(--font-body); transition: background .15s;
+}
+.btn-copy:hover { background: var(--ink-600); }
+.qr-status { margin-top: 26px; border-top: 1px solid var(--ink-600); padding-top: 18px; }
+.qr-waiting { color: var(--brass-400); font-size: 13.5px; display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0; }
+.pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--brass-400); animation: pulse-dot 1.4s ease-in-out infinite; flex-shrink: 0; }
+.status-success { color: var(--mint-400); font-weight: 700; font-size: 14.5px; margin: 10px 0; }
+.tx-ref { color: var(--paper-600); font-family: var(--font-mono); font-size: 12px; }
+.processing-state { padding: 44px 0; }
+.processing-state h3 { font-family: var(--font-display); margin: 0 0 8px; }
+.processing-state p { color: var(--paper-400); font-size: 14px; margin: 0; }
+
+/* ============ Etiqueta do armário (elemento-assinatura) ============ */
+.locker-ticket {
+  flex: 1 1 300px; max-width: 340px; width: 100%; background: var(--ink-800); border: 1px solid var(--ink-600);
+  border-radius: 16px; overflow: hidden; position: sticky; top: 20px; animation: fade-in .3s ease-out .05s backwards;
+}
+.locker-ticket__plate {
+  padding: 26px 22px 20px; position: relative; text-align: center;
+  background-image:
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.06) 0 2px, transparent 2px 10px),
+    linear-gradient(155deg, var(--brass-300), var(--brass-600));
+}
+.locker-ticket__hole {
+  width: 14px; height: 14px; border-radius: 50%; background: var(--ink-950);
+  margin: 0 auto 14px; box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.5);
+}
+.plate-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: rgba(10, 13, 18, 0.6); font-weight: 700; }
+.plate-number { display: block; font-family: var(--font-mono); font-size: 34px; font-weight: 600; color: var(--ink-950); letter-spacing: .02em; margin: 4px 0 2px; word-break: break-word; }
+.plate-block { display: block; font-size: 12.5px; color: rgba(10, 13, 18, 0.65); font-weight: 600; }
+
+.locker-ticket__perforation { position: relative; height: 0; border-top: 1px dashed rgba(255, 255, 255, 0.15); }
+.locker-ticket__perforation::before,
+.locker-ticket__perforation::after {
+  content: ''; position: absolute; top: -9px; width: 18px; height: 18px; border-radius: 50%; background: var(--ink-950);
+}
+.locker-ticket__perforation::before { left: -9px; }
+.locker-ticket__perforation::after { right: -9px; }
+
+.locker-ticket__body { padding: 20px 22px 24px; }
+.summary-row { display: flex; justify-content: space-between; align-items: center; font-size: 13.5px; gap: 10px; padding: 7px 0; }
+.summary-row span:first-child { color: var(--paper-400); }
+.summary-divider { border: none; border-top: 1px solid var(--ink-600); margin: 6px 0; }
+.summary-row.total span:first-child { color: var(--paper-050); font-weight: 700; font-size: 14.5px; }
+.summary-row.total .price { color: var(--brass-400); font-family: var(--font-mono); font-weight: 600; font-size: 21px; }
+
+/* Animações */
+@keyframes fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse-ring { 0% { opacity: .5; transform: scale(1); } 100% { opacity: 0; transform: scale(1.06); } }
+@keyframes pulse-dot { 0%, 100% { opacity: .3; } 50% { opacity: 1; } }
+
+/* Aceite dos termos de uso, logo acima do botão de pagar. */
+.termos-aceite {
+  margin: 20px 0 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.termos-aceite__label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--paper-300, #cbd5e1);
+}
+
+/* `flex-shrink: 0` porque em telas estreitas o texto quebra em 3 linhas e o
+   checkbox era achatado junto. */
+.termos-aceite__check {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  accent-color: var(--primary-color, #E8B44A);
+  cursor: pointer;
+}
+
+.termos-aceite__link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--primary-color, #E8B44A);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.termos-aceite__link:hover { filter: brightness(1.15); }
+
+/* Responsivo */
+@media (max-width: 860px) {
+  /* `align-items: stretch` desfaz o `flex-start` da regra base. Em COLUNA o
+     eixo cruzado é o horizontal, então `flex-start` fazia cada bloco encolher
+     para o próprio conteúdo: o formulário saía com 331px e a etiqueta com
+     351px, desalinhados. Esticando, etiqueta e os dois cartões (forma de
+     pagamento e dados do comprador) ficam na mesma largura. */
+  .checkout-grid { flex-direction: column; gap: 20px; align-items: stretch; }
+  /* Mesmo motivo do `flex` da etiqueta: numa coluna o flex-basis de 520px
+     passaria a valer como ALTURA mínima do formulário. */
+  .form-layout { flex: 0 0 auto; }
+  /* `flex: 0 0 auto` desfaz o `flex: 1 1 300px` da regra base. Num container
+     em COLUNA o flex-basis passa a valer para a altura, e a etiqueta ficava
+     com 300px fixos para ~210px de conteúdo: 90px de vazio no meio da tela.
+     Era a maior fonte isolada de espaço morto no celular. */
+  .locker-ticket { position: static; max-width: 100%; order: -1; flex: 0 0 auto; }
+  /* As duas formas de pagamento continuam lado a lado. Empilhar aqui gastava
+     duas faixas de 56px numa tela onde a rolagem já é o recurso escasso — o
+     conteúdo do cartão é que passa a ser compacto (ver bloco de 480px). */
+}
+
+/* Celular: um bloco só, para o espaçamento ser lido de uma vez.
+   Antes havia DOIS @media de 480px separados por outras regras, o que já
+   tinha feito o padding do checkout ser ajustado num lugar e o do botão em
+   outro. A queixa era espaço demais: aqui todo o ritmo vertical encolhe. */
+@media (max-width: 480px) {
+  .checkout-page { padding: 14px 12px 32px; }
+
+  /* Cabeçalho: 44px só de separação entre o título e o conteúdo viraram 26px. */
+  .checkout-header { padding-bottom: 12px; margin-bottom: 14px; }
+  .checkout-title { font-size: 21px; }
+  .checkout-subtitle { font-size: 13px; margin: 0 0 12px; }
+  .stepper { gap: 10px; font-size: 12px; }
+  .stepper li { gap: 6px; }
+
+  .error-banner { padding: 10px 12px; margin-bottom: 12px; font-size: 13px; }
+
+  .form-layout { gap: 12px; }
+  .card-section { padding: 14px; border-radius: 12px; }
+  .section-title { font-size: 15px; margin-bottom: 12px; }
+
+  /* Cartão de pagamento em coluna: cabem dois lado a lado sem o texto quebrar
+     em três linhas, e a altura cai de ~124px (empilhados) para ~68px. */
+  .payment-options { gap: 8px; }
+  .payment-card { flex-direction: column; align-items: center; text-align: center; gap: 5px; padding: 10px 8px; min-height: 0; }
+  .option-title { font-size: 13px; }
+  .option-subtitle { margin-top: 0; font-size: 11px; }
+
+  .fields-stack { gap: 12px; }
+  .input-group { gap: 4px; }
+  .input-label { font-size: 11.5px; }
+  .input-element { padding: 11px 12px; width: 100%; box-sizing: border-box; }
+  /* Continua em coluna: dois campos lado a lado a 390px ficam ilegíveis.
+     Mas os filhos carregam `flex: 1 1 180px` da regra base, e em coluna esse
+     180px vira ALTURA — cada campo ocupava 180px para ~60px de conteúdo, o
+     que abria dois buracos enormes entre CPF, telefone e os termos.
+     `flex: 0 0 auto` faz cada campo voltar a ter a altura do que tem dentro. */
+  .form-grid-half { flex-direction: column; gap: 12px; }
+  .form-grid-half > * { flex: 0 0 auto; }
+  .card-fields { padding-top: 14px; gap: 12px; }
+
+  .termos-aceite { margin: 12px 0 0; padding: 11px 12px; }
+  .termos-aceite__label { font-size: 12.5px; }
+
+  /* 48px de altura é o alvo de toque mínimo; o que sai é a margem, não o botão. */
+  .btn-submit { width: 100%; min-height: 48px; margin-top: 10px; padding: 13px; }
+  .btn-copy { width: 100%; min-height: 44px; }
+
+  /* Etiqueta do armário: ela vem ANTES do formulário no celular (order: -1),
+     então cada pixel aqui empurra o campo de nome para baixo. */
+  .locker-ticket { border-radius: 12px; }
+  .locker-ticket__plate { padding: 14px 16px 12px; }
+  .locker-ticket__hole { width: 11px; height: 11px; margin-bottom: 8px; }
+  .plate-number { font-size: 26px; margin: 2px 0 0; }
+  .locker-ticket__body { padding: 12px 16px 14px; }
+  .summary-row { padding: 5px 0; }
+  .summary-row.total .price { font-size: 19px; }
+
+  /* Etapa do Pix. */
+  .qr-frame { display: block; margin: 14px auto; width: fit-content; max-width: 100%; padding: 12px; }
+  /* Precisa continuar escaneável numa tela estreita. */
+  .qr-frame img { width: min(210px, 60vw); height: min(210px, 60vw); }
+  .qr-status { margin-top: 16px; padding-top: 14px; }
+  .processing-state { padding: 28px 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checkout-page *, .checkout-page *::before, .checkout-page *::after {
+    animation: none !important; transition: none !important;
+  }
+}

@@ -1,0 +1,463 @@
+.home-admin-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  color: var(--on-bg, #ffffff);
+  box-sizing: border-box;
+}
+
+/* Estados Globais de Feedback */
+.loading-state, .error-state {
+  text-align: center;
+  padding: 40px;
+  font-size: 1rem;
+}
+.loading-state { color: #cbd5e1; }
+.error-state { color: #e74c3c; }
+
+/* Cabeçalho */
+.home-admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 15px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.header-title {
+  margin: 0;
+  font-size: 24px;
+  font-family: var(--font-display, 'Space Grotesk', sans-serif);
+  letter-spacing: -0.01em;
+}
+
+.header-subtitle {
+  margin: 5px 0 0 0;
+  color: #8fa0dd;
+  font-size: 13px;
+}
+
+/* Abas de Corredores */
+.tabs-container {
+  display: flex;
+  gap: 8px;
+  background-color: #161d33;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 6px;
+  border-radius: 10px;
+  overflow-x: auto; /* Permite rolar as abas no mobile se houver muitas */
+  scrollbar-width: thin;
+}
+
+.tab-button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  background-color: transparent;
+  color: #94a3b8;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  white-space: nowrap; /* Evita que o texto quebre no mobile */
+}
+
+.tab-button:hover:not(.active) {
+  background-color: rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
+}
+
+.tab-button.active {
+  background-color: var(--primary-color, var(--primary-color));
+  color: var(--on-primary, var(--bg-color));
+  box-shadow: 0 4px 14px -4px color-mix(in srgb, var(--primary-color) 60%, transparent);
+}
+
+/* Barra de Filtros */
+.filter-bar {
+  background-color: #161d33;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 12px 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.filter-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.filter-label {
+  font-size: 14px;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+
+/* Estrutura do Layout Principal */
+.main-layout-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+/* Painel da Matriz */
+.matrix-panel {
+  background-color: #131a2e;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: 0 20px 40px -24px rgba(0, 0, 0, 0.6);
+}
+
+.matrix-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  max-width: 450px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Botões dos Armários */
+.locker-button {
+  aspect-ratio: 1 / 1;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: transparent;
+  box-sizing: border-box;
+  padding: 4px; /* Garante que o texto não toque nas bordas em telas pequenas */
+}
+
+.locker-button.status-disponivel:hover {
+  transform: translateY(-2px);
+  border-color: rgba(46, 204, 113, 0.55);
+  background-color: rgba(46, 204, 113, 0.16);
+}
+
+.locker-prefix {
+  font-size: 10px;
+  opacity: 0.5;
+  font-weight: normal;
+}
+
+/* Variações de Status */
+.status-disponivel {
+  background-color: rgba(46, 204, 113, 0.1);
+  color: #2ecc71;
+  border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.status-alugado {
+  background-color: rgba(231, 76, 60, 0.1);
+  color: #e74c3c;
+  border: 1px solid rgba(231, 76, 60, 0.2);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.status-manutencao {
+  background-color: rgba(241, 196, 15, 0.1);
+  color: #f1c40f;
+  border: 1px solid rgba(241, 196, 15, 0.2);
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.status-funcionario {
+  background-color: rgba(167, 139, 250, 0.1);
+  color: #a78bfa;
+  border: 1px solid rgba(167, 139, 250, 0.25);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.status-selecionado {
+  border: 2px solid var(--primary-color, var(--primary-color));
+  background-color: color-mix(in srgb, var(--primary-color) 20%, transparent);
+  color: var(--primary-color, var(--primary-color));
+  transform: scale(1.02);
+}
+
+/* Paginação */
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 15px;
+  flex-wrap: wrap; /* Ajuda em telas bem pequenas */
+  gap: 10px;
+}
+
+.pagination-text {
+  font-size: 13px;
+  color: #8fa0dd;
+}
+
+.pagination-text strong {
+  color: #ffffff;
+}
+
+.pagination-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.pagination-arrow {
+  width: 40px;
+  height: 36px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s ease;
+}
+
+.pagination-arrow.prev {
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.pagination-arrow.next {
+  background-color: color-mix(in srgb, var(--primary-color) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary-color) 20%, transparent);
+  color: var(--primary-color, var(--primary-color));
+}
+
+.pagination-arrow:disabled {
+  opacity: 0.3;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+/* Painel Lateral */
+.details-sidebar {
+  background-color: #131a2e;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 20px;
+  box-sizing: border-box;
+  box-shadow: 0 20px 40px -24px rgba(0, 0, 0, 0.6);
+}
+
+.sidebar-title {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  font-family: var(--font-display, 'Space Grotesk', sans-serif);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 10px;
+}
+
+.details-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  background-color: #121829;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.detail-label {
+  color: #8fa0dd;
+}
+
+.detail-value {
+  color: #ffffff;
+  text-align: right; /* Garante que valores longos fiquem bonitos */
+  word-break: break-word;
+}
+
+.status-badge {
+  color: #2ecc71;
+  text-transform: capitalize;
+}
+
+.btn-action-primary {
+  width: 100%;
+  padding: 14px;
+  background-color: var(--primary-color, var(--primary-color));
+  color: var(--on-primary, var(--bg-color));
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: transform 0.15s ease, filter 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 10px 22px -8px color-mix(in srgb, var(--primary-color) 55%, transparent);
+}
+
+.btn-action-primary:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.btn-action-primary:active {
+  transform: translateY(0);
+  filter: brightness(0.97);
+}
+
+.empty-sidebar-state {
+  text-align: center;
+  padding: 40px 10px;
+  color: #8fa0dd;
+  font-size: 14px;
+}
+
+/* ========================================= */
+/* MEDIA QUERIES (A MÁGICA DA RESPONSIVIDADE)*/
+/* ========================================= */
+
+/* Tablets em pé e telas menores (abaixo de 992px) */
+@media (max-width: 992px) {
+  .main-layout-grid {
+    grid-template-columns: 1fr; /* Empilha a matriz de armários e os detalhes */
+  }
+}
+
+/* Celulares (abaixo de 768px) */
+@media (max-width: 768px) {
+  .home-admin-container {
+    padding: 15px 10px;
+  }
+  
+  .home-admin-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .tabs-container {
+    width: 100%; /* Faz a aba ocupar tudo e habilitar scroll horizontal */
+  }
+  
+  .matrix-grid {
+    grid-template-columns: repeat(4, 1fr); /* Reduz de 5 para 4 colunas em telas pequenas */
+    gap: 8px;
+  }
+}
+
+/* Celulares bem pequenos (abaixo de 480px) */
+@media (max-width: 480px) {
+  .matrix-grid {
+    grid-template-columns: repeat(3, 1fr); /* Reduz para 3 colunas para os botões não ficarem espremidos */
+  }
+  
+  .filter-bar {
+    align-items: flex-start;
+  }
+  
+  .detail-row {
+    flex-direction: column; /* Coloca o rótulo e o valor em linhas diferentes */
+    gap: 4px;
+  }
+  
+  .detail-value {
+    text-align: left;
+  }
+}
+/* ==================================================================
+   Home do ALUNO: matriz em largura inteira + modal de confirmação.
+   Os detalhes do armário saíram da sidebar e foram para o ModalArmario,
+   então não há mais duas colunas para dividir. A HomeAdmin continua
+   usando .main-layout-grid com a sidebar.
+   ================================================================== */
+.main-layout-full {
+  display: block;
+  width: 100%;
+}
+
+.locker-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  padding-top: 16px;
+  font-size: 13px;
+  color: var(--on-bg-muted);
+}
+.locker-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.locker-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+}
+.locker-legend .legend-livre { background: var(--primary-color); }
+.locker-legend .legend-ocupado { background: var(--danger); }
+.locker-legend .legend-selecionado { background: var(--success); }
+
+.modal-armario__topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+.modal-armario__titulo {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  font-family: var(--font-display);
+}
+.modal-armario__fechar {
+  flex-shrink: 0;
+  padding: 6px 12px;
+}
+
+.modal-armario__corpo {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.modal-armario__linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.modal-armario__linha > span { color: var(--on-bg-muted); font-size: 14px; }
+.modal-armario__preco { color: var(--primary-color); font-size: 18px; }
+.modal-armario__acao { width: 100%; }
+.modal-armario__aviso {
+  justify-content: center;
+  text-align: center;
+  padding: 10px 12px;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Alvo de toque confortável no celular. */
+@media (max-width: 768px) {
+  .tabs-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tab-button { flex: 0 0 auto; min-height: 44px; }
+  .pagination-arrow { min-width: 44px; min-height: 44px; }
+}

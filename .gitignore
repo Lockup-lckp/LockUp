@@ -1,0 +1,21 @@
+# Dependências
+node_modules/
+
+# Variáveis de ambiente e segredos — NUNCA commitar
+.env
+.env.*
+!.env.example
+
+# Build
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema
+.DS_Store
+Thumbs.db
+docs/*.zip
+docs/backup-escolas-*.json

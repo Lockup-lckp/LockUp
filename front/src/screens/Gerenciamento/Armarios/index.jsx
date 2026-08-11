@@ -1,0 +1,842 @@
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { armariosService } from '../../../services/armariosServices';
+import { usuarioService } from '../../../services/usuariosServices';
+import { nomearCorredor, rotuloCorredor, rotuloCorredorPlural } from '../../../utils/rotuloCorredor';
+import { escolaService } from '../../../services/escolaService';
+
+const STATUS_LABEL = {
+  disponivel: 'Disponível',
+  alugado: 'Alugado',
+  manutencao: 'Manutenção',
+  funcionario: 'Funcionário',
+};
+
+const STATUS_BADGE_CLASS = {
+  disponivel: 'bg-emerald-950/60 text-emerald-400 border border-emerald-900/50',
+  alugado: 'bg-blue-950/60 text-blue-400 border border-blue-900/50',
+  manutencao: 'bg-amber-950/60 text-amber-400 border border-amber-900/50',
+  funcionario: 'bg-violet-950/60 text-violet-400 border border-violet-900/50',
+};
+
+export default function GerenciamentoArmarios() {
+  const { schoolCode } = useParams(); 
+  const [armarios, setArmarios] = useState([]);
+  const [usuarios, setUsuarios] = useState([]); 
+  const [termoBusca, setTermoBusca] = useState('');
+  const [corredorFiltro, setCorredorFiltro] = useState(''); // '' = todos os blocos
+  const [termoBuscaUsuario, setTermoBuscaUsuario] = useState(''); 
+  const [erro, setErro] = useState(null);
+  const [carregando, setCarregando] = useState(true);
+
+  // Estados de Paginação dos Armários
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const itensPorPagina = 25; 
+
+  // Estados para o Modal de Vínculo
+  const [modalAberto, setModalAberto] = useState(false);
+  const [armarioSelecionado, setArmarioSelecionado] = useState(null);
+
+  // Estados para o Modal de Atribuição a Funcionário (sem conta de usuário)
+  const [modalFuncionarioAberto, setModalFuncionarioAberto] = useState(false);
+  const [armarioFuncionario, setArmarioFuncionario] = useState(null);
+  const [nomeFuncionario, setNomeFuncionario] = useState('');
+  const [salvandoFuncionario, setSalvandoFuncionario] = useState(false);
+  const [erroFuncionario, setErroFuncionario] = useState(null);
+
+  // Estados para o Modal de Criação em Lote
+  const [modalLoteAberto, setModalLoteAberto] = useState(false);
+  const [corredorLote, setCorredorLote] = useState('');
+  const [inicioLote, setInicioLote] = useState('');
+  const [fimLote, setFimLote] = useState('');
+  const [criandoLote, setCriandoLote] = useState(false);
+  const [erroLote, setErroLote] = useState(null);
+
+  // A tela ja buscava a escola so para pegar o UUID e descartava o resto.
+  // O rotulo de corredor (bloco|corredor) vem daqui.
+  const [escola, setEscola] = useState(null);
+
+  // Exclusao de um corredor inteiro, para desfazer um lote criado errado.
+  const [corredorParaExcluir, setCorredorParaExcluir] = useState(null);
+  const [excluindoCorredor, setExcluindoCorredor] = useState(false);
+
+  useEffect(() => {
+    if (schoolCode) {
+      carregarDados();
+    } else {
+      setErro("Código da instituição não identificado na URL.");
+      setCarregando(false);
+    }
+  }, [schoolCode]);
+
+  useEffect(() => {
+    setPaginaAtual(1);
+  }, [termoBusca]);
+
+  const carregarDados = async () => {
+    try {
+      setCarregando(true);
+      setErro(null);
+
+      let escolaIdUuid = null;
+      try {
+        const escolaDados = await escolaService.buscarPorCodigo(schoolCode);
+        if (escolaDados && escolaDados.id) {
+          escolaIdUuid = escolaDados.id;
+          setEscola(escolaDados);
+        } else {
+          throw new Error("Escola não encontrada.");
+        }
+      } catch (errEscola) {
+        console.error("Erro ao buscar UUID da escola:", errEscola);
+        setErro("Não foi possível identificar a instituição correspondente.");
+        setCarregando(false);
+        return;
+      }
+      
+      let dadosArmarios = [];
+      try {
+        dadosArmarios = await armariosService.buscarTodos(schoolCode);
+      } catch (errArmarios) {
+        console.error("Erro específico ao buscar armários:", errArmarios);
+        setErro("Não foi possível carregar os armários desta instituição.");
+      }
+
+      let dadosUsuariosDaEscola = [];
+      try {
+        if (typeof usuarioService.buscarTodos === 'function') {
+          // Filtro por escola já acontece no servidor (evita baixar todos os
+          // usuários de todas as instituições só pra montar o seletor de vínculo).
+          const usuariosDaEscola = await usuarioService.buscarTodos(escolaIdUuid);
+          if (Array.isArray(usuariosDaEscola)) {
+            dadosUsuariosDaEscola = usuariosDaEscola;
+          }
+        }
+      } catch (errUsuarios) {
+        console.error("Erro específico ao buscar usuários:", errUsuarios);
+      }
+
+      if (Array.isArray(dadosArmarios)) {
+        setArmarios(dadosArmarios);
+      } else {
+        setArmarios([]);
+      }
+
+      setUsuarios(dadosUsuariosDaEscola);
+    } catch (err) {
+      setErro('Erro geral ao processar dados do sistema.');
+      console.error(err);
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  const handleAlterarStatus = async (id, statusAtual) => {
+    if (statusAtual === 'alugado' || statusAtual === 'funcionario') return;
+    const novoStatus = statusAtual === 'disponivel' ? 'manutencao' : 'disponivel';
+    try {
+      await armariosService.atualizarStatus(id, novoStatus);
+      setArmarios(prev => prev.map(a => a.id === id ? { ...a, status: novoStatus } : a));
+    } catch (err) {
+      alert('Não foi possível alterar o status do armário.');
+    }
+  };
+
+  const abrirModalVinculo = (armario) => {
+    setArmarioSelecionado(armario);
+    setTermoBuscaUsuario('');
+    setModalAberto(true);
+  };
+
+  const abrirModalFuncionario = (armario) => {
+    setArmarioFuncionario(armario);
+    setNomeFuncionario('');
+    setErroFuncionario(null);
+    setModalFuncionarioAberto(true);
+  };
+
+  // Atribuição manual: só grava o nome digitado pelo admin, sem vincular a nenhuma
+  // conta de usuário (funcionário não precisa de login no sistema).
+  const handleAtribuirFuncionario = async (e) => {
+    e.preventDefault();
+    if (!armarioFuncionario) return;
+
+    if (!nomeFuncionario.trim()) {
+      setErroFuncionario('Informe o nome do funcionário.');
+      return;
+    }
+
+    setErroFuncionario(null);
+    setSalvandoFuncionario(true);
+    try {
+      await armariosService.atualizar(armarioFuncionario.id, {
+        status: 'funcionario',
+        usuarioId: null,
+        usuarioNome: nomeFuncionario.trim()
+      });
+
+      setArmarios(prev => prev.map(a =>
+        a.id === armarioFuncionario.id
+          ? { ...a, status: 'funcionario', usuarioId: null, usuarioNome: nomeFuncionario.trim() }
+          : a
+      ));
+
+      setModalFuncionarioAberto(false);
+      setArmarioFuncionario(null);
+    } catch (err) {
+      setErroFuncionario(err.message || 'Erro ao atribuir o armário ao funcionário.');
+    } finally {
+      setSalvandoFuncionario(false);
+    }
+  };
+
+  const handleVincularUsuario = async (usuarioId, usuarioNome, usuarioRole) => {
+    if (!armarioSelecionado) return;
+
+    // 🔒 TRAVA DE SEGURANÇA: Impede administradores de alocarem armários
+    if (usuarioRole === 'admin') {
+      alert('Ação não permitida: administradores não podem possuir ou ser vinculados a armários.');
+      return;
+    }
+
+    try {
+      await armariosService.atualizar(armarioSelecionado.id, {
+        status: 'alugado',
+        usuarioId,
+        usuarioNome
+      });
+
+      setArmarios(prev => prev.map(a => 
+        a.id === armarioSelecionado.id 
+          ? { ...a, status: 'alugado', usuarioId, usuarioNome } 
+          : a
+      ));
+
+      setModalAberto(false);
+      setArmarioSelecionado(null);
+    } catch (err) {
+      alert('Erro ao vincular o usuário ao armário.');
+    }
+  };
+
+  const handleDesvincularUsuario = async (id) => {
+    if (!window.confirm('Tem certeza que deseja remover o vínculo deste armário?')) return;
+
+    try {
+      await armariosService.atualizar(id, {
+        status: 'disponivel',
+        usuarioId: null,
+        usuarioNome: null
+      });
+
+      setArmarios(prev => prev.map(a => 
+        a.id === id 
+          ? { ...a, status: 'disponivel', usuarioId: null, usuarioNome: null } 
+          : a
+      ));
+    } catch (err) {
+      alert('Erro ao desvincular o usuário.');
+    }
+  };
+
+  const handleExcluirArmario = async (id, statusAtual) => {
+    if (statusAtual === 'alugado' || statusAtual === 'funcionario') {
+      alert('Remova o vínculo (aluno ou funcionário) antes de excluir este armário.');
+      return;
+    }
+    if (!window.confirm('Tem certeza que deseja excluir este armário permanentemente?')) return;
+
+    try {
+      await armariosService.excluir(id);
+      setArmarios(prev => prev.filter(a => a.id !== id));
+    } catch (err) {
+      alert('Erro ao excluir the armário.');
+    }
+  };
+
+  // Armários do corredor escolhido para exclusão, separados pelo que impede a
+  // operação: um armário alugado ou de funcionário guarda o vínculo de alguém,
+  // e apagá-lo apagaria junto a referência da locação paga.
+  const armariosDoCorredorAlvo = corredorParaExcluir
+    ? armarios.filter(a => a.corredor === corredorParaExcluir)
+    : [];
+  const ocupadosNoCorredor = armariosDoCorredorAlvo.filter(
+    a => a.status === 'alugado' || a.status === 'funcionario'
+  );
+
+  // Exclui o corredor inteiro. Serve para desfazer um lote criado errado —
+  // por isso recusa por completo quando há ocupante, em vez de apagar só os
+  // livres: exclusão pela metade deixaria o corredor num estado que ninguém
+  // pediu e que é pior de consertar do que o erro original.
+  const handleExcluirCorredor = async () => {
+    if (!corredorParaExcluir || ocupadosNoCorredor.length > 0) return;
+
+    setExcluindoCorredor(true);
+    try {
+      // Sequencial de propósito: a API exclui um por vez, e disparar 200
+      // requisições ao mesmo tempo derrubaria o limite de taxa do backend.
+      for (const armario of armariosDoCorredorAlvo) {
+        await armariosService.excluir(armario.id);
+      }
+
+      const idsExcluidos = new Set(armariosDoCorredorAlvo.map(a => a.id));
+      setArmarios(prev => prev.filter(a => !idsExcluidos.has(a.id)));
+
+      // O corredor deixou de existir: manter o filtro apontando para ele
+      // mostraria uma lista vazia sem explicação.
+      if (corredorFiltro === corredorParaExcluir) setCorredorFiltro('');
+      setPaginaAtual(1);
+      setCorredorParaExcluir(null);
+    } catch (err) {
+      setErro(`Não foi possível excluir todos os armários. ${err.message || ''}`.trim());
+    } finally {
+      setExcluindoCorredor(false);
+    }
+  };
+
+  const abrirModalLote = () => {
+    setErroLote(null);
+    setCorredorLote('');
+    setInicioLote('');
+    setFimLote('');
+    setModalLoteAberto(true);
+  };
+
+  const handleCriarLote = async (e) => {
+    e.preventDefault();
+    setErroLote(null);
+
+    if (!corredorLote.trim() || !inicioLote || !fimLote) {
+      setErroLote('Preencha o corredor e o intervalo (início e fim) dos armários.');
+      return;
+    }
+
+    try {
+      setCriandoLote(true);
+      await armariosService.criarEmLote(schoolCode, {
+        corredor: corredorLote.trim(),
+        inicio: inicioLote,
+        fim: fimLote
+      });
+
+      setModalLoteAberto(false);
+      await carregarDados();
+    } catch (err) {
+      setErroLote(err.message || 'Erro ao criar os armários em lote.');
+    } finally {
+      setCriandoLote(false);
+    }
+  };
+
+  // Blocos que EXISTEM de fato, tirados dos próprios armários — nada de lista
+  // fixa, que ficaria errada assim que a escola criasse um corredor novo.
+  const corredoresExistentes = [...new Set(armarios.map(a => a.corredor).filter(Boolean))]
+    .sort((a, b) => String(a).localeCompare(String(b), 'pt-BR', { numeric: true }));
+
+  const armariosFiltrados = armarios.filter(armario => {
+    if (corredorFiltro && armario.corredor !== corredorFiltro) return false;
+
+    const termo = termoBusca.toLowerCase();
+    return (
+      armario.nome?.toLowerCase().includes(termo) ||
+      armario.corredor?.toLowerCase().includes(termo) ||
+      armario.usuarioNome?.toLowerCase().includes(termo)
+    );
+  });
+
+  const totalPaginas = Math.ceil(armariosFiltrados.length / itensPorPagina) || 1;
+  
+  const indiceInicial = (paginaAtual - 1) * itensPorPagina;
+  const indiceFinal = indiceInicial + itensPorPagina;
+  const armariosPaginados = armariosFiltrados.slice(indiceInicial, indiceFinal);
+
+  // 🎯 FILTRAGEM DO MODAL: Filtra apenas quem NÃO é admin (role !== 'admin')
+  const usuariosFiltradosModal = usuarios.filter(usr => {
+    const termo = termoBuscaUsuario.toLowerCase();
+    const naoEAdmin = usr.role !== 'admin';
+    
+    return (
+      naoEAdmin &&
+      (usr.nome_completo?.toLowerCase().includes(termo) ||
+       usr.email_institucional?.toLowerCase().includes(termo))
+    );
+  });
+
+  if (carregando) {
+    return (
+      <div className="p-6 text-center text-[var(--primary-color)] font-medium bg-[var(--bg-color)] min-h-screen flex items-center justify-center">
+        Carregando painel de gerenciamento de armários...
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 sm:p-6 bg-[var(--bg-color)] min-h-screen text-white font-sans">
+      {/* Topbar Responsiva */}
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-[var(--primary-color)] font-display">Gerenciamento de Armários</h1>
+          <p className="text-xs text-gray-400 mt-1">Instituição ativa: <span className="text-white font-semibold uppercase">{schoolCode}</span></p>
+        </div>
+
+        {/* `flex-wrap` porque agora são três controles: busca, filtro de bloco
+            e o botão. Entre 640px e 768px a linha somava ~600px de conteúdo
+            fixo e o botão, com `whitespace-nowrap`, vazava para fora da tela
+            em vez de descer. Com wrap ele cai para a linha de baixo. */}
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3 w-full md:w-auto">
+          <input
+            type="text"
+            placeholder={`Buscar por armário, ${rotuloCorredor(escola).toLowerCase()}...`}
+            value={termoBusca}
+            onChange={e => { setTermoBusca(e.target.value); setPaginaAtual(1); }}
+            className="w-full sm:flex-1 sm:min-w-48 md:w-64 md:flex-none px-4 py-2 bg-[var(--surface-color)] border border-[#1f2635] rounded-xl text-sm text-white outline-none focus:border-[var(--primary-color)] transition-all"
+          />
+
+          {/* Volta para a página 1 ao filtrar: sem isso, quem estivesse na
+              página 5 e filtrasse um bloco de 3 armários veria lista vazia. */}
+          <select
+            value={corredorFiltro}
+            onChange={e => { setCorredorFiltro(e.target.value); setPaginaAtual(1); }}
+            aria-label={`Filtrar por ${rotuloCorredor(escola).toLowerCase()}`}
+            className="w-full sm:w-auto sm:min-w-36 px-4 py-2 bg-[var(--surface-color)] border border-[#1f2635] rounded-xl text-sm text-white outline-none focus:border-[var(--primary-color)] transition-all"
+          >
+            <option value="">{`Todos os ${rotuloCorredorPlural(escola)}`}</option>
+            {corredoresExistentes.map(corredor => (
+              <option key={corredor} value={corredor}>{nomearCorredor(escola, corredor)}</option>
+            ))}
+          </select>
+          {/* Só aparece com um corredor filtrado: é a forma de deixar claro
+              O QUE vai ser apagado antes de abrir a confirmação. */}
+          {corredorFiltro && (
+            <button
+              onClick={() => setCorredorParaExcluir(corredorFiltro)}
+              className="w-full sm:w-auto shrink-0 px-4 py-2 bg-red-950/40 hover:bg-red-900/40 text-red-400 border border-red-900/50 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap text-center"
+            >
+              Excluir {nomearCorredor(escola, corredorFiltro).toLowerCase()}
+            </button>
+          )}
+
+          <button
+            onClick={abrirModalLote}
+            className="w-full sm:w-auto shrink-0 px-4 py-2 bg-[var(--primary-color)]/10 hover:bg-[var(--primary-color)]/20 text-[var(--primary-color)] border border-[var(--primary-color)]/30 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap text-center"
+          >
+            + Adicionar Armários
+          </button>
+        </div>
+      </div>
+
+      {erro && (
+        <div className="mb-4 p-3 bg-red-950/40 border border-red-900/50 rounded-xl text-red-400 text-sm">
+          ⚠️ {erro}
+        </div>
+      )}
+
+      {/* Tabela Embrulhada em Scroll Horizontal Automatizado */}
+      <div className="overflow-x-auto w-full border border-[#1f2635] bg-[var(--surface-color)]/60 rounded-xl backdrop-blur-md">
+        {/* `lckp-tabela-cartao`: abaixo de 767px cada linha vira um cartão com
+            rótulo e valor, em vez de uma tabela de 700px que só se lê
+            arrastando de lado — e cujas ações ficavam fora da tela. Depende
+            do `data-label` em cada <td>. */}
+        <table className="w-full text-left border-collapse min-w-175 lckp-tabela-cartao">
+          <thead>
+            <tr className="border-b border-[#1f2635] bg-[#161b26] text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              <th className="p-4">Identificação</th>
+              <th className="p-4">{rotuloCorredor(escola)}</th>
+              <th className="p-4">Estado</th>
+              <th className="p-4">Ocupante</th>
+              <th className="p-4 text-center">Ações</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#1f2635] text-sm text-gray-300">
+            {armariosPaginados.length === 0 ? (
+              <tr>
+                <td colSpan="5" className="p-8 text-center text-gray-500">
+                  Nenhum armário encontrado cadastrado para esta escola.
+                </td>
+              </tr>
+            ) : (
+              armariosPaginados.map((armario) => (
+                <tr key={armario.id} className="hover:bg-[#161b26]/40 transition-colors">
+                  <td data-label="Identificação" className="p-4 font-bold text-white whitespace-nowrap">{armario.nome}</td>
+                  <td data-label={rotuloCorredor(escola)} className="p-4 whitespace-nowrap">{nomearCorredor(escola, armario.corredor)}</td>
+                  <td data-label="Estado" className="p-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold uppercase ${STATUS_BADGE_CLASS[armario.status] || STATUS_BADGE_CLASS.disponivel}`}>
+                      {STATUS_LABEL[armario.status] || armario.status}
+                    </span>
+                  </td>
+                  <td data-label="Ocupante" className="p-4 max-w-45 truncate">
+                    {armario.usuarioNome ? (
+                      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                        <span className="text-white font-medium truncate" title={armario.usuarioNome}>
+                          {armario.usuarioNome}
+                        </span>
+                        <button 
+                          onClick={() => handleDesvincularUsuario(armario.id)}
+                          className="text-xs text-red-400 hover:text-red-300 underline bg-transparent border-none cursor-pointer p-0 shrink-0"
+                        >
+                          Remover
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-gray-500 italic">Nenhum</span>
+                    )}
+                  </td>
+                  <td data-label="Ações" className="p-4">
+                    <div className="flex gap-1.5 justify-center items-center flex-wrap max-w-70 mx-auto">
+                      {armario.status === 'disponivel' && (
+                        <button
+                          onClick={() => abrirModalVinculo(armario)}
+                          className="px-2.5 py-1 bg-[var(--primary-color)]/10 hover:bg-[var(--primary-color)]/20 text-[var(--primary-color)] border border-[var(--primary-color)]/30 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap"
+                        >
+                          Vincular Aluno
+                        </button>
+                      )}
+
+                      {armario.status === 'disponivel' && (
+                        <button
+                          onClick={() => abrirModalFuncionario(armario)}
+                          className="px-2.5 py-1 bg-violet-950/40 hover:bg-violet-900/40 text-violet-400 border border-violet-900/40 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap"
+                        >
+                          Atribuir a Funcionário
+                        </button>
+                      )}
+
+                      {armario.status !== 'alugado' && armario.status !== 'funcionario' && (
+                        <button
+                          onClick={() => handleAlterarStatus(armario.id, armario.status)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all whitespace-nowrap ${
+                            armario.status === 'manutencao'
+                              ? 'bg-emerald-950/40 text-emerald-400 border-emerald-900/40 hover:bg-emerald-900/40'
+                              : 'bg-amber-950/40 text-amber-400 border-amber-900/40 hover:bg-amber-900/40'
+                          }`}
+                        >
+                          {armario.status === 'manutencao' ? 'Disponibilizar' : 'Manutenção'}
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => handleExcluirArmario(armario.id, armario.status)}
+                        disabled={armario.status === 'alugado' || armario.status === 'funcionario'}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all whitespace-nowrap ${
+                          armario.status === 'alugado' || armario.status === 'funcionario'
+                            ? 'bg-gray-800 text-gray-600 border-transparent cursor-not-allowed'
+                            : 'bg-red-950/40 text-red-400 border-red-900/40 hover:bg-red-900/40'
+                        }`}
+                      >
+                        Excluir
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+
+        {/* Rodapé e Controles de Paginação */}
+        {armariosFiltrados.length > 0 && (
+          <div className="p-4 bg-[#161b26] border-t border-[#1f2635] flex flex-col sm:flex-row justify-between items-center gap-4">
+            <span className="text-xs text-gray-400 text-center sm:text-left">
+              Exibindo {indiceInicial + 1} a {Math.min(indiceFinal, armariosFiltrados.length)} de{' '}
+              <span className="text-white font-semibold">{armariosFiltrados.length}</span> armários
+            </span>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPaginaAtual(prev => Math.max(prev - 1, 1))}
+                disabled={paginaAtual === 1}
+                className="px-3 py-1.5 bg-[var(--surface-color)] border border-[#1f2635] rounded-lg text-xs font-semibold text-gray-300 hover:bg-[#1a2333] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                ← Anterior
+              </button>
+
+              <span className="text-xs text-gray-300 px-1 whitespace-nowrap">
+                Página <span className="text-[var(--primary-color)] font-bold">{paginaAtual}</span> de{' '}
+                <span className="text-gray-400">{totalPaginas}</span>
+              </span>
+
+              <button
+                onClick={() => setPaginaAtual(prev => Math.min(prev + 1, totalPaginas))}
+                disabled={paginaAtual === totalPaginas}
+                className="px-3 py-1.5 bg-[var(--surface-color)] border border-[#1f2635] rounded-lg text-xs font-semibold text-gray-300 hover:bg-[#1a2333] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Próxima →
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* MODAL DE VÍNCULO DE ALUNO */}
+      {modalAberto && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="w-full max-w-2xl bg-[var(--surface-color)] border border-[#1f2635] rounded-2xl shadow-2xl flex flex-col max-h-[90vh] sm:max-h-[85vh]">
+            
+            <div className="p-4 sm:p-5 border-b border-[#1f2635] bg-[#161b26]">
+              <div className="flex justify-between items-start gap-2">
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-white">Vincular Aluno ao Armário {armarioSelecionado?.nome}</h3>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Mostrando apenas alunos associados a esta instituição de ensino. Administradores estão ocultados.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setModalAberto(false); setArmarioSelecionado(null); }}
+                  className="text-gray-400 hover:text-white transition-colors text-sm font-medium bg-transparent border-none cursor-pointer shrink-0"
+                >
+                  ✕ Fechar
+                </button>
+              </div>
+
+              <div className="mt-4">
+                <input
+                  type="text"
+                  placeholder="Pesquisar aluno por nome ou e-mail..."
+                  value={termoBuscaUsuario}
+                  onChange={e => setTermoBuscaUsuario(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-[var(--bg-color)] border border-[#1f2635] rounded-xl text-sm text-white outline-none focus:border-[var(--primary-color)] transition-all placeholder:text-gray-500"
+                />
+              </div>
+            </div>
+
+            <div className="p-3 sm:p-4 overflow-y-auto flex-1 divide-y divide-[#1f2635]/60">
+              {usuariosFiltradosModal.length === 0 ? (
+                <div className="text-center py-10">
+                  <p className="text-gray-400 text-sm">Nenhum aluno elegível encontrado.</p>
+                  <p className="text-xs text-gray-600 mt-1">Contas de administradores não constam nesta alocação.</p>
+                </div>
+              ) : (
+                usuariosFiltradosModal.map((usr) => (
+                  <div key={usr.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-3 px-2 rounded-xl hover:bg-[#161b26]/30 transition-colors group gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-white group-hover:text-[var(--primary-color)] transition-colors truncate">
+                        {usr.nome_completo || 'Sem Nome Cadastrado'}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5 truncate">
+                        {usr.email_institucional || 'Sem e-mail institucional'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleVincularUsuario(usr.id, usr.nome_completo, usr.role)}
+                      className="text-xs bg-[var(--primary-color)]/10 hover:bg-[var(--primary-color)]/20 text-[var(--primary-color)] border border-[var(--primary-color)]/30 px-3 py-2 rounded-xl font-bold transition-all whitespace-nowrap w-full sm:w-auto text-center"
+                    >
+                      Selecionar Aluno
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="p-4 border-t border-[#1f2635] bg-[#161b26] flex flex-col sm:flex-row justify-between items-center gap-3">
+              <span className="text-xs text-gray-500 font-medium text-center sm:text-left">
+                Alunos elegíveis listados: {usuariosFiltradosModal.length}
+              </span>
+              <button
+                onClick={() => { setModalAberto(false); setArmarioSelecionado(null); }}
+                className="w-full sm:w-auto px-5 py-2 bg-[#1a2333] hover:bg-[#253247] border border-[#1f2635] rounded-xl text-xs font-semibold text-gray-300 transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE CRIAÇÃO EM LOTE */}
+      {/* Confirmação de exclusão do corredor. Não é window.confirm porque
+          precisa MOSTRAR a contagem e, se houver ocupante, explicar por que a
+          operação está bloqueada — coisa que um confirm de uma linha não faz. */}
+      {corredorParaExcluir && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="w-full max-w-md bg-[var(--surface-color)] border border-[#1f2635] rounded-xl shadow-2xl overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-[#1f2635] bg-[#161b26]">
+              <h3 className="text-base font-bold text-white">
+                Excluir {nomearCorredor(escola, corredorParaExcluir).toLowerCase()}
+              </h3>
+            </div>
+
+            <div className="p-4 flex flex-col gap-3 text-sm text-gray-300">
+              {ocupadosNoCorredor.length > 0 ? (
+                <>
+                  <div className="p-3 bg-red-950/40 border border-red-900/50 rounded-lg text-red-400 text-xs">
+                    ⚠️ {ocupadosNoCorredor.length} armário{ocupadosNoCorredor.length === 1 ? '' : 's'} deste{' '}
+                    {rotuloCorredor(escola).toLowerCase()} {ocupadosNoCorredor.length === 1 ? 'está ocupado' : 'estão ocupados'}.
+                  </div>
+                  <p>
+                    Apagar levaria junto o vínculo de quem pagou. Remova os vínculos
+                    primeiro: {ocupadosNoCorredor.slice(0, 8).map(a => a.nome).join(', ')}
+                    {ocupadosNoCorredor.length > 8 && ` e mais ${ocupadosNoCorredor.length - 8}`}.
+                  </p>
+                </>
+              ) : (
+                <p>
+                  Isto apaga <strong className="text-white">{armariosDoCorredorAlvo.length} armário
+                  {armariosDoCorredorAlvo.length === 1 ? '' : 's'}</strong> de forma permanente. Não há como desfazer.
+                </p>
+              )}
+            </div>
+
+            <div className="p-3 border-t border-[#1f2635] bg-[#161b26] flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setCorredorParaExcluir(null)}
+                disabled={excluindoCorredor}
+                className="px-4 py-2 text-sm text-gray-300 hover:text-white transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleExcluirCorredor}
+                disabled={excluindoCorredor || ocupadosNoCorredor.length > 0 || armariosDoCorredorAlvo.length === 0}
+                className="px-4 py-2 bg-red-950/60 hover:bg-red-900/60 text-red-300 border border-red-900/50 rounded-xl text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {excluindoCorredor ? 'Excluindo...' : 'Excluir permanentemente'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modalLoteAberto && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <form
+            onSubmit={handleCriarLote}
+            className="w-full max-w-md bg-[var(--surface-color)] border border-[#1f2635] rounded-xl shadow-2xl overflow-hidden flex flex-col"
+          >
+            <div className="p-4 border-b border-[#1f2635] bg-[#161b26]">
+              <h3 className="text-base font-bold text-white">Adicionar Armários em Lote</h3>
+              <p className="text-xs text-gray-400 mt-1">
+                {`Informe o ${rotuloCorredor(escola).toLowerCase()} e o intervalo de números.`}
+              </p>
+            </div>
+
+            <div className="p-4 flex flex-col gap-3">
+              {erroLote && (
+                <div className="p-2.5 bg-red-950/40 border border-red-900/50 rounded-lg text-red-400 text-xs">
+                  ⚠️ {erroLote}
+                </div>
+              )}
+
+              <label className="flex flex-col gap-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                {rotuloCorredor(escola)}
+                <input
+                  type="text"
+                  value={corredorLote}
+                  onChange={e => setCorredorLote(e.target.value)}
+                  placeholder="Ex: 1"
+                  className="w-full px-3 py-2 bg-[var(--bg-color)] border border-[#1f2635] rounded-lg text-sm text-white outline-none focus:border-[var(--primary-color)] transition-all normal-case font-normal"
+                />
+              </label>
+
+              {/* `min-w-0` nos rótulos é o que conserta o vazamento: um item
+                  flex não encolhe abaixo da largura intrínseca do conteúdo, e
+                  <input type="number"> tem ~170px natural no navegador. Dois
+                  lado a lado somavam ~352px dentro dos 311px que sobram do
+                  modal num celular de 375px, e transbordavam. */}
+              <div className="flex flex-col min-[380px]:flex-row gap-3">
+                <label className="flex-1 min-w-0 flex flex-col gap-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                  Armário Início
+                  <input
+                    type="number"
+                    min="1"
+                    value={inicioLote}
+                    onChange={e => setInicioLote(e.target.value)}
+                    placeholder="Ex: 1"
+                    className="w-full px-3 py-2 bg-[var(--bg-color)] border border-[#1f2635] rounded-lg text-sm text-white outline-none focus:border-[var(--primary-color)] transition-all normal-case font-normal"
+                  />
+                </label>
+
+                <label className="flex-1 min-w-0 flex flex-col gap-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                  Armário Fim
+                  <input
+                    type="number"
+                    min="1"
+                    value={fimLote}
+                    onChange={e => setFimLote(e.target.value)}
+                    placeholder="Ex: 100"
+                    className="w-full px-3 py-2 bg-[var(--bg-color)] border border-[#1f2635] rounded-lg text-sm text-white outline-none focus:border-[var(--primary-color)] transition-all normal-case font-normal"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="p-3 border-t border-[#1f2635] bg-[#161b26] flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setModalLoteAberto(false)}
+                disabled={criandoLote}
+                className="px-4 py-1.5 bg-[#1a2333] hover:bg-[#253247] border border-[#1f2635] rounded-lg text-xs font-semibold text-gray-300 transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={criandoLote}
+                className="px-4 py-1.5 bg-[var(--primary-color)]/15 hover:bg-[var(--primary-color)]/25 border border-[var(--primary-color)]/30 rounded-lg text-xs font-semibold text-[var(--primary-color)] transition-colors disabled:opacity-50"
+              >
+                {criandoLote ? 'Criando...' : 'Criar Armários'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* MODAL DE ATRIBUIÇÃO A FUNCIONÁRIO (sem conta de usuário) */}
+      {modalFuncionarioAberto && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <form
+            onSubmit={handleAtribuirFuncionario}
+            className="w-full max-w-md bg-[var(--surface-color)] border border-[#1f2635] rounded-xl shadow-2xl overflow-hidden flex flex-col"
+          >
+            <div className="p-4 border-b border-[#1f2635] bg-[#161b26]">
+              <h3 className="text-base font-bold text-white">Atribuir Armário {armarioFuncionario?.nome} a Funcionário</h3>
+              <p className="text-xs text-gray-400 mt-1">
+                Não cria login nem usuário — só grava o nome de quem usa o armário.
+              </p>
+            </div>
+
+            <div className="p-4 flex flex-col gap-3">
+              {erroFuncionario && (
+                <div className="p-2.5 bg-red-950/40 border border-red-900/50 rounded-lg text-red-400 text-xs">
+                  ⚠️ {erroFuncionario}
+                </div>
+              )}
+
+              <label className="flex flex-col gap-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                Nome do funcionário
+                <input
+                  type="text"
+                  value={nomeFuncionario}
+                  onChange={e => setNomeFuncionario(e.target.value)}
+                  placeholder="Ex: Maria da Secretaria"
+                  autoFocus
+                  className="w-full px-3 py-2 bg-[var(--bg-color)] border border-[#1f2635] rounded-lg text-sm text-white outline-none focus:border-violet-500 transition-all normal-case font-normal"
+                />
+              </label>
+            </div>
+
+            <div className="p-3 border-t border-[#1f2635] bg-[#161b26] flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => { setModalFuncionarioAberto(false); setArmarioFuncionario(null); }}
+                disabled={salvandoFuncionario}
+                className="px-4 py-1.5 bg-[#1a2333] hover:bg-[#253247] border border-[#1f2635] rounded-lg text-xs font-semibold text-gray-300 transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={salvandoFuncionario}
+                className="px-4 py-1.5 bg-violet-950/60 hover:bg-violet-900/60 border border-violet-900/50 rounded-lg text-xs font-semibold text-violet-400 transition-colors disabled:opacity-50"
+              >
+                {salvandoFuncionario ? 'Salvando...' : 'Atribuir Armário'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,539 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
+@import "tailwindcss";
+
+/* Fontes de marca aplicadas ao projeto inteiro via utilitários do Tailwind
+   (font-sans / font-display), então nenhuma classe existente precisa mudar. */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Tokens de marca, alinhados à landing (ver theme/marca.js).
+   São FIXOS: a escola não escolhe cores. O que a instituição personaliza é a
+   logo e onde ela aparece. Nada sobrescreve estes valores em tempo de execução. */
+:root {
+  --primary-color: #E8B44A;
+  --secondary-color: #C8912E;
+  --bg-color: #0A1F44;
+  --surface-color: #0D2A52;
+  --surface-raised: #123362;
+  --border-color: rgba(255, 255, 255, 0.10);
+  --on-primary: #0A1F44;
+  --on-bg: #ffffff;
+  --on-bg-muted: rgba(255, 255, 255, 0.55);
+  --success: #3DDC97;
+  --danger: #EF4444;
+
+  --radius-card: 16px;
+  --radius-control: 10px;
+  --shadow-panel: 0 30px 60px -15px rgba(0, 0, 0, 0.6);
+
+}
+
+* {
+  scrollbar-color: color-mix(in srgb, var(--primary-color) 40%, transparent) transparent;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--primary-color) 35%, transparent);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--primary-color) 55%, transparent);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--bg-color);
+  color: var(--on-bg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ==================================================================
+   Vocabulário de componentes LCKP
+   As formas são as da landing (borda translúcida, superfície suave,
+   cantos generosos, brilho no hover, recuo no clique). As cores vêm
+   sempre de token, nunca literal, para haver um lugar só que define cor.
+   ================================================================== */
+
+.lckp-card {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-panel);
+  color: var(--on-bg);
+}
+
+.lckp-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--on-bg-muted);
+  margin-bottom: 0.375rem;
+}
+
+.lckp-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-control);
+  padding: 0.625rem 0.875rem;
+  color: var(--on-bg);
+  font-family: inherit;
+  font-size: 0.9375rem;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.lckp-input::placeholder { color: var(--on-bg-muted); }
+.lckp-input:focus { border-color: var(--primary-color); }
+.lckp-input:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.lckp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--primary-color);
+  color: var(--on-primary);
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  padding: 0.75rem 1.5rem;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.1s ease;
+  /* brightness() é um filter e não é composto pela GPU por padrão: sem promover
+     a camada, cada hover força uma nova rasterização do botão e a resposta
+     parece atrasada. */
+  transform: translateZ(0);
+  will-change: transform;
+}
+.lckp-btn:hover:not(:disabled) { filter: brightness(1.1); }
+.lckp-btn:active:not(:disabled) { transform: scale(0.98); }
+.lckp-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.lckp-btn--ghost {
+  background: transparent;
+  color: var(--on-bg);
+  border-color: var(--border-color);
+}
+.lckp-btn--ghost:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--on-bg) 8%, transparent);
+  filter: none;
+}
+
+.lckp-btn--danger {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+}
+.lckp-btn--danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 20%, transparent);
+  filter: none;
+}
+
+.lckp-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.875rem; }
+.lckp-table thead tr { border-bottom: 1px solid var(--border-color); }
+.lckp-table th {
+  padding: 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--on-bg-muted);
+  white-space: nowrap;
+}
+.lckp-table td { padding: 0.75rem; }
+.lckp-table tbody tr + tr { border-top: 1px solid color-mix(in srgb, var(--border-color) 50%, transparent); }
+
+.lckp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid var(--border-color);
+  background: color-mix(in srgb, var(--on-bg) 6%, transparent);
+  color: var(--on-bg-muted);
+}
+.lckp-chip--success {
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 35%, transparent);
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+}
+.lckp-chip--danger {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 35%, transparent);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+.lckp-chip--muted { opacity: 0.7; }
+
+/* Moldura de vidro das logos da instituição.
+   A logo da escola costuma vir com fundo transparente ou branco e some sobre o
+   navy. A placa translúcida com desfoque destaca a marca da escola sem competir
+   com a identidade do LCKP — mesmo tratamento em todas as telas do fluxo. */
+.lckp-logo-vidro {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.375rem 0.75rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--on-bg) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--on-bg) 18%, transparent);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  /* Brilho superior interno: é o que dá a leitura de "vidro" em vez de
+     "caixa cinza". */
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--on-bg) 22%, transparent),
+    0 4px 16px -6px rgba(0, 0, 0, 0.45);
+}
+
+.lckp-logo-vidro img {
+  height: 2rem;
+  max-width: 130px;
+  object-fit: contain;
+  display: block;
+}
+
+/* No login a logo é o herói da tela, então ganha mais respiro. */
+.lckp-logo-vidro--destaque {
+  padding: 0.875rem 1.25rem;
+  border-radius: 16px;
+}
+.lckp-logo-vidro--destaque img {
+  height: 3.5rem;
+  max-width: 200px;
+}
+
+/* Com as duas logos do mesmo lado, a barra fica disputada: no celular são duas
+   placas + o botão Sair no mesmo espaço. Encolhe em dois estágios em vez de
+   deixar estourar. */
+@media (max-width: 640px) {
+  .lckp-logo-vidro { padding: 0.25rem 0.5rem; }
+  .lckp-logo-vidro img { height: 1.75rem; max-width: 92px; }
+}
+
+@media (max-width: 420px) {
+  .lckp-logo-vidro { padding: 0.1875rem 0.375rem; border-radius: 9px; }
+  .lckp-logo-vidro img { height: 1.375rem; max-width: 62px; }
+}
+
+/* ==================================================================
+   Relatório anual de faturamento
+   Oculto na tela; só existe no papel. Impresso pelo próprio navegador,
+   sem biblioteca de PDF — texto selecionável e nítido em qualquer escala.
+   ================================================================== */
+#relatorio-anual { display: none; }
+
+@media print {
+  /* Esconde a aplicação inteira e revela só o relatório. visibility (e não
+     display) preserva o fluxo, então a paginação do navegador continua certa. */
+  body * { visibility: hidden; }
+  #relatorio-anual, #relatorio-anual * { visibility: visible; }
+
+  #relatorio-anual {
+    display: block;
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    background: #fff;
+    color: #0A1F44;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.45;
+  }
+
+  @page { margin: 14mm; }
+
+  .rel-topo {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    border-bottom: 2.5pt solid #0A1F44;
+    padding-bottom: 8pt;
+  }
+  .rel-marca { display: flex; align-items: center; gap: 10pt; }
+  .rel-marca strong {
+    display: block; font-size: 20pt; font-weight: 800; letter-spacing: .5pt; line-height: 1;
+  }
+  .rel-marca span { font-size: 8pt; color: #54647E; }
+  .rel-emissao { text-align: right; font-size: 8pt; color: #54647E; }
+  .rel-emissao strong { display: block; color: #0A1F44; font-size: 9pt; }
+
+  .rel-titulo { font-size: 17pt; font-weight: 800; margin: 16pt 0 2pt; letter-spacing: -.3pt; }
+  .rel-escola { font-size: 12pt; color: #54647E; margin: 0 0 14pt; }
+
+  .rel-resumo { display: flex; gap: 10pt; margin-bottom: 16pt; break-inside: avoid; }
+  .rel-resumo > div { flex: 1; border: 1pt solid #C9D2DF; border-radius: 4pt; padding: 8pt 10pt; }
+  .rel-resumo span {
+    display: block; font-size: 7.5pt; text-transform: uppercase;
+    letter-spacing: .6pt; color: #54647E; margin-bottom: 2pt;
+  }
+  .rel-resumo strong { font-size: 13pt; font-weight: 700; }
+  .rel-total { color: #A9762A; font-size: 16pt !important; }
+
+  .rel-sub {
+    font-size: 10pt; font-weight: 700; text-transform: uppercase; letter-spacing: .8pt;
+    color: #54647E; margin: 14pt 0 6pt; break-after: avoid;
+  }
+
+  .rel-tabela { width: 100%; border-collapse: collapse; font-size: 9.5pt; }
+  .rel-tabela th {
+    text-align: left; font-size: 7.5pt; text-transform: uppercase; letter-spacing: .6pt;
+    color: #54647E; border-bottom: 1pt solid #0A1F44; padding: 5pt 6pt;
+  }
+  .rel-tabela td { padding: 5pt 6pt; border-bottom: .5pt solid #E1E6EE; }
+  .rel-tabela tfoot td { font-weight: 700; border-top: 1.5pt solid #0A1F44; border-bottom: none; }
+  .rel-tabela .num { text-align: right; font-variant-numeric: tabular-nums; }
+  /* Cabeçalho repetido em cada página quando a tabela quebra. */
+  .rel-tabela thead { display: table-header-group; }
+  .rel-tabela tr { break-inside: avoid; }
+
+  .rel-rodape {
+    margin-top: 18pt; padding-top: 8pt; border-top: .5pt solid #C9D2DF;
+    font-size: 7.5pt; color: #54647E; line-height: 1.5;
+  }
+}
+
+.lckp-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+}
+
+.lckp-modal {
+  width: 100%;
+  max-width: 26rem;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-panel);
+  color: var(--on-bg);
+  overflow: hidden;
+}
+
+/* Contrato e outros textos longos precisam de mais largura que o diálogo de
+   confirmação de armário, e de rolagem própria. */
+.lckp-modal--largo {
+  max-width: 42rem;
+  display: flex;
+  flex-direction: column;
+  max-height: min(85vh, 44rem);
+}
+
+@media (max-width: 640px) {
+  .lckp-modal--largo { max-height: 90vh; }
+}
+
+/* ---------------------------------------------------------------------
+   Tabela que vira cartões no celular
+   ---------------------------------------------------------------------
+   Tabela de 5 colunas não cabe em 375px. A saída anterior era `min-width`
+   grande com rolagem lateral, o que obriga o dedo a arrastar para ler cada
+   linha e esconde as ações fora da tela.
+
+   Aqui cada linha vira um cartão e cada célula uma dupla rótulo/valor. O
+   rótulo sai de `data-label` no <td> — SEM esse atributo o ::before fica
+   vazio e o space-between joga o valor contra a borda direita, que é
+   exatamente o defeito que este bloco existe para corrigir. */
+@media (max-width: 767px) {
+  .lckp-tabela-cartao { min-width: 0 !important; }
+
+  .lckp-tabela-cartao thead { display: none; }
+
+  .lckp-tabela-cartao,
+  .lckp-tabela-cartao tbody,
+  .lckp-tabela-cartao tr,
+  .lckp-tabela-cartao td { display: block; width: 100%; }
+
+  .lckp-tabela-cartao tr {
+    padding: 0.15rem 0.15rem 0.35rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .lckp-tabela-cartao td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-width: 0;
+    /* Cartão compacto: cada armário é uma linha de consulta rápida, não uma
+       ficha. Com o padding original cabiam ~3 por tela; assim cabem ~6. */
+    padding: 0.25rem 0.7rem !important;
+    font-size: 0.8125rem;
+    line-height: 1.35;
+    text-align: right;
+    overflow-wrap: anywhere;
+    /* Anula `truncate`/`whitespace-nowrap` do Tailwind: cortar com reticências
+       faz sentido numa coluna estreita, não num cartão de largura inteira. */
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    max-width: none;
+  }
+
+  .lckp-tabela-cartao td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--on-bg-muted);
+    text-align: left;
+  }
+
+  /* Linha de "nada encontrado": ocupa a largura toda e não é par
+     rótulo/valor. Sem isto herdaria o space-between e ficaria à direita. */
+  .lckp-tabela-cartao td[colspan] {
+    display: block;
+    text-align: center;
+  }
+  .lckp-tabela-cartao td[colspan]::before { content: none; }
+
+  /* A célula de ações vira uma faixa própria: os botões precisam de alvo de
+     toque, e espremê-los ao lado de um rótulo deixa cada um com ~30px. */
+  .lckp-tabela-cartao td[data-label="Ações"] {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    padding-top: 0.6rem !important;
+  }
+  .lckp-tabela-cartao td[data-label="Ações"] button { min-height: 36px; }
+}
+
+
+
+/* ---------------------------------------------------------------------
+   Contrato de locação da instituição
+   ---------------------------------------------------------------------
+   É texto jurídico longo, lido de cima a baixo antes de pagar. As escolhas
+   aqui são de legibilidade, não de decoração: medida de leitura contida,
+   entrelinha generosa e cláusulas numeradas com o número destacado, para o
+   aluno conseguir dizer "a cláusula 7" à secretaria. */
+.lckp-contrato__topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.lckp-contrato__titulo {
+  margin: 0;
+  font-family: var(--font-display, 'Space Grotesk', sans-serif);
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.3;
+  color: var(--primary-color);
+  text-wrap: balance;
+}
+
+.lckp-contrato__escola {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--on-bg-muted);
+}
+
+.lckp-contrato__fechar { padding: 0.35rem 0.7rem; line-height: 1; flex-shrink: 0; }
+
+.lckp-contrato__corpo {
+  overflow-y: auto;
+  padding: 1.5rem 1.75rem;
+  /* Medida de leitura: linha muito longa faz o olho perder a próxima. */
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: var(--on-bg);
+}
+
+.lckp-contrato__lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: clausula;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.lckp-contrato__lista li {
+  counter-increment: clausula;
+  position: relative;
+  padding-left: 2.5rem;
+  text-align: justify;
+  hyphens: auto;
+}
+
+/* O número fica fora do fluxo do texto, alinhado à esquerda: assim as
+   cláusulas formam uma coluna limpa em vez de recuos irregulares. */
+.lckp-contrato__lista li::before {
+  content: counter(clausula);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1.6rem;
+  height: 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--primary-color) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary-color) 32%, transparent);
+  color: var(--primary-color);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.lckp-contrato__vazio {
+  margin: 0;
+  padding: 1.25rem;
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+  color: var(--on-bg);
+}
+
+.lckp-contrato__rodape {
+  padding: 1rem 1.75rem;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+  .lckp-contrato__topo,
+  .lckp-contrato__corpo,
+  .lckp-contrato__rodape { padding-inline: 1.1rem; }
+  .lckp-contrato__corpo { padding-block: 1.15rem; font-size: 0.8125rem; }
+  .lckp-contrato__lista { gap: 1rem; }
+  .lckp-contrato__lista li {
+    padding-left: 2.1rem;
+    /* Justificado numa coluna estreita abre "rios" de espaço entre palavras. */
+    text-align: left;
+  }
+  .lckp-contrato__lista li::before { width: 1.4rem; height: 1.4rem; font-size: 0.625rem; }
+  .lckp-contrato__rodape .lckp-btn { width: 100%; justify-content: center; }
+}

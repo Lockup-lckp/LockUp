@@ -1,0 +1,129 @@
+/* Os tokens globais são definidos uma única vez em src/index.css. Este arquivo
+   redefinia --primary-color/--bg-color/--box-bg com a paleta antiga num :root
+   próprio, competindo com o global conforme a ordem de carga dos stylesheets. */
+
+.page-container {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 15% 10%, color-mix(in srgb, var(--primary-color) 10%, transparent), transparent 45%),
+    linear-gradient(to top right, var(--bg-color), var(--surface-color), var(--bg-color));
+  padding: 24px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.form-box {
+  width: 100%;
+  max-width: 400px;
+  background: var(--surface-color);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+}
+
+.login-title {
+  color: #ffffff;
+  font-family: var(--font-display, 'Space Grotesk', sans-serif);
+  font-size: 1.55rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.login-subtitle {
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  margin-top: 6px;
+  margin-bottom: 0;
+}
+
+.error-box {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid #ef4444;
+  color: #fca5a5;
+  padding: 12px;
+  font-size: 0.875rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  color: #f1f5f9;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-left: 4px;
+}
+
+.input {
+  width: 100%;
+  padding: 14px 16px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  color: #ffffff;
+  font-size: 0.875rem;
+  outline: none;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.input::placeholder {
+  color: #94a3b8;
+}
+
+.input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 30%, transparent);
+}
+
+.button-submit {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  border: none;
+  border-radius: 12px;
+  color: var(--on-primary);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  box-shadow: 0 10px 24px -8px color-mix(in srgb, var(--primary-color) 55%, transparent);
+}
+
+.button-submit:hover:not(:disabled) {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px -8px color-mix(in srgb, var(--primary-color) 65%, transparent);
+}
+
+.button-submit:active:not(:disabled) {
+  transform: translateY(0);
+  filter: brightness(0.97);
+}
+
+.button-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
