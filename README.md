@@ -17,7 +17,7 @@ Repositório central do projeto **Lockup (LCKP)**.
 ### Instalação
 1. Clone o repositório:
    ```bash
-   git clone [https://github.com/Lockup-lckp/LockUp.git](https://github.com/Lockup-lckp/LockUp.git)
+   git clone https://github.com/Lockup-lckp/LockUp.git
    ```
 2. Instale as dependências:
    ```bash
