@@ -1,5 +1,6 @@
 import { nomearCorredor } from "../utils/rotuloCorredor";
 import React from 'react';
+import logoLckp from '../assets/logo_lckp.png';
 
 // Relatório anual de faturamento, feito para o PAPEL — é o documento que a
 // escola leva para a prestação de contas.
@@ -36,16 +37,7 @@ export default function RelatorioAnual({ escola, ano, locacoes, total }) {
     <div id="relatorio-anual" aria-hidden="true">
       <header className="rel-topo">
         <div className="rel-marca">
-          <svg viewBox="0 0 100 110" width="44" height="48" aria-hidden="true">
-            <rect x="14" y="6" width="46" height="82" rx="4" fill="none" stroke="#0A1F44" strokeWidth="6" />
-            <path d="M24 24h26M24 34h26" stroke="#0A1F44" strokeWidth="5" strokeLinecap="round" />
-            <path d="M20 88l-5 11M54 88l5 11" stroke="#0A1F44" strokeWidth="6" strokeLinecap="round" />
-            <circle cx="27" cy="54" r="4.5" fill="#0A1F44" />
-            <rect x="25" y="50" width="52" height="8" rx="2" fill="#EE9B2E" />
-            <rect x="37" y="58" width="6" height="8" rx="1.5" fill="#EE9B2E" />
-            <rect x="47" y="58" width="6" height="8" rx="1.5" fill="#EE9B2E" />
-            <circle cx="84" cy="54" r="9" fill="none" stroke="#EE9B2E" strokeWidth="8" />
-          </svg>
+          <img src={logoLckp} alt="Logo LCKP" style={{ height: '70px', width: 'auto', objectFit: 'contain' }} />
           <div>
             <strong>LCKP</strong>
             <span>LockUp · Locação de Armários Escolares</span>
