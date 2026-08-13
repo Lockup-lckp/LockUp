@@ -1,55 +1,55 @@
 # 🔒 LCKP — Lockup Ecosystem
 
-Repositório central do projeto **Lockup (LCKP)**.
+Repositorio central do projeto **Lockup (LCKP)** — ecossistema e plataforma de locacao de armarios escolares.
 
-## 🏗️ Estrutura do Projeto
+## 🗂️ Estrutura do Projeto
 
-- `/apps/frontend`: Interface web e dashboard da aplicação.
-- `/apps/backend`: APIs, regras de negócio e serviços de banco de dados.
-- `/.github`: Automações de CI/CD, templates de Pull Request e diretrizes do repositório.
+- `front/`: Interface web (React 19 + Vite + Tailwind). Deploy na **Vercel**.
+- `Backend/`: API e regras de negocio (Node.js + Express + Supabase). Deploy no **Render** (ou VPS).
+- `docs/`: Documentacao do projeto (configuracao, deploy, etc.).
+- `.github/`: Automacoes de CI/CD, template de Pull Request e diretrizes do repositorio.
 
 ## 🚀 Como Executar Localmente
 
-### Pré-requisitos
+### Pre-requisitos
 - Node.js (v18+)
 - Git
+- Conta no Supabase (para o backend)
 
-### Instalação
-1. Clone o repositório:
-   ```bash
-   git clone https://github.com/Lockup-lckp/LockUp.git
-   ```
-2. Instale as dependências:
-   ```bash
-   npm install
-   ```
+### Frontend (`front/`)
+```bash
+cd front
+cp .env.example .env   # preencha as variaveis
+npm install
+npm run dev            # http://localhost:5173
+```
 
-### Como Trabalhar na Branch e Abrir o PR
+### Backend (`Backend/`)
+```bash
+cd Backend
+cp .env.example .env   # preencha SUPABASE_URL, JWT_SECRET, etc.
+npm install
+npm run dev            # porta definida em PORT (padrao 3000)
+```
 
-1. **Atualize a branch base (`develop`):**
-   ```bash
-   git checkout develop
-   git pull origin develop
-   ```
+> As variaveis de ambiente necessarias estao documentadas nos arquivos `.env.example` de cada pasta. **Nunca** commite arquivos `.env` com valores reais.
 
-2. **Crie uma nova branch de funcionalidade ou correção:**
-   ```bash
-   git checkout -b feature/nome-da-sua-tarefa
-   ```
+## 🌿 Fluxo de Trabalho (Branches e PR)
 
-3. **Desenvolva e faça o commit das suas alterações:**
-   ```bash
-   git add .
-   git commit -m "feat(modulo): descricao clara da alteracao"
-   ```
+1. Atualize a branch base: `git checkout develop && git pull origin develop`
+2. Crie uma branch: `git checkout -b feature/nome-da-sua-tarefa`
+3. Faca commits claros (Conventional Commits): `feat(modulo): descricao clara`
+4. Envie e abra o Pull Request para `develop`: `git push -u origin feature/nome-da-sua-tarefa`
+5. Preencha o template de PR e aguarde a revisao da equipe.
 
-4. **Envie a branch para o GitHub:**
-   ```bash
-   git push -u origin feature/nome-da-sua-tarefa
-   ```
+## 📦 Deploy
 
-5. **Abra o Pull Request:**
-   - Acesse o repositório no GitHub.
-   - Clique no botão **Compare & pull request**.
-   - Defina a branch de destino (**base**) como `develop`.
-   - Preencha a descrição utilizando o modelo padrão de PR e aguarde a revisão da equipe.
+- **Frontend** → Vercel (build automatico a cada push na `main`).
+- **Backend** → Render (blueprint em `render.yaml`) ou VPS.
+
+Passo a passo completo em [`docs/DEPLOY.md`](docs/DEPLOY.md).
+
+## 🔗 Links
+
+- Site: https://www.lckp.com.br/
+- Board de tarefas: aba **Projects** da organizacao
