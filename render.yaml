@@ -1,0 +1,40 @@
+# Render Blueprint - Backend LCKP
+# Docs: https://render.com/docs/blueprint-spec
+# Para usar: no Render, "New +" > "Blueprint" > selecione este repo.
+# As variaveis marcadas com sync:false devem ser preenchidas manualmente
+# no dashboard do Render (NUNCA commite valores reais de secrets).
+
+services:
+  - type: web
+    name: lockup-backend
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: Backend
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: PORT
+        value: 10000
+      # ---- CORS ----
+      - key: CORS_ORIGINS
+        sync: false   # ex: https://www.lckp.com.br
+      # ---- Supabase ----
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      # ---- Auth ----
+      - key: JWT_SECRET
+        sync: false
+      # ---- Mercado Pago ----
+      - key: MP_ACCESS_TOKEN
+        sync: false
+      - key: MP_WEBHOOK_SECRET
+        sync: false
+      - key: BACKEND_PUBLIC_URL
+        sync: false
