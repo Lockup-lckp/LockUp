@@ -1,0 +1,25 @@
+# CODEOWNERS - revisores automaticos por area
+# Docs: https://docs.github.com/pt/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Quando um PR toca um caminho abaixo, os donos sao pedidos como revisores.
+# Substitua @coltrox pelos times quando eles existirem, por exemplo:
+#   /front/    @Lockup-lckp/frontend
+#   /Backend/  @Lockup-lckp/backend
+
+# Dono padrao de tudo (fallback)
+*             @coltrox
+
+# Frontend
+/front/       @coltrox
+# /front/     @Lockup-lckp/frontend
+
+# Backend
+/Backend/     @coltrox
+# /Backend/   @Lockup-lckp/backend
+
+# Infra / automacoes / config de deploy
+/.github/     @coltrox
+/render.yaml  @coltrox
+
+# Documentacao
+/docs/        @coltrox
