@@ -1,17 +1,18 @@
 # CODEOWNERS - revisores automaticos por area
 # Docs: https://docs.github.com/pt/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 #
-# Quando um PR toca um caminho abaixo, os donos sao pedidos como revisores.
-# Times da organizacao: @Lockup-lckp/front-end e @Lockup-lckp/back-end
+# Fluxo: os times front-end/back-end abrem os PRs;
+# os times de review (front-review/back-review) sao pedidos como revisores
+# e aprovam os PRs da sua area.
 
 # Dono padrao de tudo (fallback)
 * @coltrox
 
-# Frontend
-/front/ @Lockup-lckp/front-end
+# Frontend -> aprovado por front-review
+/front/ @Lockup-lckp/front-review
 
-# Backend
-/Backend/ @Lockup-lckp/back-end
+# Backend -> aprovado por back-review
+/Backend/ @Lockup-lckp/back-review
 
 # Infra / automacoes / config de deploy
 /.github/ @coltrox
