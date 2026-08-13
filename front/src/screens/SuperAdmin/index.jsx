@@ -89,7 +89,7 @@ function TelaLogin({ onLogado }) {
         <button
           type="submit"
           disabled={carregando}
-          className="w-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--secondary-color)] text-[var(--on-primary)] font-bold px-6 py-2.5 rounded-lg hover:brightness-105 active:scale-[0.99] transition-all disabled:opacity-60"
+          className="w-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--secondary-color)] text-[var(--on-primary)] font-bold px-6 py-2.5 rounded-lg hover:brightness-105 active:scale-[0.99] transition-[filter] disabled:opacity-60"
         >
           {carregando ? 'Entrando...' : 'Entrar'}
         </button>
@@ -176,7 +176,7 @@ function TelaTrocarSenha({ onTrocada }) {
         <button
           type="submit"
           disabled={carregando}
-          className="w-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--secondary-color)] text-[var(--on-primary)] font-bold px-6 py-2.5 rounded-lg hover:brightness-105 active:scale-[0.99] transition-all disabled:opacity-60"
+          className="w-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--secondary-color)] text-[var(--on-primary)] font-bold px-6 py-2.5 rounded-lg hover:brightness-105 active:scale-[0.99] transition-[filter] disabled:opacity-60"
         >
           {carregando ? 'Salvando...' : 'Salvar e continuar'}
         </button>
@@ -700,7 +700,7 @@ function Painel({ usuario, onSair }) {
             <button
               type="submit"
               disabled={criandoEscola}
-              className="md:col-span-3 bg-gradient-to-r from-[var(--primary-color)] to-[var(--secondary-color)] text-[var(--on-primary)] font-bold px-6 py-2.5 rounded-lg hover:brightness-105 active:scale-[0.99] transition-all disabled:opacity-60"
+              className="md:col-span-3 bg-gradient-to-r from-[var(--primary-color)] to-[var(--secondary-color)] text-[var(--on-primary)] font-bold px-6 py-2.5 rounded-lg hover:brightness-105 active:scale-[0.99] transition-[filter] disabled:opacity-60"
             >
               {criandoEscola ? 'Cadastrando...' : 'Cadastrar instituição'}
             </button>
@@ -834,7 +834,7 @@ function Painel({ usuario, onSair }) {
                 <button
                   type="submit"
                   disabled={salvandoEdicao}
-                  className="px-4 py-1.5 bg-gradient-to-r from-[var(--primary-color)] to-[var(--secondary-color)] text-[var(--on-primary)] rounded-md text-xs font-bold transition-all disabled:opacity-50"
+                  className="px-4 py-1.5 bg-gradient-to-r from-[var(--primary-color)] to-[var(--secondary-color)] text-[var(--on-primary)] rounded-md text-xs font-bold transition-[filter] disabled:opacity-50"
                 >
                   {salvandoEdicao ? 'Salvando...' : 'Salvar alterações'}
                 </button>
@@ -914,7 +914,7 @@ function Painel({ usuario, onSair }) {
             <button
               type="submit"
               disabled={enviando}
-              className="md:col-span-2 bg-gradient-to-r from-[var(--primary-color)] to-[var(--secondary-color)] text-[var(--on-primary)] font-bold px-6 py-2.5 rounded-lg hover:brightness-105 active:scale-[0.99] transition-all disabled:opacity-60"
+              className="md:col-span-2 bg-gradient-to-r from-[var(--primary-color)] to-[var(--secondary-color)] text-[var(--on-primary)] font-bold px-6 py-2.5 rounded-lg hover:brightness-105 active:scale-[0.99] transition-[filter] disabled:opacity-60"
             >
               {enviando ? 'Adicionando...' : 'Adicionar superadmin'}
             </button>

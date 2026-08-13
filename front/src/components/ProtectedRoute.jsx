@@ -1,72 +1,58 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
-import { escolaService } from '../services/escolaService';
+import { useEscola } from '../theme/EscolaContext.jsx';
 
+// Guarda de rota das telas internas.
+//
+// A escola vem do EscolaContext (este componente sempre renderiza dentro do
+// EscolaLayout). Antes fazia seu próprio buscarPorCodigo, o que significava duas
+// chamadas ao mesmo endpoint em toda página protegida — uma do provider, outra
+// daqui — e ainda mantinha a tela em "Validando segurança..." esperando a
+// segunda resolver. Reaproveitando o contexto, a checagem é síncrona.
 export default function ProtectedRoute({ children }) {
   const { schoolCode } = useParams();
-  const [validando, setValidando] = useState(true);
-  const [permitido, setPermitido] = useState(false);
+  const { escola, carregando, erro } = useEscola();
 
+  const usuarioLogado = JSON.parse(sessionStorage.getItem('usuario') || '{}');
+  const ehSuperadmin = usuarioLogado?.role === 'superadmin';
 
+  // Sem sessão — ou sem escola vinculada, quando não é superadmin.
+  const semSessao = !usuarioLogado?.id || (!ehSuperadmin && !usuarioLogado.school_id);
+
+  // Sessão de outra instituição: o school_id do usuário não bate com a escola da URL.
+  const escolaDivergente =
+    !!escola && !ehSuperadmin && usuarioLogado.school_id !== escola.id;
+
+  // Limpa a sessão inválida como efeito, nunca durante a renderização.
   useEffect(() => {
-    const verificarSeguranca = async () => {
-      try {
-        const usuarioLogado = JSON.parse(sessionStorage.getItem('usuario') || '{}');
-
-        // O superadmin (dono da plataforma) acessa o portal de qualquer instituição,
-        // então não precisa ter um school_id próprio.
-        const ehSuperadmin = usuarioLogado?.role === 'superadmin';
-
-        // Sem sessão (ou sem escola vinculada, quando não é superadmin), barra o acesso
-        if (!usuarioLogado?.id || (!ehSuperadmin && !usuarioLogado.school_id)) {
-          setPermitido(false);
-          setValidando(false);
-          return;
-        }
-
-        // Busca os dados da instituição correspondente ao código da URL
-        const dadosEscola = await escolaService.buscarPorCodigo(schoolCode);
-
-        if (!dadosEscola) {
-          setPermitido(false);
-        } else if (!ehSuperadmin && usuarioLogado.school_id !== dadosEscola.id) {
-          // Validação estrita: sessão de outra instituição
-          console.warn("Bloqueio de Segurança: Sessão inválida para esta instituição.");
-          sessionStorage.clear(); // Limpa dados corrompidos ou sessões antigas
-          setPermitido(false);
-        } else {
-          setPermitido(true);
-        }
-      } catch (error) {
-        console.error("Erro na validação do interceptor de rotas:", error);
-        setPermitido(false);
-      } finally {
-        setValidando(false);
-      }
-    };
-
-    if (schoolCode) {
-      verificarSeguranca();
+    if (escolaDivergente) {
+      console.warn('Bloqueio de segurança: sessão inválida para esta instituição.');
+      sessionStorage.clear();
     }
-  }, [schoolCode]);
+  }, [escolaDivergente]);
 
-  if (validando) {
+  if (semSessao) {
+    return <Navigate to={`/${schoolCode}`} replace />;
+  }
+
+  if (carregando) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        backgroundColor: 'var(--bg-color)',
-        color: 'var(--primary-color)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontFamily: 'sans-serif'
-      }}>
-        <h3>Validando segurança do acesso institucional...</h3>
+      <div
+        style={{
+          minHeight: '100vh',
+          backgroundColor: 'var(--bg-color)',
+          color: 'var(--primary-color)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <h3>Validando acesso institucional...</h3>
       </div>
     );
   }
 
-  if (!permitido) {
+  if (erro || !escola || escolaDivergente) {
     return <Navigate to={`/${schoolCode}`} replace />;
   }
 

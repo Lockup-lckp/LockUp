@@ -1,4 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
+/* As fontes NÃO são importadas aqui de propósito. Um @import de fonte dentro do
+   CSS cria uma cascata bloqueante: o navegador baixa o CSS, parseia, e só então
+   descobre que precisa buscar a fonte — atrasando o primeiro texto pintado.
+   Os <link> com preconnect ficam no index.html, onde o parser encontra na
+   primeira passada e dispara o download em paralelo. */
 @import "tailwindcss";
 
 /* Fontes de marca aplicadas ao projeto inteiro via utilitários do Tailwind

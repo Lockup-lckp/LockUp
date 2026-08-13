@@ -62,7 +62,7 @@ function LayoutComComponentes() {
         <SideBar isOpen={menuAberto} onClose={() => setMenuAberto(false)} />
       )}
 
-      <main className={`flex-1 p-6 transition-all duration-300 ${menuAberto ? 'lg:pl-72' : 'lg:pl-6'}`}>
+      <main className={`flex-1 p-6 transition-[padding] duration-300 ${menuAberto ? 'lg:pl-72' : 'lg:pl-6'}`}>
         <Outlet />
       </main>
     </div>

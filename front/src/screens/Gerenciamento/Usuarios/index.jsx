@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { usuarioService } from '../../../services/usuariosServices';
-import { escolaService } from '../../../services/escolaService';
 import { useEscola } from '../../../theme/EscolaContext.jsx';
 import './Gerenciamento.css';
 
 export default function Gerenciamento() {
   const { schoolCode } = useParams(); // Código em texto da URL (Ex: 'etec-bento-quirino')
-  const { escola } = useEscola();
+  const { escola, carregando: escolaCarregando } = useEscola();
   // Cada instituição chama a matrícula de um jeito. A ETEC Bento Quirino usa RM.
   const rotuloMatricula = (escola?.tipo_matricula || 'rm').toUpperCase();
-  const [schoolIdUuid, setSchoolIdUuid] = useState(null); // Guardará o UUID real da escola obtido do banco
+  // UUID da escola vem do contexto — não há motivo para buscar de novo.
+  const schoolIdUuid = escola?.id ?? null;
   const [usuarios, setUsuarios] = useState([]);
   const [termoBusca, setTermoBusca] = useState('');
   const [erro, setErro] = useState(null);
@@ -40,36 +40,26 @@ export default function Gerenciamento() {
   // Controle de Notificações rápidas (Toast)
   const [notificacao, setNotificacao] = useState({ aberto: false, mensagem: '', tipo: 'erro' });
 
-  // Efeito executado ao carregar a página e quando o schoolCode da URL mudar
+  // Carrega os usuários quando a escola do contexto estiver resolvida.
+  //
+  // Antes esta tela buscava a escola por conta própria só para extrair o UUID —
+  // uma terceira chamada ao mesmo endpoint que o EscolaProvider já tinha feito.
+  // Agora o id vem do contexto e a tela só espera ele aparecer.
+  // O caso "escola não identificada" é derivado, não guardado em estado: setar
+  // estado direto no corpo do efeito dispara renderização em cascata.
+  const escolaNaoIdentificada = !escolaCarregando && !schoolIdUuid;
+
   useEffect(() => {
+    if (escolaCarregando || !schoolIdUuid) return;
+
     const inicializarDados = async () => {
       try {
         setCarregando(true);
         setErro(null);
-        let uuidEscola = null;
-
-        // 1. Busca os dados da escola pelo código de texto da URL para extrair o UUID
-        if (schoolCode) {
-          try {
-            const dadosEscola = await escolaService.buscarPorCodigo(schoolCode);
-            uuidEscola = dadosEscola?.id || dadosEscola?.school_id || null;
-            if (uuidEscola) {
-              setSchoolIdUuid(uuidEscola);
-            } else {
-              console.error("Objeto da escola retornado não possui uma propriedade ID válida:", dadosEscola);
-              setErro(`Não foi possível extrair o identificador da instituição "${schoolCode}".`);
-            }
-          } catch (errEscola) {
-            console.error("Erro ao resolver o schoolCode da URL para UUID:", errEscola);
-            setErro(`Não foi possível identificar a instituição "${schoolCode}" no banco de dados.`);
-          }
-        }
-
-        // 2. Carrega a lista de usuários já filtrada por essa escola no servidor
-        //    (evita baixar todos os usuários de todas as instituições).
-        await carregarUsuarios(uuidEscola);
-
-      } catch (err) {
+        // Lista já filtrada por escola no servidor (evita baixar usuários de
+        // todas as instituições).
+        await carregarUsuarios(schoolIdUuid);
+      } catch {
         setErro('Não foi possível carregar os dados iniciais da página.');
         setUsuarios([]);
       } finally {
@@ -78,7 +68,7 @@ export default function Gerenciamento() {
     };
 
     inicializarDados();
-  }, [schoolCode]);
+  }, [schoolIdUuid, escolaCarregando]);
 
   // Sempre que mudar o termo de busca, reseta para a primeira página
   useEffect(() => {
@@ -122,17 +112,9 @@ export default function Gerenciamento() {
       return;
     }
 
-    let uuidValido = schoolIdUuid;
-
-    // Busca de segurança direta caso o estado inicial tenha falhado ou demorado
-    if (!uuidValido && schoolCode) {
-      try {
-        const dadosEscolaDireto = await escolaService.buscarPorCodigo(schoolCode);
-        uuidValido = dadosEscolaDireto?.id || dadosEscolaDireto?.school_id;
-      } catch (errDirect) {
-        console.error("Erro na busca direta de segurança da escola:", errDirect);
-      }
-    }
+    // Vem do contexto, já resolvido antes desta tela renderizar. A busca de
+    // segurança que existia aqui era uma quarta chamada ao mesmo endpoint.
+    const uuidValido = schoolIdUuid;
 
     // Impede o envio se o UUID da escola correspondente à URL atual não tiver sido localizado
     if (!uuidValido) {
@@ -252,6 +234,14 @@ export default function Gerenciamento() {
   
   // Lista fatiada contendo estritamente os 25 usuários da página corrente
   const usuariosPaginados = usuariosFiltrados.slice(indiceInicial, indiceFinal);
+
+  if (escolaNaoIdentificada) {
+    return (
+      <div className="error-state">
+        <p>Não foi possível identificar a instituição "{schoolCode}".</p>
+      </div>
+    );
+  }
 
   if (carregando) {
     return (

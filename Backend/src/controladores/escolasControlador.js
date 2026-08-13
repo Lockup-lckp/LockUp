@@ -1,5 +1,6 @@
 import supabase from '../config/database.js';
 import { cifrar } from '../utils/cripto.js';
+import { obterEscolaPorCodigo, invalidarCacheEscolas } from '../servicos/cacheEscola.js';
 
 // Campos que o admin de uma escola pode alterar na PRÓPRIA instituição (personalização).
 // Campos sensíveis (codigo, gateway, credenciais, taxa_comissao, name) ficam restritos ao
@@ -149,14 +150,12 @@ export const buscarEscolaPorCodigo = async (req, res) => {
   }
 
   try {
-    const { data, error } = await supabase
-      .from('schools')
-      .select('*')
-      .eq('codigo', codigo)
-      .maybeSingle();
-
-    // Erro REAL do banco
-    if (error) {
+    // Endpoint mais quente do sistema: o portal chama a cada carga de página.
+    // Servido pelo cache em memória (TTL curto) para não bater no banco sempre.
+    let data;
+    try {
+      data = await obterEscolaPorCodigo(codigo);
+    } catch (error) {
       console.error('Erro ao consultar schools:', error);
       return res.status(500).json({
         error: 'Erro interno ao consultar a instituição.'
@@ -205,6 +204,7 @@ export const criarEscola = async (req, res) => {
       throw error;
     }
 
+    invalidarCacheEscolas();
     return res.status(201).json(data);
   } catch (err) {
     console.error('Erro ao criar escola:', err);
@@ -264,6 +264,9 @@ export const atualizarEscola = async (req, res) => {
       return res.status(404).json({ error: 'Instituição não localizada para atualização.' });
     }
 
+    // A logo/configuração acabou de mudar: derruba o cache para o portal não
+    // continuar servindo a versão antiga até o TTL expirar.
+    invalidarCacheEscolas();
     return res.json(removerSegredos(data));
   } catch (err) {
     console.error('Erro ao atualizar escola:', err);
@@ -283,6 +286,7 @@ export const excluirEscola = async (req, res) => {
 
     if (error) throw error;
 
+    invalidarCacheEscolas();
     return res.json({ message: 'Instituição de ensino removida com sucesso.' });
   } catch (err) {
     console.error('Erro ao excluir escola:', err);
