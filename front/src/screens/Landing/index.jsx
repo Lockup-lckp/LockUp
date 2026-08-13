@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { ligarAnimacoes } from '../../utils/revelar';
+import './Landing.css';
 import { leadsService } from '../../services/leadsService';
 import { MARCA } from '../../theme/marca.js';
 import logoLckp from '../../assets/logo_lckp1.png';
 
-gsap.registerPlugin(ScrollTrigger);
 
 // ── PALETA PROFISSIONAL ──
 // Vêm de theme/marca.js, que é a definição única da marca. Mantidas como
@@ -311,41 +310,41 @@ function HeroArmarios() {
     { id: 12, num: 'D03', ocupado: false }
   ];
 
-  useEffect(() => {
-    const esteira = esteiraRef.current;
-    if (!esteira) return;
-    const ctx = gsap.context(() => {
-      gsap.fromTo(esteira, { x: 120, opacity: 0 }, { x: 0, opacity: 1, duration: 1.1, ease: 'power3.out', delay: 0.3 });
-      gsap.fromTo(
-        esteira.querySelectorAll('[data-armario]'),
-        { y: 24, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.5, stagger: 0.05, ease: 'power2.out', delay: 0.5 }
-      );
-    }, esteira);
-    return () => ctx.revert();
-  }, []);
+  // A entrada da esteira e o escalonamento dos cartões são keyframes CSS
+  // (.esteira-entra em Landing.css), aplicados na própria marcação.
 
   const aoClicar = (armario) => {
     if (armario.ocupado || animando) return;
     setAnimando(true);
     setSelecionado(armario.id);
+
     const cartao = esteiraRef.current?.querySelector(`[data-armario="${armario.id}"]`);
-    if (cartao) {
-      const tl = gsap.timeline({
-        onComplete: () => {
-          setAnimando(false);
-          gsap.fromTo(cartao, { scale: 1 }, { scale: 1.04, duration: 0.25, yoyo: true, repeat: 1, ease: 'power2.out' });
-        }
-      });
-      tl.to(cartao, { y: 60, opacity: 0.4, duration: 0.35, ease: 'power2.in' })
-        .to(cartao, { y: 0, opacity: 1, duration: 0.45, ease: 'back.out(1.7)' });
+    if (!cartao) {
+      setAnimando(false);
+      return;
     }
+
+    // Era uma timeline gsap; agora é um keyframe único disparado pela classe.
+    // Libera o clique quando a animação termina — com fallback por timer, caso
+    // o evento não dispare (aba em segundo plano, movimento reduzido).
+    const encerrar = () => {
+      cartao.classList.remove('armario-escolhido');
+      setAnimando(false);
+    };
+    cartao.addEventListener('animationend', encerrar, { once: true });
+    const reserva = setTimeout(encerrar, 900);
+    cartao.addEventListener('animationend', () => clearTimeout(reserva), { once: true });
+
+    // Reinicia a animação caso o mesmo cartão seja clicado de novo.
+    cartao.classList.remove('armario-escolhido');
+    void cartao.offsetWidth;
+    cartao.classList.add('armario-escolhido');
   };
 
   return (
     <div className="relative">
       <div className="absolute -inset-6 rounded-[28px] blur-2xl transform-gpu" style={{ background: `radial-gradient(circle at 50% 20%, ${GOLD_SOFT}, transparent 65%)` }} aria-hidden="true" />
-      <div ref={esteiraRef} className="relative rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-sm p-5 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)]">
+      <div ref={esteiraRef} className="esteira-entra relative rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-sm p-5 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)]">
         <div className="flex items-center justify-between mb-4 px-1">
           <span className="text-xs font-semibold uppercase tracking-widest text-white/40">Mapa de armários</span>
           <span className="text-[11px] text-white/40 flex items-center gap-1.5">
@@ -353,7 +352,7 @@ function HeroArmarios() {
           </span>
         </div>
         <div className="grid grid-cols-3 gap-3">
-          {armarios.map((a) => {
+          {armarios.map((a, i) => {
             const isSel = selecionado === a.id;
             return (
               <button
@@ -365,6 +364,8 @@ function HeroArmarios() {
                   a.ocupado ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:-translate-y-0.5'
                 }`}
                 style={{
+                  // --i alimenta o animation-delay do stagger em Landing.css
+                  '--i': i,
                   borderColor: isSel ? SUCESSO : a.ocupado ? 'rgba(239, 68, 68, 0.4)' : 'rgba(255,255,255,0.12)',
                   backgroundColor: isSel ? 'rgba(61,220,151,0.12)' : a.ocupado ? 'rgba(239, 68, 68, 0.08)' : 'rgba(255,255,255,0.05)',
                   boxShadow: isSel ? `0 0 0 1px ${SUCESSO}, 0 8px 24px -8px rgba(61,220,151,0.4)` : 'none'
@@ -503,15 +504,6 @@ function ModalAcessoEscola({ aberto, aoFechar }) {
   }, [aberto, aoFechar]);
 
   useEffect(() => {
-    if (aberto && modalRef.current) {
-      const ctx = gsap.context(() => {
-        gsap.fromTo(modalRef.current, { y: 30, opacity: 0, scale: 0.97 }, { y: 0, opacity: 1, scale: 1, duration: 0.35, ease: 'power3.out' });
-      }, modalRef);
-      return () => ctx.revert();
-    }
-  }, [aberto]);
-
-  useEffect(() => {
     if (aberto) {
       setCodigo('');
       setErro('');
@@ -538,7 +530,7 @@ function ModalAcessoEscola({ aberto, aoFechar }) {
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 sm:p-6" role="dialog" aria-modal="true" aria-label="Acessar minha escola">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={aoFechar} />
-      <div ref={modalRef} className="relative w-full max-w-md flex flex-col rounded-2xl border border-white/10 bg-[#0d2a52] shadow-2xl overflow-hidden">
+      <div ref={modalRef} className="modal-entra relative w-full max-w-md flex flex-col rounded-2xl border border-white/10 bg-[#0d2a52] shadow-2xl overflow-hidden">
         {/* Cabeçalho */}
         <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-white/10 bg-white/[0.03]">
           <div className="flex items-center gap-3">
@@ -609,15 +601,6 @@ function ModalCadastro({ aberto, aoFechar, aoAbrirPrivacidade }) {
   }, [aberto, aoFechar]);
 
   useEffect(() => {
-    if (aberto && modalRef.current) {
-      const ctx = gsap.context(() => {
-        gsap.fromTo(modalRef.current, { y: 30, opacity: 0, scale: 0.97 }, { y: 0, opacity: 1, scale: 1, duration: 0.35, ease: 'power3.out' });
-      }, modalRef);
-      return () => ctx.revert();
-    }
-  }, [aberto]);
-
-  useEffect(() => {
     if (aberto) {
       setErro('');
       setSucesso('');
@@ -662,7 +645,7 @@ function ModalCadastro({ aberto, aoFechar, aoAbrirPrivacidade }) {
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 sm:p-6" role="dialog" aria-modal="true" aria-label="Cadastro de escola">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={aoFechar} />
-      <div ref={modalRef} className="relative w-full max-w-lg max-h-[90vh] flex flex-col rounded-2xl border border-white/10 bg-[#0d2a52] shadow-2xl overflow-hidden">
+      <div ref={modalRef} className="modal-entra relative w-full max-w-lg max-h-[90vh] flex flex-col rounded-2xl border border-white/10 bg-[#0d2a52] shadow-2xl overflow-hidden">
         {/* Cabeçalho */}
         <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-white/10 bg-white/[0.03]">
           <div>
@@ -760,29 +743,9 @@ export default function Landing() {
     } catch { /* ignore */ }
   }, []);
 
-  // GSAP + ScrollTrigger — à prova de falha
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root) return;
-    const ctx = gsap.context(() => {
-      gsap.from('[data-hero]', { y: 40, autoAlpha: 0, duration: 1, stagger: 0.12, ease: 'power3.out', delay: 0.15 });
-      gsap.utils.toArray('[data-reveal]').forEach((el) => {
-        gsap.from(el, { y: 50, autoAlpha: 0, duration: 0.9, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 88%', once: true } });
-      });
-      gsap.utils.toArray('[data-reveal-group]').forEach((grupo) => {
-        gsap.from(grupo.querySelectorAll('[data-reveal-item]'), { y: 40, autoAlpha: 0, duration: 0.8, stagger: 0.12, ease: 'power3.out', scrollTrigger: { trigger: grupo, start: 'top 80%', once: true } });
-      });
-      gsap.utils.toArray('[data-passos]').forEach((grupo) => {
-        gsap.from(grupo.querySelectorAll('[data-passo]'), { y: 30, autoAlpha: 0, duration: 0.7, stagger: 0.15, ease: 'power2.out', scrollTrigger: { trigger: grupo, start: 'top 80%', once: true } });
-      });
-      gsap.utils.toArray('[data-metrica]').forEach((el) => {
-        gsap.from(el, { scale: 0.85, autoAlpha: 0, duration: 0.7, ease: 'back.out(1.7)', scrollTrigger: { trigger: el, start: 'top 90%', once: true } });
-      });
-      gsap.from('[data-cta]', { scale: 0.95, autoAlpha: 0, duration: 0.9, ease: 'power3.out', scrollTrigger: { trigger: '[data-cta]', start: 'top 85%', once: true } });
-    }, root);
-    const timer = setTimeout(() => ScrollTrigger.refresh(), 300);
-    return () => { clearTimeout(timer); ctx.revert(); };
-  }, []);
+  // Animações de entrada: IntersectionObserver + transições CSS (ver
+  // utils/revelar.js e Landing.css). Substituiu gsap + ScrollTrigger.
+  useEffect(() => ligarAnimacoes(rootRef.current), []);
 
   const abrirCadastro = () => setModalCadastro(true);
   const abrirAcesso = () => setModalAcesso(true);
@@ -891,7 +854,12 @@ export default function Landing() {
           <h2 className="text-2xl md:text-3xl font-bold mb-3 [text-wrap:balance]">O que muda para sua coordenação</h2>
           <p className="text-white/50">Feito para quem administra vários prédios, não só um.</p>
         </div>
-        <div data-reveal-group className="grid md:grid-cols-3 gap-5">
+        {/* mt-[50px]: preserva o respiro que existia quando as animações eram
+            feitas em gsap. Ele deixava um transform inline residual nos cards, e
+            elemento com transform impede colapso de margem — o espaço vinha daí.
+            Com as animações em CSS a margem colapsa, então o afastamento passa a
+            ser declarado de propósito, em vez de efeito colateral. */}
+        <div data-reveal-group className="grid md:grid-cols-3 gap-5 mt-[50px]">
           {RECURSOS.map(({ titulo, descricao, Icone, destaque }) => (
             <div
               key={titulo}

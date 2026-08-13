@@ -1,24 +1,7 @@
 import supabase from '../config/database.js';
-
-// AUXILIAR: Descobre o school_id real do banco usando o schoolCode da URL de forma segura
-const obterIdEscolaPorCodigo = async (schoolCode) => {
-    try {
-        const { data: escola, error } = await supabase
-            .from('schools')
-            .select('id')
-            .eq('codigo', schoolCode) // Coluna correta no banco: 'codigo'
-            .maybeSingle(); // Evita gerar erro fatal caso não encontre nenhum registro
-
-        if (error || !escola) {
-            return null;
-        }
-        
-        return escola.id;
-    } catch (err) {
-        console.error("Erro ao consultar tabela de escolas:", err.message);
-        return null;
-    }
-};
+// Resolve o schoolCode da URL para o school_id real. Vem do cache compartilhado:
+// era uma consulta ao banco por requisição, sempre devolvendo a mesma linha.
+import { obterIdEscolaPorCodigo } from '../servicos/cacheEscola.js';
 
 // LISTAR ARMÁRIOS FILTRADOS POR ESCOLA
 export const listarArmarios = async (req, res) => {
@@ -138,30 +121,35 @@ export const criarArmariosEmLote = async (req, res) => {
         // Se o intervalo for maior que 999, usa mais dígitos automaticamente.
         const quantidadeDigitos = Math.max(3, String(numeroFim).length);
 
-        // Cria os armários um por um, em ordem numérica crescente
-        const armariosCriados = [];
+        // Monta todas as linhas e grava em UMA única chamada.
+        //
+        // Antes isto era um for com await por armário: criar 500 armários custava 500
+        // round-trips sequenciais ao banco (dezenas de segundos, e o admin achava que
+        // a tela tinha travado). Além de lento, era parcial — se falhasse no armário
+        // 300, os 299 anteriores ficavam gravados e o corredor terminava incompleto.
+        const linhas = [];
         for (let numero = numeroInicio; numero <= numeroFim; numero++) {
-            const nomeFormatado = String(numero).padStart(quantidadeDigitos, '0');
+            linhas.push({
+                nome: String(numero).padStart(quantidadeDigitos, '0'),
+                corredor: String(corredor),
+                status: 'disponivel',
+                school_id: schoolId
+            });
+        }
 
-            const { data, error } = await supabase
-                .from('lockers')
-                .insert([{
-                    nome: nomeFormatado,
-                    corredor: String(corredor),
-                    status: 'disponivel',
-                    school_id: schoolId
-                }])
-                .select();
+        const { data: armariosCriados, error } = await supabase
+            .from('lockers')
+            .insert(linhas)
+            .select();
 
-            if (error) {
-                // Se algum falhar no meio do caminho, para e informa quantos já foram criados
-                return res.status(500).json({
-                    error: `Erro ao criar o armário número ${numero}: ${error.message}`,
-                    armarios_criados_ate_a_falha: armariosCriados
+        if (error) {
+            // 23505 = violação de unicidade: já existe armário com esse nome no corredor.
+            if (error.code === '23505') {
+                return res.status(409).json({
+                    error: 'Já existem armários com esses números neste corredor. Nenhum armário foi criado.'
                 });
             }
-
-            armariosCriados.push(data[0]);
+            throw error;
         }
 
         res.status(201).json({

@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { armariosService } from '../../../services/armariosServices';
 import { usuarioService } from '../../../services/usuariosServices';
 import { nomearCorredor, rotuloCorredor, rotuloCorredorPlural } from '../../../utils/rotuloCorredor';
-import { escolaService } from '../../../services/escolaService';
+import { useEscola } from '../../../theme/EscolaContext.jsx';
 
 const STATUS_LABEL = {
   disponivel: 'Disponível',
@@ -52,22 +52,23 @@ export default function GerenciamentoArmarios() {
   const [criandoLote, setCriandoLote] = useState(false);
   const [erroLote, setErroLote] = useState(null);
 
-  // A tela ja buscava a escola so para pegar o UUID e descartava o resto.
-  // O rotulo de corredor (bloco|corredor) vem daqui.
-  const [escola, setEscola] = useState(null);
+  // A escola vem do EscolaContext (já carregada pelo layout da rota). O rótulo de
+  // corredor (bloco|corredor) sai daqui. Antes esta tela buscava a escola de
+  // novo só para extrair o UUID.
+  const { escola, carregando: escolaCarregando } = useEscola();
 
   // Exclusao de um corredor inteiro, para desfazer um lote criado errado.
   const [corredorParaExcluir, setCorredorParaExcluir] = useState(null);
   const [excluindoCorredor, setExcluindoCorredor] = useState(false);
 
+  // Derivado, não guardado em estado: setar estado no corpo do efeito provoca
+  // renderização em cascata.
+  const escolaNaoIdentificada = !escolaCarregando && !escola?.id;
+
   useEffect(() => {
-    if (schoolCode) {
-      carregarDados();
-    } else {
-      setErro("Código da instituição não identificado na URL.");
-      setCarregando(false);
-    }
-  }, [schoolCode]);
+    if (escolaCarregando || !escola?.id) return;
+    carregarDados();
+  }, [escola?.id, escolaCarregando]);
 
   useEffect(() => {
     setPaginaAtual(1);
@@ -78,51 +79,32 @@ export default function GerenciamentoArmarios() {
       setCarregando(true);
       setErro(null);
 
-      let escolaIdUuid = null;
-      try {
-        const escolaDados = await escolaService.buscarPorCodigo(schoolCode);
-        if (escolaDados && escolaDados.id) {
-          escolaIdUuid = escolaDados.id;
-          setEscola(escolaDados);
-        } else {
-          throw new Error("Escola não encontrada.");
-        }
-      } catch (errEscola) {
-        console.error("Erro ao buscar UUID da escola:", errEscola);
-        setErro("Não foi possível identificar a instituição correspondente.");
-        setCarregando(false);
-        return;
-      }
-      
-      let dadosArmarios = [];
-      try {
-        dadosArmarios = await armariosService.buscarTodos(schoolCode);
-      } catch (errArmarios) {
-        console.error("Erro específico ao buscar armários:", errArmarios);
-        setErro("Não foi possível carregar os armários desta instituição.");
-      }
+      // Armários e usuários são independentes: buscar em paralelo faz a tela
+      // carregar no tempo da requisição mais lenta, não na soma das duas.
+      // O filtro por escola acontece no servidor nos dois casos.
+      const [respArmarios, respUsuarios] = await Promise.allSettled([
+        armariosService.buscarTodos(schoolCode),
+        usuarioService.buscarTodos(escola.id)
+      ]);
 
-      let dadosUsuariosDaEscola = [];
-      try {
-        if (typeof usuarioService.buscarTodos === 'function') {
-          // Filtro por escola já acontece no servidor (evita baixar todos os
-          // usuários de todas as instituições só pra montar o seletor de vínculo).
-          const usuariosDaEscola = await usuarioService.buscarTodos(escolaIdUuid);
-          if (Array.isArray(usuariosDaEscola)) {
-            dadosUsuariosDaEscola = usuariosDaEscola;
-          }
-        }
-      } catch (errUsuarios) {
-        console.error("Erro específico ao buscar usuários:", errUsuarios);
-      }
-
-      if (Array.isArray(dadosArmarios)) {
-        setArmarios(dadosArmarios);
+      if (respArmarios.status === 'fulfilled' && Array.isArray(respArmarios.value)) {
+        setArmarios(respArmarios.value);
       } else {
+        if (respArmarios.status === 'rejected') {
+          console.error("Erro específico ao buscar armários:", respArmarios.reason);
+          setErro("Não foi possível carregar os armários desta instituição.");
+        }
         setArmarios([]);
       }
 
-      setUsuarios(dadosUsuariosDaEscola);
+      if (respUsuarios.status === 'fulfilled' && Array.isArray(respUsuarios.value)) {
+        setUsuarios(respUsuarios.value);
+      } else {
+        if (respUsuarios.status === 'rejected') {
+          console.error("Erro específico ao buscar usuários:", respUsuarios.reason);
+        }
+        setUsuarios([]);
+      }
     } catch (err) {
       setErro('Erro geral ao processar dados do sistema.');
       console.error(err);
@@ -362,6 +344,14 @@ export default function GerenciamentoArmarios() {
     );
   });
 
+  if (escolaNaoIdentificada) {
+    return (
+      <div className="p-6 text-center text-red-400 font-medium bg-[var(--bg-color)] min-h-screen flex items-center justify-center">
+        Não foi possível identificar a instituição correspondente.
+      </div>
+    );
+  }
+
   if (carregando) {
     return (
       <div className="p-6 text-center text-[var(--primary-color)] font-medium bg-[var(--bg-color)] min-h-screen flex items-center justify-center">
@@ -389,7 +379,7 @@ export default function GerenciamentoArmarios() {
             placeholder={`Buscar por armário, ${rotuloCorredor(escola).toLowerCase()}...`}
             value={termoBusca}
             onChange={e => { setTermoBusca(e.target.value); setPaginaAtual(1); }}
-            className="w-full sm:flex-1 sm:min-w-48 md:w-64 md:flex-none px-4 py-2 bg-[var(--surface-color)] border border-[#1f2635] rounded-xl text-sm text-white outline-none focus:border-[var(--primary-color)] transition-all"
+            className="w-full sm:flex-1 sm:min-w-48 md:w-64 md:flex-none px-4 py-2 bg-[var(--surface-color)] border border-[#1f2635] rounded-xl text-sm text-white outline-none focus:border-[var(--primary-color)] transition-colors"
           />
 
           {/* Volta para a página 1 ao filtrar: sem isso, quem estivesse na
@@ -398,7 +388,7 @@ export default function GerenciamentoArmarios() {
             value={corredorFiltro}
             onChange={e => { setCorredorFiltro(e.target.value); setPaginaAtual(1); }}
             aria-label={`Filtrar por ${rotuloCorredor(escola).toLowerCase()}`}
-            className="w-full sm:w-auto sm:min-w-36 px-4 py-2 bg-[var(--surface-color)] border border-[#1f2635] rounded-xl text-sm text-white outline-none focus:border-[var(--primary-color)] transition-all"
+            className="w-full sm:w-auto sm:min-w-36 px-4 py-2 bg-[var(--surface-color)] border border-[#1f2635] rounded-xl text-sm text-white outline-none focus:border-[var(--primary-color)] transition-colors"
           >
             <option value="">{`Todos os ${rotuloCorredorPlural(escola)}`}</option>
             {corredoresExistentes.map(corredor => (
@@ -504,7 +494,7 @@ export default function GerenciamentoArmarios() {
                       {armario.status !== 'alugado' && armario.status !== 'funcionario' && (
                         <button
                           onClick={() => handleAlterarStatus(armario.id, armario.status)}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all whitespace-nowrap ${
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors whitespace-nowrap ${
                             armario.status === 'manutencao'
                               ? 'bg-emerald-950/40 text-emerald-400 border-emerald-900/40 hover:bg-emerald-900/40'
                               : 'bg-amber-950/40 text-amber-400 border-amber-900/40 hover:bg-amber-900/40'
@@ -517,7 +507,7 @@ export default function GerenciamentoArmarios() {
                       <button
                         onClick={() => handleExcluirArmario(armario.id, armario.status)}
                         disabled={armario.status === 'alugado' || armario.status === 'funcionario'}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all whitespace-nowrap ${
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors whitespace-nowrap ${
                           armario.status === 'alugado' || armario.status === 'funcionario'
                             ? 'bg-gray-800 text-gray-600 border-transparent cursor-not-allowed'
                             : 'bg-red-950/40 text-red-400 border-red-900/40 hover:bg-red-900/40'
@@ -595,7 +585,7 @@ export default function GerenciamentoArmarios() {
                   placeholder="Pesquisar aluno por nome ou e-mail..."
                   value={termoBuscaUsuario}
                   onChange={e => setTermoBuscaUsuario(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-[var(--bg-color)] border border-[#1f2635] rounded-xl text-sm text-white outline-none focus:border-[var(--primary-color)] transition-all placeholder:text-gray-500"
+                  className="w-full px-4 py-2.5 bg-[var(--bg-color)] border border-[#1f2635] rounded-xl text-sm text-white outline-none focus:border-[var(--primary-color)] transition-colors placeholder:text-gray-500"
                 />
               </div>
             </div>
@@ -619,7 +609,7 @@ export default function GerenciamentoArmarios() {
                     </div>
                     <button
                       onClick={() => handleVincularUsuario(usr.id, usr.nome_completo, usr.role)}
-                      className="text-xs bg-[var(--primary-color)]/10 hover:bg-[var(--primary-color)]/20 text-[var(--primary-color)] border border-[var(--primary-color)]/30 px-3 py-2 rounded-xl font-bold transition-all whitespace-nowrap w-full sm:w-auto text-center"
+                      className="text-xs bg-[var(--primary-color)]/10 hover:bg-[var(--primary-color)]/20 text-[var(--primary-color)] border border-[var(--primary-color)]/30 px-3 py-2 rounded-xl font-bold transition-colors whitespace-nowrap w-full sm:w-auto text-center"
                     >
                       Selecionar Aluno
                     </button>
@@ -726,7 +716,7 @@ export default function GerenciamentoArmarios() {
                   value={corredorLote}
                   onChange={e => setCorredorLote(e.target.value)}
                   placeholder="Ex: 1"
-                  className="w-full px-3 py-2 bg-[var(--bg-color)] border border-[#1f2635] rounded-lg text-sm text-white outline-none focus:border-[var(--primary-color)] transition-all normal-case font-normal"
+                  className="w-full px-3 py-2 bg-[var(--bg-color)] border border-[#1f2635] rounded-lg text-sm text-white outline-none focus:border-[var(--primary-color)] transition-colors normal-case font-normal"
                 />
               </label>
 
@@ -744,7 +734,7 @@ export default function GerenciamentoArmarios() {
                     value={inicioLote}
                     onChange={e => setInicioLote(e.target.value)}
                     placeholder="Ex: 1"
-                    className="w-full px-3 py-2 bg-[var(--bg-color)] border border-[#1f2635] rounded-lg text-sm text-white outline-none focus:border-[var(--primary-color)] transition-all normal-case font-normal"
+                    className="w-full px-3 py-2 bg-[var(--bg-color)] border border-[#1f2635] rounded-lg text-sm text-white outline-none focus:border-[var(--primary-color)] transition-colors normal-case font-normal"
                   />
                 </label>
 
@@ -756,7 +746,7 @@ export default function GerenciamentoArmarios() {
                     value={fimLote}
                     onChange={e => setFimLote(e.target.value)}
                     placeholder="Ex: 100"
-                    className="w-full px-3 py-2 bg-[var(--bg-color)] border border-[#1f2635] rounded-lg text-sm text-white outline-none focus:border-[var(--primary-color)] transition-all normal-case font-normal"
+                    className="w-full px-3 py-2 bg-[var(--bg-color)] border border-[#1f2635] rounded-lg text-sm text-white outline-none focus:border-[var(--primary-color)] transition-colors normal-case font-normal"
                   />
                 </label>
               </div>
@@ -812,7 +802,7 @@ export default function GerenciamentoArmarios() {
                   onChange={e => setNomeFuncionario(e.target.value)}
                   placeholder="Ex: Maria da Secretaria"
                   autoFocus
-                  className="w-full px-3 py-2 bg-[var(--bg-color)] border border-[#1f2635] rounded-lg text-sm text-white outline-none focus:border-violet-500 transition-all normal-case font-normal"
+                  className="w-full px-3 py-2 bg-[var(--bg-color)] border border-[#1f2635] rounded-lg text-sm text-white outline-none focus:border-violet-500 transition-colors normal-case font-normal"
                 />
               </label>
             </div>

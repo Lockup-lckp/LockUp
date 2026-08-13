@@ -81,7 +81,7 @@ export default function NavBar({ onMenuClick }) {
           onClick={handleLogout}
           aria-label="Sair da conta"
           title="Sair"
-          className="shrink-0 flex items-center gap-2 bg-transparent border border-red-500/40 text-red-400 px-2.5 sm:px-4 py-1.5 rounded-md cursor-pointer hover:bg-red-500/10 hover:border-red-500/70 active:scale-[0.97] transition-all font-medium text-sm"
+          className="shrink-0 flex items-center gap-2 bg-transparent border border-red-500/40 text-red-400 px-2.5 sm:px-4 py-1.5 rounded-md cursor-pointer hover:bg-red-500/10 hover:border-red-500/70 active:scale-[0.97] transition-colors font-medium text-sm"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
