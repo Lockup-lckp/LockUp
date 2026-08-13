@@ -2,24 +2,20 @@
 # Docs: https://docs.github.com/pt/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 #
 # Quando um PR toca um caminho abaixo, os donos sao pedidos como revisores.
-# Substitua @coltrox pelos times quando eles existirem, por exemplo:
-#   /front/    @Lockup-lckp/frontend
-#   /Backend/  @Lockup-lckp/backend
+# Times da organizacao: @Lockup-lckp/front-end e @Lockup-lckp/back-end
 
 # Dono padrao de tudo (fallback)
-*             @coltrox
+* @coltrox
 
 # Frontend
-/front/       @coltrox
-# /front/     @Lockup-lckp/frontend
+/front/ @Lockup-lckp/front-end
 
 # Backend
-/Backend/     @coltrox
-# /Backend/   @Lockup-lckp/backend
+/Backend/ @Lockup-lckp/back-end
 
 # Infra / automacoes / config de deploy
-/.github/     @coltrox
-/render.yaml  @coltrox
+/.github/ @coltrox
+/render.yaml @coltrox
 
 # Documentacao
-/docs/        @coltrox
+/docs/ @coltrox
