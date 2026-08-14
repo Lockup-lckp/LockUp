@@ -196,7 +196,8 @@ function Painel({ usuario, onSair }) {
   const [enviando, setEnviando] = useState(false);
   const [mensagem, setMensagem] = useState('');
 
-  // Instituições (escolas) da plataforma: lista + cadastro + edição de comissão/split.
+  // Instituições (escolas) da plataforma: lista, cadastro e configuração do
+  // meio de pagamento. Não há comissão: a LCKP cobra licenciamento.
   const [escolas, setEscolas] = useState([]);
   const [carregandoEscolas, setCarregandoEscolas] = useState(true);
   const [erroEscolas, setErroEscolas] = useState('');
@@ -343,7 +344,7 @@ function Painel({ usuario, onSair }) {
         codigo: novaEscolaCodigo.trim().toLowerCase(),
         valor_armario: novaEscolaValor.trim() === '' ? null : parseFloat(novaEscolaValor.replace(',', '.'))
       });
-      setMensagemEscola('Instituição cadastrada! Use "Editar" na lista para configurar comissão e split de pagamento.');
+      setMensagemEscola('Instituição cadastrada! Use "Editar" na lista para configurar o meio de pagamento.');
       setNovaEscolaNome('');
       setNovaEscolaCodigo('');
       setNovaEscolaValor('');
@@ -378,7 +379,7 @@ function Painel({ usuario, onSair }) {
     setErroEdicao('');
 
     if (false) {
-      setErroEdicao('Informe uma comissão entre 0 e 100%.');
+      setErroEdicao('Confira os dados informados.');
       return;
     }
 
@@ -478,7 +479,7 @@ function Painel({ usuario, onSair }) {
       <main className="max-w-5xl mx-auto px-6 md:px-12 py-10">
         <h2 className="text-xl font-bold mb-1">Instituições (escolas)</h2>
         <p className="text-gray-400 text-sm mb-6">
-          Comissão retida pelo LCKP, valor do armário e split de pagamento de cada instituição contratada.
+          Valor do armário e meio de pagamento de cada instituição contratada. O valor pago pelo aluno vai inteiro para a conta da escola.
         </p>
 
         {erroEscolas && (
@@ -515,8 +516,8 @@ function Painel({ usuario, onSair }) {
                     <th className="p-3">Instituição</th>
                     <th className="p-3">Código</th>
                     <th className="p-3">Valor do armário</th>
-                    <th className="p-3">Comissão LCKP</th>
-                    <th className="p-3">Split</th>
+                    <th className="p-3">Credenciais</th>
+                    <th className="p-3">Recebimento</th>
                     <th className="p-3 text-right">Ações</th>
                   </tr>
                 </thead>
@@ -537,7 +538,7 @@ function Painel({ usuario, onSair }) {
                         {escola.gateway_recipient_id ? (
                           <span className="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-1 rounded-full">Ativo</span>
                         ) : (
-                          <span className="text-xs bg-white/5 text-gray-500 border border-white/10 px-2 py-1 rounded-full">Sem split</span>
+                          <span className="text-xs bg-white/5 text-gray-500 border border-white/10 px-2 py-1 rounded-full">Conta da escola</span>
                         )}
                       </td>
                       <td className="p-3 text-right whitespace-nowrap">
@@ -680,7 +681,7 @@ function Painel({ usuario, onSair }) {
         <div className="bg-[var(--surface-color)]/60 border border-white/10 rounded-xl p-6 mb-12">
           <h3 className="font-semibold mb-1">Cadastrar instituição</h3>
           <p className="text-xs text-gray-500 mb-4">
-            Cadastre com nome, código e valor do armário. Depois, use "Editar" na lista acima para configurar a comissão e o split de pagamento.
+            Cadastre com nome, código e valor do armário. Depois, use "Editar" na lista acima para configurar o meio de pagamento e as credenciais.
           </p>
           <form onSubmit={handleCriarEscolaSubmit} className="grid md:grid-cols-3 gap-4">
             <div>
@@ -736,7 +737,7 @@ function Painel({ usuario, onSair }) {
               className="w-full max-w-md bg-[var(--surface-color)] border border-white/10 rounded-xl shadow-2xl p-6"
             >
               <h3 className="text-base font-bold text-white mb-1">Editar {escolaEditando.name}</h3>
-              <p className="text-xs text-gray-400 mb-4">Comissão retida pelo LCKP e dados do split de pagamento.</p>
+              <p className="text-xs text-gray-400 mb-4">Meio de pagamento e credenciais da instituição. Não há comissão sobre a locação.</p>
 
               {erroEdicao && (
                 <div className="mb-4 p-2.5 bg-red-950/40 border border-red-900/50 rounded-lg text-red-400 text-xs">
@@ -873,7 +874,7 @@ function Painel({ usuario, onSair }) {
                       />
                       <p className="text-xs text-gray-500 mt-1">
                         Guardado cifrado no banco e nunca devolvido pela API — nem para você.
-                        O dinheiro cai direto na conta da instituição, sem split.
+                        O dinheiro cai direto na conta da instituição.
                       </p>
                     </div>
                   </>
