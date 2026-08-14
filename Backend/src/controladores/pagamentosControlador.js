@@ -398,27 +398,16 @@ export const iniciarCheckout = async (req, res) => {
             }
         };
 
-        // 5. Split de pagamento: só quando a escola tem um recebedor configurado.
+        // 5. Recebedor do Mercado Pago.
+        //
+        // NÃO há mais comissão: desde 2026-08-14 a LCKP cobra licenciamento de
+        // software da instituição, e não percentual sobre a locação. O valor
+        // pago pelo aluno vai INTEIRO para a conta da escola.
+        //
+        // Por isso `application_fee` deixou de ser enviado. O cabeçalho de
+        // recebedor continua, porque é ele que faz o dinheiro cair na conta da
+        // escola em vez de ficar na da LCKP — sem ele, o pagamento é nosso.
         if (escola.gateway_recipient_id) {
-            const taxaComissao = Number(escola.taxa_comissao);
-
-            // Comissão só é INVÁLIDA se vier um valor fora da faixa. Ausente ou
-            // zero significa "escola sem comissão" — caso real e legítimo — e
-            // não configuração incompleta. Antes, o !escola.taxa_comissao
-            // tratava 0 como falsy e bloqueava o checkout de uma escola isenta,
-            // deixando o aluno sem conseguir pagar.
-            if (escola.taxa_comissao != null && (isNaN(taxaComissao) || taxaComissao < 0 || taxaComissao > 1)) {
-                return res.status(400).json({
-                    error: 'A comissão contratual desta instituição está inválida. Fale com o superadmin.'
-                });
-            }
-
-            // Sem comissão não se envia application_fee: o Mercado Pago recusa
-            // uma taxa de marketplace igual a zero.
-            if (taxaComissao > 0) {
-                paymentData.body.application_fee = Number((valorTotal * taxaComissao).toFixed(2));
-            }
-
             paymentData.headers = {
                 'X-Marketplace-Collector-Id': escola.gateway_recipient_id
             };

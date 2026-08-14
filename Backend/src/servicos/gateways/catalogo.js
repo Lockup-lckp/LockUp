@@ -1,132 +1,118 @@
 // Catálogo de gateways de pagamento suportados.
 //
-// Antes disso, adicionar um banco significava: criar colunas próprias no banco
-// de dados, somar um `if` no checkout, e editar quatro lugares que listavam
-// essas colunas pelo nome. Aqui cada gateway é UMA entrada descrevendo o que
-// precisa, e o resto do sistema lê daqui em vez de saber nomes de banco.
+// Adicionar um banco significava criar colunas próprias no banco de dados,
+// somar um `if` no checkout e editar quatro lugares que listavam essas colunas
+// pelo nome. Aqui cada gateway é UMA entrada descrevendo o que precisa, e o
+// resto do sistema lê daqui em vez de saber nomes de banco.
 //
-// O que uma entrada declara:
-//   campos            → quais credenciais o gateway exige (monta o formulário
-//                       do superadmin e valida o que chega)
-//   suportaSplit      → se dá para dividir o pagamento e reter comissão
-//   modelosSuportados → 'direto' (conta da própria escola) e/ou 'split'
-//   identificaWebhook → COMO se descobre de qual escola é uma notificação.
-//                       É a pergunta que, sem resposta, faz o dinheiro entrar
-//                       e o armário não abrir.
-
-export const MODELOS_RECEBIMENTO = Object.freeze({
-    // A credencial é da conta da PRÓPRIA escola. O dinheiro cai lá e nunca
-    // passa pela LCKP — logo, comissão automática é impossível neste modelo.
-    DIRETO: 'direto',
-    // O pagamento passa pela conta da LCKP e é dividido na hora, com a escola
-    // como recebedora. É o único modelo em que a comissão funciona sozinha.
-    //
-    // DECISÃO (2026-08-10): split fica restrito ao Mercado Pago, como já está.
-    // Banco novo entra sempre como 'direto' e a comissão é faturada no fim do
-    // mês. Isso é o que permite aceitar qualquer banco que a escola use, sem
-    // depender de ele oferecer divisão de pagamento.
-    SPLIT: 'split'
-});
-
-export const COBRANCA_COMISSAO = Object.freeze({
-    // O gateway desconta no ato. Exige split.
-    AUTOMATICA: 'automatica',
-    // O dinheiro vai inteiro para a escola e a LCKP cobra o combinado depois,
-    // fora do sistema. `taxa_comissao` continua valendo: é a base do cálculo.
-    FATURADA: 'faturada'
-});
+// ---------------------------------------------------------------------
+// DECISÃO (2026-08-14): Banco do Brasil é o gateway do sistema
+// ---------------------------------------------------------------------
+// As escolas em negociação usam BB. Outro banco entra quando existir escola que
+// precise dele — e o custo disso é uma entrada aqui mais um adaptador.
+//
+// Mercado Pago e PagBank continuam declarados como LEGADO: o Mercado Pago é o
+// único caminho com credencial de produção testada ponta a ponta, e desligá-lo
+// antes de o BB estar validado deixaria o sistema sem forma nenhuma de cobrar.
+//
+// ---------------------------------------------------------------------
+// DECISÃO (2026-08-14): não há comissão
+// ---------------------------------------------------------------------
+// A LCKP cobra LICENCIAMENTO DE SOFTWARE da instituição, não percentual sobre a
+// locação. O dinheiro do aluno vai inteiro para a conta da escola e nunca passa
+// pela LCKP.
+//
+// Por isso saíram deste arquivo: split, `taxa_comissao`, `application_fee` e a
+// distinção entre comissão automática e faturada. As colunas continuam no banco
+// como legado (ver a migração de 2026-08-14), mas nada as lê para cobrar.
 
 export const GATEWAYS = Object.freeze({
+    bancodobrasil: {
+        id: 'bancodobrasil',
+        nome: 'Banco do Brasil',
+        // A conta é da própria instituição (na ETEC, da APM): o dinheiro cai lá
+        // por natureza, sem intermediário.
+        campos: [
+            { chave: 'client_id', rotulo: 'Client ID', segredo: true, obrigatorio: true },
+            { chave: 'client_secret', rotulo: 'Client Secret', segredo: true, obrigatorio: true },
+            { chave: 'app_key', rotulo: 'Chave de aplicação (gw-dev-app-key)', segredo: true, obrigatorio: true },
+            { chave: 'chave_pix', rotulo: 'Chave Pix da conta', segredo: false, obrigatorio: true },
+            { chave: 'certificado', rotulo: 'Certificado de cliente mTLS (PEM)', segredo: true, obrigatorio: true },
+            { chave: 'certificado_chave', rotulo: 'Chave privada do certificado (PEM)', segredo: true, obrigatorio: true }
+        ],
+        // Ainda NÃO implementado: faltam o certificado de CLIENTE mTLS (os
+        // arquivos recebidos são as cadeias de servidor do BB) e a chave Pix
+        // registrada na conta da instituição. Declarado aqui para o painel já
+        // saber o que pedir, e para o checkout recusar com uma frase clara em
+        // vez de falhar de um jeito incompreensível.
+        implementado: false,
+        identificaWebhook:
+            'A definir na integração. Precisa responder "de qual escola é esta notificação" ANTES de confiar no corpo — sem isso o dinheiro entra e o armário não abre.',
+        observacao:
+            'Exige mTLS com certificado de cliente, que não vem junto das cadeias públicas do banco.'
+    },
+
     mercadopago: {
         id: 'mercadopago',
         nome: 'Mercado Pago',
-        // As credenciais do Mercado Pago NÃO ficam por escola: o access token é
-        // da conta da LCKP e vive em MP_ACCESS_TOKEN, no ambiente. A escola
-        // entra como recebedora do split, via `gateway_recipient_id`.
+        legado: true,
+        // O access token é da conta da LCKP e vive em MP_ACCESS_TOKEN. É o único
+        // gateway em que o dinheiro passa por nós — herança do modelo antigo,
+        // de antes da decisão por licenciamento.
         campos: [],
-        campoRecebedor: 'gateway_recipient_id',
-        suportaSplit: true,
-        modelosSuportados: ['split'],
+        implementado: true,
         identificaWebhook:
             'URL única. A notificação casa com a locação por `rentals.gateway_id`, o que só funciona porque a conta é uma só.',
         observacao:
-            'Único gateway com credencial de produção testada ponta a ponta (Pix, 2026-08-06).'
+            'Único gateway com credencial de produção testada ponta a ponta (Pix, 2026-08-06). Mantido enquanto o BB não estiver validado.'
     },
 
     pagbank: {
         id: 'pagbank',
         nome: 'PagBank',
+        legado: true,
         campos: [
             { chave: 'token', rotulo: 'Token da conta', segredo: true, obrigatorio: true }
         ],
-        suportaSplit: false, // o PagBank tem split, mas não foi implementado aqui
-        modelosSuportados: ['direto'],
+        // O adaptador autenticou em sandbox e gerou QR, mas NENHUM pagamento
+        // real passou por ele: o caminho até a liberação do armário nunca foi
+        // exercitado. Tratar como código não provado.
+        implementado: true,
         identificaWebhook:
             'O código da escola vai na própria URL (/pagamentos/webhook/pagbank/:schoolCode), porque é preciso saber QUAL credencial usar antes de confiar no corpo.',
         observacao:
-            'A ETEC Bento Quirino usava este gateway e vai migrar para o Banco do Brasil.'
+            'Não provado em produção. A ETEC saiu deste gateway para o Banco do Brasil.'
     }
-
-    // Banco do Brasil entra aqui quando a reunião definir QUAL API a escola vai
-    // liberar. A API Pix (cobrança por chave) e a API de Cobranças (boleto) são
-    // integrações diferentes e mudam o adaptador inteiro — declarar os campos
-    // antes de saber disso seria adivinhação. O que já se sabe: será modelo
-    // 'direto', porque a conta é da APM da escola.
 });
+
+export const GATEWAY_PADRAO = 'bancodobrasil';
 
 export const listarGateways = () => Object.values(GATEWAYS);
 
+// Só os que uma escola nova deveria poder escolher.
+export const listarGatewaysAtivos = () => Object.values(GATEWAYS).filter((g) => !g.legado);
+
 export const obterGateway = (id) => GATEWAYS[id] || null;
 
-// Valida a combinação gateway + modelo + comissão ANTES de gravar.
+// Valida a configuração de pagamento de uma escola ANTES de gravar.
 //
-// Existe porque a falha aqui é silenciosa: configurar comissão num gateway que
-// não divide pagamento não dá erro nenhum — o dinheiro simplesmente vai 100%
-// para a escola e a diferença só aparece no fechamento do mês.
-export const validarConfiguracaoGateway = ({ gateway, modeloRecebimento, taxaComissao, recebedorId, cobrancaComissao }) => {
+// Ficou pequena depois que a comissão saiu: o que resta é garantir que o
+// gateway existe e que já foi implementado. Configurar uma escola num gateway
+// sem adaptador faria o aluno chegar até o checkout e receber um erro sem
+// explicação.
+export const validarConfiguracaoGateway = ({ gateway }) => {
     const descritor = obterGateway(gateway);
     if (!descritor) {
-        return { valido: false, erro: `Gateway '${gateway}' não é suportado. Disponíveis: ${Object.keys(GATEWAYS).join(', ')}.` };
-    }
-
-    const modelo = modeloRecebimento || MODELOS_RECEBIMENTO.DIRETO;
-    if (!descritor.modelosSuportados.includes(modelo)) {
         return {
             valido: false,
-            erro: `${descritor.nome} não trabalha no modelo '${modelo}'. Suportado: ${descritor.modelosSuportados.join(', ')}.`
+            erro: `Gateway '${gateway}' não é suportado. Disponíveis: ${Object.keys(GATEWAYS).join(', ')}.`
         };
     }
 
-    const taxa = Number(taxaComissao) || 0;
-
-    if (taxa < 0 || taxa > 1) {
-        return { valido: false, erro: 'A comissão precisa ser uma fração entre 0 e 1 (ex.: 0.1 para 10%).' };
-    }
-
-    // Comissão é válida nos dois modelos. O que muda é COMO ela é cobrada:
-    // 'automatica' o gateway desconta na hora, 'faturada' a LCKP cobra da
-    // escola no fim do mês. Só a automática depende do gateway saber dividir.
-    const cobranca = cobrancaComissao || COBRANCA_COMISSAO.FATURADA;
-
-    if (cobranca === COBRANCA_COMISSAO.AUTOMATICA) {
-        if (modelo !== MODELOS_RECEBIMENTO.SPLIT) {
-            return {
-                valido: false,
-                erro: 'Desconto automático exige o modelo de split — no modelo direto o dinheiro vai inteiro para a escola e não há por onde reter. Use cobrança faturada.'
-            };
-        }
-        if (!descritor.suportaSplit) {
-            return {
-                valido: false,
-                erro: `${descritor.nome} não divide pagamento, então o desconto automático nunca aconteceria. Use cobrança faturada.`
-            };
-        }
-    }
-
-    if (modelo === MODELOS_RECEBIMENTO.SPLIT && descritor.campoRecebedor && !recebedorId) {
+    if (!descritor.implementado) {
         return {
             valido: false,
-            erro: `No modelo de split é obrigatório informar o recebedor (${descritor.campoRecebedor}). Sem ele o pagamento fica inteiro na conta da LCKP.`
+            erro: `A integração com ${descritor.nome} ainda não está pronta. ${descritor.observacao}`
         };
     }
 

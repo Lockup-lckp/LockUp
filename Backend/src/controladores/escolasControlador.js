@@ -184,7 +184,13 @@ export const buscarEscolaPorCodigo = async (req, res) => {
 
 // 4. Criar nova escola (somente superadmin — protegido na rota)
 export const criarEscola = async (req, res) => {
-  const { name, codigo, primary_color, secondary_color, bg_color, logo_url, valor_armario, gateway_recipient_id, taxa_comissao } = req.body;
+  // `taxa_comissao` saiu: desde 2026-08-14 a LCKP cobra licenciamento de
+  // software, não percentual sobre a locação. Aceitar o campo aqui manteria um
+  // caminho capaz de gravar comissão numa escola nova.
+  //
+  // As cores também saíram — a estilização é fixa na marca LCKP, e as colunas
+  // primary_color / secondary_color / bg_color estão órfãs desde a Leva 1.
+  const { name, codigo, logo_url, valor_armario, gateway_recipient_id } = req.body;
 
   if (!name || !codigo) {
     return res.status(400).json({ error: 'Nome e código são campos obrigatórios.' });
@@ -193,7 +199,7 @@ export const criarEscola = async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('schools')
-      .insert([{ name, codigo, primary_color, secondary_color, bg_color, logo_url, valor_armario, gateway_recipient_id, taxa_comissao }])
+      .insert([{ name, codigo, logo_url, valor_armario, gateway_recipient_id }])
       .select()
       .single();
 
