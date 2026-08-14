@@ -58,6 +58,31 @@ export const armariosService = {
   },
 
   // Atualiza os dados de um armário passando o schoolId real do banco para validação de segurança do Admin
+  // Move o ocupante para outro armário. A locação paga vai junto — quem pagou
+  // continua com um armário, só que outro.
+  trocarArmario: async (id, novoArmarioId) => {
+    const response = await fetch(`${API_URL}/${id}/trocar`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ novoArmarioId })
+    });
+    const resultado = await response.json();
+    if (!response.ok) throw new Error(resultado.error || 'Erro ao trocar o armário.');
+    return resultado;
+  },
+
+  // `excluirPagamento` apaga também a locação do histórico. O padrão é manter:
+  // `rentals` é o extrato financeiro da escola.
+  removerOcupante: async (id, excluirPagamento = false) => {
+    const response = await fetch(`${API_URL}/${id}/ocupante?excluirPagamento=${excluirPagamento}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    const resultado = await response.json();
+    if (!response.ok) throw new Error(resultado.error || 'Erro ao remover o ocupante.');
+    return resultado;
+  },
+
   atualizar: async (id, dados) => {
     const response = await fetch(`${API_URL}/${id}`, {
       method: 'PATCH',

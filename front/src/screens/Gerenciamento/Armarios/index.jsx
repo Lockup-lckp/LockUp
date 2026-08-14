@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { armariosService } from '../../../services/armariosServices';
 import { usuarioService } from '../../../services/usuariosServices';
 import { nomearCorredor, rotuloCorredor, rotuloCorredorPlural } from '../../../utils/rotuloCorredor';
+import ModalTrocarArmario from '../../../components/ModalTrocarArmario.jsx';
 import { useEscola } from '../../../theme/EscolaContext.jsx';
 
 const STATUS_LABEL = {
@@ -59,6 +60,9 @@ export default function GerenciamentoArmarios() {
 
   // Exclusao de um corredor inteiro, para desfazer um lote criado errado.
   const [corredorParaExcluir, setCorredorParaExcluir] = useState(null);
+
+  // Armario cujo ocupante esta sendo transferido ou removido.
+  const [armarioParaTrocar, setArmarioParaTrocar] = useState(null);
   const [excluindoCorredor, setExcluindoCorredor] = useState(false);
 
   // Derivado, não guardado em estado: setar estado no corpo do efeito provoca
@@ -201,24 +205,43 @@ export default function GerenciamentoArmarios() {
     }
   };
 
-  const handleDesvincularUsuario = async (id) => {
-    if (!window.confirm('Tem certeza que deseja remover o vínculo deste armário?')) return;
+  // Transfere o ocupante para outro armário. A locação paga acompanha — quem
+  // pagou continua com um armário, só que outro.
+  const handleTrocarArmario = async (novoArmarioId) => {
+    const resultado = await armariosService.trocarArmario(armarioParaTrocar.id, novoArmarioId);
 
-    try {
-      await armariosService.atualizar(id, {
-        status: 'disponivel',
-        usuarioId: null,
-        usuarioNome: null
-      });
+    setArmarios(prev => prev.map(a => {
+      if (a.id === armarioParaTrocar.id) {
+        return { ...a, status: 'disponivel', usuarioId: null, usuario_id: null, usuarioNome: null, usuario_nome: null };
+      }
+      if (a.id === novoArmarioId) {
+        return {
+          ...a,
+          status: resultado.destino.status,
+          usuarioId: resultado.destino.usuarioId,
+          usuario_id: resultado.destino.usuarioId,
+          usuarioNome: resultado.destino.usuarioNome,
+          usuario_nome: resultado.destino.usuarioNome
+        };
+      }
+      return a;
+    }));
 
-      setArmarios(prev => prev.map(a => 
-        a.id === id 
-          ? { ...a, status: 'disponivel', usuarioId: null, usuarioNome: null } 
-          : a
-      ));
-    } catch (err) {
-      alert('Erro ao desvincular o usuário.');
-    }
+    setArmarioParaTrocar(null);
+  };
+
+  // Remove o ocupante. `excluirPagamento` apaga também a locação do histórico —
+  // decisão que o modal obriga a tomar explicitamente.
+  const handleRemoverOcupante = async (excluirPagamento) => {
+    await armariosService.removerOcupante(armarioParaTrocar.id, excluirPagamento);
+
+    setArmarios(prev => prev.map(a =>
+      a.id === armarioParaTrocar.id
+        ? { ...a, status: 'disponivel', usuarioId: null, usuario_id: null, usuarioNome: null, usuario_nome: null }
+        : a
+    ));
+
+    setArmarioParaTrocar(null);
   };
 
   const handleExcluirArmario = async (id, statusAtual) => {
@@ -460,11 +483,15 @@ export default function GerenciamentoArmarios() {
                         <span className="text-white font-medium truncate" title={armario.usuarioNome}>
                           {armario.usuarioNome}
                         </span>
-                        <button 
-                          onClick={() => handleDesvincularUsuario(armario.id)}
-                          className="text-xs text-red-400 hover:text-red-300 underline bg-transparent border-none cursor-pointer p-0 shrink-0"
+                        {/* "Trocar" e não "Remover": desvincular deixa o armário
+                            livre, mas o aluno pagou — a escola quase sempre quer
+                            MOVER. Remover continua possível, dentro do modal, e
+                            lá exige dizer o que fazer com o pagamento. */}
+                        <button
+                          onClick={() => setArmarioParaTrocar(armario)}
+                          className="text-xs text-[var(--primary-color)] hover:brightness-125 underline bg-transparent border-none cursor-pointer p-0 shrink-0"
                         >
-                          Remover
+                          Trocar
                         </button>
                       </div>
                     ) : (
@@ -633,7 +660,20 @@ export default function GerenciamentoArmarios() {
         </div>
       )}
 
-      {/* MODAL DE CRIAÇÃO EM LOTE */}
+      {/* Transferir ou remover o ocupante. Recebe apenas os armários livres —
+          a lista de destino não pode oferecer um armário já ocupado. */}
+      {armarioParaTrocar && (
+        <ModalTrocarArmario
+          armario={armarioParaTrocar}
+          escola={escola}
+          armariosDisponiveis={armarios.filter((a) => a.status === 'disponivel')}
+          ocupado={Boolean(armarioParaTrocar.usuarioId || armarioParaTrocar.usuario_id)}
+          aoFechar={() => setArmarioParaTrocar(null)}
+          aoTrocar={handleTrocarArmario}
+          aoRemover={handleRemoverOcupante}
+        />
+      )}
+
       {/* Confirmação de exclusão do corredor. Não é window.confirm porque
           precisa MOSTRAR a contagem e, se houver ocupante, explicar por que a
           operação está bloqueada — coisa que um confirm de uma linha não faz. */}

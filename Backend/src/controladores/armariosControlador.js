@@ -313,3 +313,174 @@ export const excluirArmario = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+// Carrega o armário garantindo que ele é da escola de quem pediu. Devolve
+// { armario } ou { erro } — o escopo multi-tenant nunca vem do cliente.
+const carregarArmarioNoEscopo = async (req, id) => {
+    const { data: armario, error } = await supabase
+        .from('lockers')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+
+    if (error || !armario) {
+        return { erro: { status: 404, mensagem: 'Armário não encontrado.' } };
+    }
+    if (req.user.role !== 'superadmin' && armario.school_id !== req.user.school_id) {
+        return { erro: { status: 403, mensagem: 'Este armário pertence a outra instituição.' } };
+    }
+    return { armario };
+};
+
+// A locação ativa do aluno naquele armário: aprovada e ainda não encerrada.
+// É a que a troca precisa seguir e a que a remoção pode apagar.
+const buscarLocacaoAtiva = async (lockerId, usuarioId) => {
+    const { data } = await supabase
+        .from('rentals')
+        .select('id, transaction_id, valor, data_aluguel')
+        .eq('locker_id', lockerId)
+        .eq('user_id', usuarioId)
+        .eq('status_pagamento', 'aprovado')
+        .is('encerrado_em', null)
+        .order('data_aluguel', { ascending: false })
+        .limit(1);
+
+    return data?.[0] || null;
+};
+
+// TROCAR O ALUNO DE ARMÁRIO
+//
+// Existe porque "remover e vincular de novo" não é a mesma coisa: entre as duas
+// operações o aluno fica sem armário nenhum, e a locação paga continuaria
+// apontando para o armário antigo — o histórico diria que ele alugou o 101
+// enquanto está usando o 214.
+//
+// Aqui a locação ACOMPANHA o aluno. O que ele pagou não muda; muda onde ele
+// guarda as coisas.
+export const trocarArmarioDoAluno = async (req, res) => {
+    const { id } = req.params;
+    const { novoArmarioId } = req.body;
+
+    if (!novoArmarioId) {
+        return res.status(400).json({ error: 'Informe o armário de destino.' });
+    }
+    if (novoArmarioId === id) {
+        return res.status(400).json({ error: 'O armário de destino é o mesmo de origem.' });
+    }
+
+    try {
+        const origem = await carregarArmarioNoEscopo(req, id);
+        if (origem.erro) return res.status(origem.erro.status).json({ error: origem.erro.mensagem });
+
+        const destino = await carregarArmarioNoEscopo(req, novoArmarioId);
+        if (destino.erro) return res.status(destino.erro.status).json({ error: destino.erro.mensagem });
+
+        if (!origem.armario.usuario_id && !origem.armario.usuario_nome) {
+            return res.status(400).json({ error: 'O armário de origem não tem ocupante para transferir.' });
+        }
+        if (destino.armario.school_id !== origem.armario.school_id) {
+            return res.status(400).json({ error: 'Os dois armários precisam ser da mesma instituição.' });
+        }
+        if (destino.armario.status !== 'disponivel') {
+            return res.status(409).json({ error: `O armário ${destino.armario.nome} não está disponível.` });
+        }
+
+        // Ocupa o destino ANTES de liberar a origem. Se a segunda chamada
+        // falhar, o aluno fica com dois armários — situação visível e fácil de
+        // corrigir. Na ordem inversa ele ficaria sem nenhum, e ninguém
+        // perceberia até ele reclamar.
+        const { error: erroDestino } = await supabase
+            .from('lockers')
+            .update({
+                status: origem.armario.status,
+                usuario_id: origem.armario.usuario_id,
+                usuario_nome: origem.armario.usuario_nome
+            })
+            .eq('id', novoArmarioId);
+
+        if (erroDestino) throw erroDestino;
+
+        const { error: erroOrigem } = await supabase
+            .from('lockers')
+            .update({ status: 'disponivel', usuario_id: null, usuario_nome: null })
+            .eq('id', id);
+
+        if (erroOrigem) throw erroOrigem;
+
+        // A locação segue o aluno. Sem isto o extrato apontaria para o armário
+        // antigo e a escola não saberia quem está onde.
+        let locacaoMovida = false;
+        if (origem.armario.usuario_id) {
+            const locacao = await buscarLocacaoAtiva(id, origem.armario.usuario_id);
+            if (locacao) {
+                await supabase.from('rentals').update({ locker_id: novoArmarioId }).eq('id', locacao.id);
+                locacaoMovida = true;
+            }
+        }
+
+        return res.json({
+            mensagem: `Ocupante transferido para o armário ${destino.armario.nome}.`,
+            origem: { id, status: 'disponivel' },
+            destino: {
+                id: novoArmarioId,
+                nome: destino.armario.nome,
+                status: origem.armario.status,
+                usuarioId: origem.armario.usuario_id,
+                usuarioNome: origem.armario.usuario_nome
+            },
+            locacaoMovida
+        });
+    } catch (err) {
+        console.error('Erro ao trocar o aluno de armário:', err.message);
+        return res.status(500).json({ error: 'Não foi possível concluir a troca de armário.' });
+    }
+};
+
+// REMOVER O OCUPANTE
+//
+// `?excluirPagamento=true` apaga também a locação do histórico.
+//
+// O padrão é MANTER: `rentals` é o extrato financeiro da escola, e some dali
+// significa sumir do relatório anual e da prestação de contas. Excluir só faz
+// sentido quando o lançamento foi um erro — cobrança de teste, aluno errado —
+// e não quando o aluno simplesmente desistiu do armário.
+export const removerOcupante = async (req, res) => {
+    const { id } = req.params;
+    const excluirPagamento = req.query.excluirPagamento === 'true';
+
+    try {
+        const { armario, erro } = await carregarArmarioNoEscopo(req, id);
+        if (erro) return res.status(erro.status).json({ error: erro.mensagem });
+
+        if (!armario.usuario_id && !armario.usuario_nome) {
+            return res.status(400).json({ error: 'Este armário não tem ocupante.' });
+        }
+
+        let pagamentoExcluido = null;
+        if (excluirPagamento && armario.usuario_id) {
+            const locacao = await buscarLocacaoAtiva(id, armario.usuario_id);
+            if (locacao) {
+                const { error } = await supabase.from('rentals').delete().eq('id', locacao.id);
+                if (error) throw error;
+                pagamentoExcluido = { transaction_id: locacao.transaction_id, valor: locacao.valor };
+            }
+        }
+
+        const { error: erroArmario } = await supabase
+            .from('lockers')
+            .update({ status: 'disponivel', usuario_id: null, usuario_nome: null })
+            .eq('id', id);
+
+        if (erroArmario) throw erroArmario;
+
+        return res.json({
+            mensagem: pagamentoExcluido
+                ? 'Ocupante removido e pagamento excluído do histórico.'
+                : 'Ocupante removido. O pagamento permanece no histórico.',
+            armario: { id, status: 'disponivel' },
+            pagamentoExcluido
+        });
+    } catch (err) {
+        console.error('Erro ao remover o ocupante do armário:', err.message);
+        return res.status(500).json({ error: 'Não foi possível remover o ocupante.' });
+    }
+};

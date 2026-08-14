@@ -293,3 +293,81 @@ export const excluirEscola = async (req, res) => {
     return res.status(500).json({ error: 'Erro interno ao remover a instituição.' });
   }
 };
+
+// UPLOAD DA LOGO DA INSTITUIÇÃO
+//
+// Antes a escola colava uma URL. Isso quebrava de três formas: link de Google
+// Drive que não serve imagem, site que bloqueia hotlink, e a imagem sumindo
+// quando a outra ponta reorganizava o servidor — sempre depois, sem aviso.
+//
+// O arquivo chega em base64 no corpo JSON, e não como multipart, para não
+// introduzir dependência de parser só por causa desta rota.
+const TIPOS_LOGO = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/webp': 'webp',
+  'image/svg+xml': 'svg'
+};
+const LIMITE_LOGO = 2 * 1024 * 1024; // 2 MB, igual ao limite do bucket
+
+export const enviarLogo = async (req, res) => {
+  const { id } = req.params;
+  const { arquivo, tipo, campo } = req.body;
+
+  // Só o superadmin e o admin da própria escola. Mesma regra de atualizarEscola.
+  const superadmin = req.user.role === 'superadmin';
+  if (!superadmin && (req.user.role !== 'admin' || req.user.school_id !== id)) {
+    return res.status(403).json({ error: 'Você só pode alterar a logo da sua própria instituição.' });
+  }
+
+  const coluna = campo === 'logo_2_url' ? 'logo_2_url' : 'logo_url';
+
+  if (!arquivo) return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
+  const extensao = TIPOS_LOGO[tipo];
+  if (!extensao) {
+    return res.status(400).json({ error: 'Formato não suportado. Use PNG, JPG, WEBP ou SVG.' });
+  }
+
+  // O base64 pode vir com o prefixo "data:image/png;base64,".
+  const puro = String(arquivo).includes(',') ? String(arquivo).split(',').pop() : String(arquivo);
+  let binario;
+  try {
+    binario = Buffer.from(puro, 'base64');
+  } catch {
+    return res.status(400).json({ error: 'Arquivo inválido.' });
+  }
+  if (!binario.length) return res.status(400).json({ error: 'Arquivo vazio.' });
+  if (binario.length > LIMITE_LOGO) {
+    return res.status(413).json({ error: 'A imagem passa de 2 MB. Reduza o arquivo e tente de novo.' });
+  }
+
+  try {
+    // Nome com timestamp: sobrescrever o mesmo caminho deixaria a logo antiga
+    // no cache do navegador e do CDN, e a escola juraria que não salvou.
+    const caminho = `${id}/${coluna}-${Date.now()}.${extensao}`;
+
+    const { error: erroUpload } = await supabase.storage
+      .from('logos')
+      .upload(caminho, binario, { contentType: tipo, upsert: false });
+
+    if (erroUpload) throw erroUpload;
+
+    const { data: publico } = supabase.storage.from('logos').getPublicUrl(caminho);
+    const url = publico?.publicUrl;
+    if (!url) throw new Error('Não foi possível obter a URL pública da logo.');
+
+    const { data, error } = await supabase
+      .from('schools')
+      .update({ [coluna]: url })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error || !data) throw error || new Error('Instituição não localizada.');
+
+    return res.json({ url, campo: coluna, escola: removerSegredos(data) });
+  } catch (err) {
+    console.error('Erro ao enviar a logo:', err.message);
+    return res.status(500).json({ error: 'Não foi possível enviar a logo.' });
+  }
+};

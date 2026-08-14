@@ -39,6 +39,27 @@ export const escolaService = {
 
   // Atualiza a configuração/personalização da escola (logo_url, cores, valor_armario).
   // O backend restringe o admin de escola à própria instituição e a esses campos.
+  // Envia a logo como base64. Não é multipart de propósito: o backend teria de
+  // ganhar um parser só por causa desta rota, e o arquivo é pequeno (2 MB).
+  enviarLogo: async (id, arquivo, campo = 'logo_url') => {
+    const base64 = await new Promise((resolve, reject) => {
+      const leitor = new FileReader();
+      leitor.onload = () => resolve(leitor.result);
+      leitor.onerror = () => reject(new Error('Não foi possível ler o arquivo.'));
+      leitor.readAsDataURL(arquivo);
+    });
+
+    const response = await fetch(`${API_URL}/${id}/logo`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ arquivo: base64, tipo: arquivo.type, campo })
+    });
+
+    const resultado = await response.json();
+    if (!response.ok) throw new Error(resultado.error || 'Erro ao enviar a logo.');
+    return resultado;
+  },
+
   atualizarConfiguracao: async (id, dadosCustomizacao) => {
     try {
       const response = await fetch(`${API_URL}/${id}`, {

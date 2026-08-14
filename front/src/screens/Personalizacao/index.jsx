@@ -1,13 +1,103 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { escolaService } from '../../services/escolaService';
 import { useEscola } from '../../theme/EscolaContext.jsx';
 import './Personalizacao.css';
 
 // A estilização do sistema é FIXA na marca LCKP — a escola não escolhe cores.
-// Esta tela cuida do que é de fato configurável pela instituição: a logo e o
-// valor cobrado pelo armário. Os templates de posicionamento de logo (até 2)
-// entram aqui na Leva 3.
+// Esta tela cuida do que é de fato da instituição: as logos, o valor, e o
+// vocabulário e o calendário que o portal usa com os alunos.
+//
+// A logo é ENVIADA, não colada como link. Link quebrava de três formas — URL de
+// Google Drive que não serve imagem, site que bloqueia hotlink, e a imagem
+// sumindo quando a outra ponta reorganiza o servidor — sempre depois, sem aviso.
+
+const LIMITE_MB = 2;
+const TIPOS_ACEITOS = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
+
+// Campo de logo: envia o arquivo e mostra a prévia com a mesma placa de vidro
+// que o aluno vê na barra superior.
+function CampoLogo({ titulo, ajuda, url, campo, posicao, aoMudarPosicao, aoEnviar }) {
+  const entradaRef = useRef(null);
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState(null);
+
+  const escolher = async (evento) => {
+    const arquivo = evento.target.files?.[0];
+    // Limpa o input: sem isso, escolher o MESMO arquivo depois de um erro não
+    // dispara onChange e a tela parece travada.
+    evento.target.value = '';
+    if (!arquivo) return;
+
+    setErro(null);
+
+    if (!TIPOS_ACEITOS.includes(arquivo.type)) {
+      setErro('Formato não suportado. Use PNG, JPG, WEBP ou SVG.');
+      return;
+    }
+    if (arquivo.size > LIMITE_MB * 1024 * 1024) {
+      setErro(`A imagem tem ${(arquivo.size / 1024 / 1024).toFixed(1)} MB. O limite é ${LIMITE_MB} MB.`);
+      return;
+    }
+
+    setEnviando(true);
+    try {
+      await aoEnviar(arquivo, campo);
+    } catch (e) {
+      setErro(e.message || 'Não foi possível enviar a imagem.');
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  const temImagem = url && url !== 'null';
+
+  return (
+    <div className="perso-field">
+      <label className="lckp-label">{titulo}</label>
+      {ajuda && <p className="perso-ajuda">{ajuda}</p>}
+
+      <div className="perso-logo-preview">
+        {temImagem ? (
+          <span className="lckp-logo-vidro">
+            <img src={url} alt={`Logo — ${titulo}`} />
+          </span>
+        ) : (
+          <span className="vazio">Nenhuma imagem enviada</span>
+        )}
+      </div>
+
+      <input
+        ref={entradaRef}
+        type="file"
+        accept={TIPOS_ACEITOS.join(',')}
+        onChange={escolher}
+        className="perso-arquivo"
+        aria-label={`Enviar imagem — ${titulo}`}
+      />
+
+      <button
+        type="button"
+        className="lckp-btn lckp-btn--ghost perso-enviar"
+        onClick={() => entradaRef.current?.click()}
+        disabled={enviando}
+      >
+        {enviando ? 'Enviando...' : temImagem ? 'Trocar imagem' : 'Enviar imagem'}
+      </button>
+
+      <p className="perso-ajuda">PNG, JPG, WEBP ou SVG, até {LIMITE_MB} MB.</p>
+      {erro && <p className="lckp-chip lckp-chip--danger perso-erro">{erro}</p>}
+
+      <label className="lckp-label perso-espaco">Onde aparece</label>
+      <select className="lckp-input" value={posicao} onChange={(e) => aoMudarPosicao(e.target.value)}>
+        <option value="esquerda">Esquerda da barra</option>
+        <option value="direita">Direita da barra</option>
+        <option value="nenhum">Não exibir</option>
+      </select>
+    </div>
+  );
+}
+
 export default function Personalizacao() {
   const navigate = useNavigate();
   const { schoolCode } = useParams();
@@ -21,18 +111,33 @@ export default function Personalizacao() {
   const [logo1Posicao, setLogo1Posicao] = useState('esquerda');
   const [logo2Posicao, setLogo2Posicao] = useState('nenhum');
   const [valorArmario, setValorArmario] = useState('');
+
+  // Vocabulário e regras que o portal usa com os alunos.
+  const [rotuloCorredor, setRotuloCorredor] = useState('bloco');
+  const [tipoMatricula, setTipoMatricula] = useState('rm');
+  const [maxArmarios, setMaxArmarios] = useState('1');
+  const [aberturaDia, setAberturaDia] = useState('1');
+  const [aberturaMes, setAberturaMes] = useState('2');
+  const [encerramentoDia, setEncerramentoDia] = useState('20');
+  const [encerramentoMes, setEncerramentoMes] = useState('12');
+
   const [salvando, setSalvando] = useState(false);
   const [feedback, setFeedback] = useState(null); // { tipo: 'sucesso'|'erro', texto }
 
-  // Preenche o formulário quando a escola carrega.
   useEffect(() => {
-    if (escola) {
-      setLogoUrl(escola.logo_url && escola.logo_url !== 'null' ? escola.logo_url : '');
-      setLogo2Url(escola.logo_2_url && escola.logo_2_url !== 'null' ? escola.logo_2_url : '');
-      setLogo1Posicao(escola.logo_1_posicao || 'esquerda');
-      setLogo2Posicao(escola.logo_2_posicao || 'nenhum');
-      setValorArmario(escola.valor_armario != null ? String(escola.valor_armario) : '');
-    }
+    if (!escola) return;
+    setLogoUrl(escola.logo_url && escola.logo_url !== 'null' ? escola.logo_url : '');
+    setLogo2Url(escola.logo_2_url && escola.logo_2_url !== 'null' ? escola.logo_2_url : '');
+    setLogo1Posicao(escola.logo_1_posicao || 'esquerda');
+    setLogo2Posicao(escola.logo_2_posicao || 'nenhum');
+    setValorArmario(escola.valor_armario != null ? String(escola.valor_armario) : '');
+    setRotuloCorredor(escola.rotulo_corredor || 'bloco');
+    setTipoMatricula(escola.tipo_matricula || 'rm');
+    setMaxArmarios(String(escola.max_armarios_por_aluno ?? 1));
+    setAberturaDia(String(escola.abertura_dia ?? 1));
+    setAberturaMes(String(escola.abertura_mes ?? 2));
+    setEncerramentoDia(String(escola.encerramento_dia ?? 20));
+    setEncerramentoMes(String(escola.encerramento_mes ?? 12));
   }, [escola]);
 
   // Redireciona quem não é admin (a API também bloqueia, mas evitamos exibir a tela).
@@ -43,24 +148,62 @@ export default function Personalizacao() {
   }, [podeEditar, navigate, schoolCode]);
 
   if (!podeEditar) return null;
-  if (carregando) return <div className="perso-container">Carregando personalização...</div>;
+  if (carregando) return <div className="perso-container">Carregando configurações...</div>;
+
+  // O upload grava direto na escola: a imagem já está no servidor, e deixá-la
+  // pendente de "Salvar" faria a prévia mostrar algo que ainda não vale.
+  const handleEnviarLogo = async (arquivo, campo) => {
+    const resultado = await escolaService.enviarLogo(escola.id, arquivo, campo);
+    if (campo === 'logo_2_url') setLogo2Url(resultado.url);
+    else setLogoUrl(resultado.url);
+    atualizarEscolaLocal(resultado.escola || { [campo]: resultado.url });
+    setFeedback({ tipo: 'sucesso', texto: 'Logo enviada.' });
+  };
+
+  const inteiroOuNulo = (valor, min, max) => {
+    const n = parseInt(valor, 10);
+    if (Number.isNaN(n) || n < min || n > max) return null;
+    return n;
+  };
 
   const handleSalvar = async () => {
     if (!escola?.id) return;
+
+    // Dia e mês fora da faixa não vão para o banco: o CHECK rejeitaria e o
+    // admin veria um erro de Postgres em vez de uma frase útil.
+    const abreDia = inteiroOuNulo(aberturaDia, 1, 31);
+    const abreMes = inteiroOuNulo(aberturaMes, 1, 12);
+    const fechaDia = inteiroOuNulo(encerramentoDia, 1, 31);
+    const fechaMes = inteiroOuNulo(encerramentoMes, 1, 12);
+
+    if ([abreDia, abreMes, fechaDia, fechaMes].some((v) => v === null)) {
+      setFeedback({ tipo: 'erro', texto: 'Confira as datas do ciclo: dia entre 1 e 31, mês entre 1 e 12.' });
+      return;
+    }
+
+    const limite = inteiroOuNulo(maxArmarios, 1, 5);
+    if (limite === null) {
+      setFeedback({ tipo: 'erro', texto: 'O limite de armários por aluno precisa estar entre 1 e 5.' });
+      return;
+    }
+
     setSalvando(true);
     setFeedback(null);
 
     const payload = {
-      logo_url: logoUrl.trim(),
-      logo_2_url: logo2Url.trim(),
       logo_1_posicao: logo1Posicao,
-      logo_2_posicao: logo2Posicao
+      logo_2_posicao: logo2Posicao,
+      rotulo_corredor: rotuloCorredor,
+      tipo_matricula: tipoMatricula,
+      max_armarios_por_aluno: limite,
+      abertura_dia: abreDia,
+      abertura_mes: abreMes,
+      encerramento_dia: fechaDia,
+      encerramento_mes: fechaMes
     };
-    // valor_armario é opcional; só envia se for um número válido.
+
     const valorNumero = parseFloat(String(valorArmario).replace(',', '.'));
-    if (!Number.isNaN(valorNumero)) {
-      payload.valor_armario = valorNumero;
-    }
+    if (!Number.isNaN(valorNumero)) payload.valor_armario = valorNumero;
 
     try {
       const atualizada = await escolaService.atualizarConfiguracao(escola.id, payload);
@@ -73,78 +216,86 @@ export default function Personalizacao() {
     }
   };
 
-  const temLogo = logoUrl && logoUrl.trim() !== '';
+  const exemploCorredor = rotuloCorredor === 'corredor' ? 'Corredor 3' : 'Bloco 3';
+  const exemploMatricula = tipoMatricula === 'ra' ? 'RA' : 'RM';
 
   return (
     <div className="perso-container">
       <header className="perso-header">
         <h2 className="perso-title">Configurações da Instituição</h2>
         <p className="perso-subtitle">
-          Logo e valor do armário da {escola?.name || 'sua escola'}. A identidade visual do
-          portal é padrão do LCKP e não é editável.
+          Logos, valor e as regras que o portal usa com os alunos da {escola?.name || 'sua escola'}.
+          A identidade visual do portal é padrão do LCKP e não é editável.
         </p>
       </header>
 
       <div className="perso-grid">
         <div className="lckp-card perso-card">
-          <h3>Logo da instituição</h3>
+          <h3>Logos</h3>
+          <p className="perso-ajuda">
+            Até duas logos, exibidas sobre uma placa de vidro na barra superior.
+            A imagem é enviada e passa a ser servida pelo próprio sistema.
+          </p>
 
-          <p style={{ opacity: 0.7, fontSize: '13px', marginTop: 0 }}>
-            Você pode usar até duas logos e escolher de que lado da barra superior
-            cada uma aparece. Elas são exibidas sobre uma placa de vidro, para
-            destacar a marca da instituição em qualquer tela.
+          <CampoLogo
+            titulo="Logo principal"
+            url={logoUrl}
+            campo="logo_url"
+            posicao={logo1Posicao}
+            aoMudarPosicao={setLogo1Posicao}
+            aoEnviar={handleEnviarLogo}
+          />
+
+          <CampoLogo
+            titulo="Segunda logo (opcional)"
+            ajuda="Ex.: a logo da APM, ou da rede à qual a escola pertence."
+            url={logo2Url}
+            campo="logo_2_url"
+            posicao={logo2Posicao}
+            aoMudarPosicao={setLogo2Posicao}
+            aoEnviar={handleEnviarLogo}
+          />
+        </div>
+
+        <div className="lckp-card perso-card">
+          <h3>Como a escola fala</h3>
+          <p className="perso-ajuda">
+            Estas escolhas mudam o texto em todas as telas do aluno — mapa,
+            checkout, Meu Armário e relatórios.
           </p>
 
           <div className="perso-field">
-            <label className="lckp-label">Logo 1 — link da imagem</label>
-            <input
-              className="lckp-input"
-              type="url"
-              placeholder="https://.../logo-da-escola.png"
-              value={logoUrl}
-              onChange={(e) => setLogoUrl(e.target.value)}
-            />
-            <div className="perso-logo-preview">
-              {temLogo ? (
-                <span className="lckp-logo-vidro">
-                  <img src={logoUrl} alt="Prévia da logo 1" onError={(e) => { e.currentTarget.parentElement.style.display = 'none'; }} />
-                </span>
-              ) : (
-                <span className="vazio">Cole o link de uma imagem para ver a prévia</span>
-              )}
-            </div>
-            <label className="lckp-label" style={{ marginTop: '10px' }}>Posição da logo 1</label>
-            <select className="lckp-input" value={logo1Posicao} onChange={(e) => setLogo1Posicao(e.target.value)}>
-              <option value="esquerda">Esquerda da barra</option>
-              <option value="direita">Direita da barra</option>
-              <option value="nenhum">Não exibir</option>
+            <label className="lckp-label">Divisão dos armários</label>
+            <select className="lckp-input" value={rotuloCorredor} onChange={(e) => setRotuloCorredor(e.target.value)}>
+              <option value="bloco">Bloco</option>
+              <option value="corredor">Corredor</option>
             </select>
+            <p className="perso-ajuda">O aluno verá <strong>{exemploCorredor}</strong>.</p>
           </div>
 
           <div className="perso-field">
-            <label className="lckp-label">Logo 2 — link da imagem (opcional)</label>
+            <label className="lckp-label">Identificação do aluno</label>
+            <select className="lckp-input" value={tipoMatricula} onChange={(e) => setTipoMatricula(e.target.value)}>
+              <option value="rm">RM — Registro de Matrícula</option>
+              <option value="ra">RA — Registro do Aluno</option>
+            </select>
+            <p className="perso-ajuda">
+              O cadastro pedirá o <strong>{exemploMatricula}</strong>, que também é a
+              senha do primeiro acesso do aluno.
+            </p>
+          </div>
+
+          <div className="perso-field">
+            <label className="lckp-label">Armários por aluno</label>
             <input
               className="lckp-input"
-              type="url"
-              placeholder="https://.../logo-da-apm.png"
-              value={logo2Url}
-              onChange={(e) => setLogo2Url(e.target.value)}
+              type="number"
+              min="1"
+              max="5"
+              value={maxArmarios}
+              onChange={(e) => setMaxArmarios(e.target.value)}
             />
-            <div className="perso-logo-preview">
-              {logo2Url.trim() ? (
-                <span className="lckp-logo-vidro">
-                  <img src={logo2Url} alt="Prévia da logo 2" onError={(e) => { e.currentTarget.parentElement.style.display = 'none'; }} />
-                </span>
-              ) : (
-                <span className="vazio">Sem segunda logo</span>
-              )}
-            </div>
-            <label className="lckp-label" style={{ marginTop: '10px' }}>Posição da logo 2</label>
-            <select className="lckp-input" value={logo2Posicao} onChange={(e) => setLogo2Posicao(e.target.value)}>
-              <option value="nenhum">Não exibir</option>
-              <option value="esquerda">Esquerda da barra</option>
-              <option value="direita">Direita da barra</option>
-            </select>
+            <p className="perso-ajuda">Quantos armários cada estudante pode alugar por ciclo.</p>
           </div>
 
           <div className="perso-field">
@@ -153,22 +304,53 @@ export default function Personalizacao() {
               className="lckp-input"
               type="text"
               inputMode="decimal"
-              placeholder="Ex: 50.00"
+              placeholder="Ex: 100.00"
               value={valorArmario}
               onChange={(e) => setValorArmario(e.target.value)}
             />
           </div>
+        </div>
 
-          <div className="perso-actions">
-            <button className="lckp-btn" onClick={handleSalvar} disabled={salvando}>
-              {salvando ? 'Salvando...' : 'Salvar configurações'}
-            </button>
+        <div className="lckp-card perso-card">
+          <h3>Ciclo letivo</h3>
+          <p className="perso-ajuda">
+            Fora desta janela o sistema não vende armário. No encerramento, os
+            armários são desvinculados e o histórico de uso permanece registrado.
+          </p>
+
+          <div className="perso-field">
+            <label className="lckp-label">Abertura das vendas</label>
+            <div className="perso-data">
+              <input className="lckp-input" type="number" min="1" max="31" value={aberturaDia}
+                onChange={(e) => setAberturaDia(e.target.value)} aria-label="Dia da abertura" />
+              <span>/</span>
+              <input className="lckp-input" type="number" min="1" max="12" value={aberturaMes}
+                onChange={(e) => setAberturaMes(e.target.value)} aria-label="Mês da abertura" />
+            </div>
           </div>
 
-          {feedback && (
-            <div className={`perso-toast ${feedback.tipo}`}>{feedback.texto}</div>
-          )}
+          <div className="perso-field">
+            <label className="lckp-label">Encerramento do ciclo</label>
+            <div className="perso-data">
+              <input className="lckp-input" type="number" min="1" max="31" value={encerramentoDia}
+                onChange={(e) => setEncerramentoDia(e.target.value)} aria-label="Dia do encerramento" />
+              <span>/</span>
+              <input className="lckp-input" type="number" min="1" max="12" value={encerramentoMes}
+                onChange={(e) => setEncerramentoMes(e.target.value)} aria-label="Mês do encerramento" />
+            </div>
+            <p className="perso-ajuda">
+              Data em que os armários devem estar desocupados, conforme o
+              contrato da instituição.
+            </p>
+          </div>
         </div>
+      </div>
+
+      <div className="perso-actions">
+        <button className="lckp-btn" onClick={handleSalvar} disabled={salvando}>
+          {salvando ? 'Salvando...' : 'Salvar configurações'}
+        </button>
+        {feedback && <div className={`perso-toast ${feedback.tipo}`}>{feedback.texto}</div>}
       </div>
     </div>
   );

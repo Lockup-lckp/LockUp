@@ -541,3 +541,125 @@ body {
   .lckp-contrato__lista li::before { width: 1.4rem; height: 1.4rem; font-size: 0.625rem; }
   .lckp-contrato__rodape .lckp-btn { width: 100%; justify-content: center; }
 }
+
+/* ---------------------------------------------------------------------
+   Modal de troca / remoção do ocupante
+   --------------------------------------------------------------------- */
+
+.lckp-abas {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0 1.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.lckp-aba {
+  appearance: none;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 0.8rem 0.9rem;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--on-bg-muted);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.lckp-aba:hover { color: var(--on-bg); }
+.lckp-aba--ativa { color: var(--primary-color); border-bottom-color: var(--primary-color); }
+
+.lckp-troca__intro {
+  margin: 0 0 1.25rem;
+  font-size: 0.875rem;
+  color: var(--on-bg-muted);
+}
+
+.lckp-troca__contagem {
+  margin: 1rem 0 0.6rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--on-bg-muted);
+}
+
+/* Grade de armários livres: alvo grande o bastante para o dedo, e numeração
+   tabular para os números ficarem alinhados entre si. */
+.lckp-troca__grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+  gap: 0.5rem;
+  max-height: 16rem;
+  overflow-y: auto;
+  padding: 0.15rem;
+}
+
+.lckp-troca__opcao {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.6rem 0.4rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-control);
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--on-bg);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.lckp-troca__opcao strong { font-size: 0.9375rem; font-variant-numeric: tabular-nums; }
+.lckp-troca__opcao span { font-size: 0.6875rem; color: var(--on-bg-muted); }
+.lckp-troca__opcao:hover { border-color: var(--secondary-color); }
+.lckp-troca__opcao--ativa {
+  border-color: var(--primary-color);
+  background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+}
+
+/* Escolha do destino do pagamento: cartão inteiro clicável, porque um rádio
+   solto de 16px é alvo ruim e a consequência de errar aqui é apagar dinheiro. */
+.lckp-troca__escolha {
+  display: grid;
+  grid-template-columns: 1.1rem 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.9rem 1rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.lckp-troca__escolha:hover { border-color: var(--secondary-color); }
+.lckp-troca__escolha input { margin-top: 0.2rem; accent-color: var(--primary-color); }
+.lckp-troca__escolha span { display: block; font-size: 0.8125rem; color: var(--on-bg-muted); line-height: 1.5; }
+.lckp-troca__escolha strong { display: block; font-size: 0.9375rem; color: var(--on-bg); margin-bottom: 0.15rem; }
+
+.lckp-troca__escolha--ativa {
+  border-color: var(--primary-color);
+  background: color-mix(in srgb, var(--primary-color) 8%, transparent);
+}
+.lckp-troca__escolha--perigo {
+  border-color: color-mix(in srgb, var(--danger) 55%, transparent);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
+
+.lckp-troca__aviso { margin-top: 0.25rem; }
+.lckp-troca__nota {
+  margin: 1rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--on-bg-muted);
+  font-style: italic;
+}
+
+/* O rodapé do contrato alinha à direita; aqui há dois botões e o Cancelar
+   precisa ficar longe do que apaga pagamento. */
+.lckp-troca__rodape { justify-content: space-between; gap: 0.75rem; }
+
+@media (max-width: 640px) {
+  .lckp-abas { padding-inline: 1.1rem; }
+  .lckp-troca__grade { grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr)); max-height: 12rem; }
+  .lckp-troca__rodape { flex-direction: column-reverse; }
+  .lckp-troca__rodape .lckp-btn { width: 100%; justify-content: center; }
+}
