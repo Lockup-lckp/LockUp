@@ -667,9 +667,12 @@ export const listarHistoricoPagamentos = async (req, res) => {
 
         const { data: aluguéis, error: erroAlugueis } = await supabase
             .from('rentals')
-            .select('id, locker_id, user_id, valor, data_aluguel, ano_letivo, origem')
+            .select('id, locker_id, user_id, valor, data_aluguel, ano_letivo, origem, status_pagamento, estorno_de')
             .eq('school_id', escola.id)
-            .eq('status_pagamento', 'aprovado')
+            // Estornos entram no extrato: são lançamentos de valor NEGATIVO, e
+            // sem eles o total mostrado seria maior que o dinheiro que a escola
+            // de fato tem em conta.
+            .in('status_pagamento', ['aprovado', 'estorno'])
             .order('data_aluguel', { ascending: false });
 
         if (erroAlugueis) throw erroAlugueis;
@@ -698,6 +701,9 @@ export const listarHistoricoPagamentos = async (req, res) => {
             ano_letivo: a.ano_letivo,
             // 'presencial' = pago na secretaria e lançado pelo vínculo manual.
             origem: a.origem || 'online',
+            // Estorno: valor negativo, aponta para a locacao que devolveu.
+            estorno: a.status_pagamento === 'estorno',
+            estorno_de: a.estorno_de || null,
             locker_nome: lockerPorId[a.locker_id]?.nome || null,
             locker_corredor: lockerPorId[a.locker_id]?.corredor || null,
             aluno_nome: usuarioPorId[a.user_id]?.nome_completo || null

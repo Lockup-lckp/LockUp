@@ -69,7 +69,12 @@ export default function HistoricoPagamentos() {
   }, [historico, anoSelecionado]);
 
   // Só locações com valor registrado entram na soma (locações antigas, sem valor salvo, ficam de fora).
+  // Estornos entram com valor negativo, entao esta soma ja e o LIQUIDO:
+  // o que a escola cobrou menos o que devolveu.
   const saldoAnual = historicoDoAno.reduce((total, item) => total + (Number(item.valor) || 0), 0);
+  const totalDevolvido = historicoDoAno
+    .filter((i) => i.estorno)
+    .reduce((total, i) => total + Math.abs(Number(i.valor) || 0), 0);
   const quantidadeSemValor = historicoDoAno.filter((item) => item.valor === null || item.valor === undefined).length;
 
   const totalPaginas = Math.ceil(historicoDoAno.length / ITENS_POR_PAGINA) || 1;
@@ -145,7 +150,8 @@ export default function HistoricoPagamentos() {
         <span className="text-xs text-gray-400 uppercase tracking-wider">Saldo de {anoSelecionado}</span>
         <p className="text-3xl font-bold text-[var(--primary-color)] font-display mt-1">{formatarMoeda(saldoAnual)}</p>
         <p className="text-xs text-gray-500 mt-2">
-          {historicoDoAno.length} locação{historicoDoAno.length === 1 ? '' : 'ões'} paga{historicoDoAno.length === 1 ? '' : 's'} neste ano
+          {historicoDoAno.length} lançamento{historicoDoAno.length === 1 ? '' : 's'} neste ciclo
+          {totalDevolvido > 0 && ` · ${formatarMoeda(totalDevolvido)} devolvido em estornos`}
           {quantidadeSemValor > 0 && ` (${quantidadeSemValor} sem valor registrado, não somada aqui)`}
         </p>
       </div>
@@ -179,13 +185,18 @@ export default function HistoricoPagamentos() {
                     {/* Distingue o que passou pelo balcão do que entrou pelo
                         gateway: os dois somam no faturamento, mas só um tem
                         comprovante no extrato bancário da escola. */}
-                    {item.origem === 'presencial' && (
+                    {item.estorno && (
+                      <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-amber-950/60 text-amber-400 border border-amber-900/50">
+                        Devolução
+                      </span>
+                    )}
+                    {!item.estorno && item.origem === 'presencial' && (
                       <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-amber-950/60 text-amber-400 border border-amber-900/50">
                         Secretaria
                       </span>
                     )}
                   </td>
-                  <td data-label="Valor" className="p-4 text-right font-semibold text-white whitespace-nowrap">{formatarMoeda(item.valor)}</td>
+                  <td data-label="Valor" className={`p-4 text-right font-semibold whitespace-nowrap ${item.estorno ? 'text-amber-400' : 'text-white'}`}>{formatarMoeda(item.valor)}</td>
                 </tr>
               ))
             )}

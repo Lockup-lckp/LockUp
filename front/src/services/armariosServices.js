@@ -71,10 +71,11 @@ export const armariosService = {
     return resultado;
   },
 
-  // `excluirPagamento` apaga também a locação do histórico. O padrão é manter:
-  // `rentals` é o extrato financeiro da escola.
-  removerOcupante: async (id, excluirPagamento = false) => {
-    const response = await fetch(`${API_URL}/${id}/ocupante?excluirPagamento=${excluirPagamento}`, {
+  // `registrarEstorno` lança a devolução como uma linha NEGATIVA no histórico.
+  // O registro original nunca é apagado: o extrato mostra a cobrança e a
+  // devolução, e o total do ciclo cai pelo valor devolvido.
+  removerOcupante: async (id, registrarEstorno = false) => {
+    const response = await fetch(`${API_URL}/${id}/ocupante?registrarEstorno=${registrarEstorno}`, {
       method: 'DELETE',
       headers: getAuthHeaders()
     });

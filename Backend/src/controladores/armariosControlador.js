@@ -336,7 +336,7 @@ const carregarArmarioNoEscopo = async (req, id) => {
 const buscarLocacaoAtiva = async (lockerId, usuarioId) => {
     const { data } = await supabase
         .from('rentals')
-        .select('id, transaction_id, valor, data_aluguel')
+        .select('id, transaction_id, valor, data_aluguel, origem, modalidade, ano_letivo')
         .eq('locker_id', lockerId)
         .eq('user_id', usuarioId)
         .eq('status_pagamento', 'aprovado')
@@ -437,15 +437,22 @@ export const trocarArmarioDoAluno = async (req, res) => {
 
 // REMOVER O OCUPANTE
 //
-// `?excluirPagamento=true` apaga também a locação do histórico.
+// `?registrarEstorno=true` lança a devolução do valor.
 //
-// O padrão é MANTER: `rentals` é o extrato financeiro da escola, e some dali
-// significa sumir do relatório anual e da prestação de contas. Excluir só faz
-// sentido quando o lançamento foi um erro — cobrança de teste, aluno errado —
-// e não quando o aluno simplesmente desistiu do armário.
+// O histórico NUNCA é apagado. Antes havia a opção de excluir a locação, e
+// isso escondia que houve movimento: o extrato ficava igual ao de um aluno que
+// nunca comprou, e a diferença só aparecia na conta bancária.
+//
+// A devolução vira um lançamento próprio, com valor NEGATIVO, apontando para a
+// locação original. O extrato mostra as duas linhas — a cobrança e a devolução
+// — e o total do ciclo cai pelo valor devolvido.
+//
+// O estorno é opcional porque nem toda remoção é reembolso: o contrato da APM
+// prevê encerramento por descumprimento "sem devolução proporcional". Quem
+// decide é quem está no balcão.
 export const removerOcupante = async (req, res) => {
     const { id } = req.params;
-    const excluirPagamento = req.query.excluirPagamento === 'true';
+    const registrarEstorno = req.query.registrarEstorno === 'true';
 
     try {
         const { armario, erro } = await carregarArmarioNoEscopo(req, id);
@@ -455,14 +462,54 @@ export const removerOcupante = async (req, res) => {
             return res.status(400).json({ error: 'Este armário não tem ocupante.' });
         }
 
-        let pagamentoExcluido = null;
-        if (excluirPagamento && armario.usuario_id) {
+        let estorno = null;
+        if (registrarEstorno && armario.usuario_id) {
             const locacao = await buscarLocacaoAtiva(id, armario.usuario_id);
-            if (locacao) {
-                const { error } = await supabase.from('rentals').delete().eq('id', locacao.id);
-                if (error) throw error;
-                pagamentoExcluido = { transaction_id: locacao.transaction_id, valor: locacao.valor };
+
+            if (!locacao) {
+                return res.status(400).json({
+                    error: 'Não há locação paga em aberto para este aluno neste armário — não existe o que estornar.'
+                });
             }
+
+            // Uma locação só pode ser devolvida uma vez. Sem esta checagem,
+            // dois cliques gerariam dois créditos e o faturamento ficaria menor
+            // que a realidade.
+            const { data: jaEstornada } = await supabase
+                .from('rentals')
+                .select('id')
+                .eq('estorno_de', locacao.id)
+                .limit(1);
+
+            if (jaEstornada?.length) {
+                return res.status(409).json({ error: 'Esta locação já foi estornada.' });
+            }
+
+            const valorDevolvido = -Math.abs(Number(locacao.valor) || 0);
+
+            // status 'estorno' e NÃO 'aprovado': o gatilho
+            // fn_liberar_armario_apos_aprovacao revincularia o armário ao aluno
+            // que estamos removendo.
+            const { data: criado, error: erroEstorno } = await supabase
+                .from('rentals')
+                .insert([{
+                    transaction_id: `EST-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                    locker_id: id,
+                    user_id: armario.usuario_id,
+                    school_id: armario.school_id,
+                    valor: valorDevolvido,
+                    status_pagamento: 'estorno',
+                    estorno_de: locacao.id,
+                    origem: locacao.origem || 'online',
+                    modalidade: locacao.modalidade || 'anual',
+                    ano_letivo: locacao.ano_letivo,
+                    data_aluguel: new Date().toISOString()
+                }])
+                .select('transaction_id, valor')
+                .single();
+
+            if (erroEstorno) throw erroEstorno;
+            estorno = criado;
         }
 
         const { error: erroArmario } = await supabase
@@ -473,11 +520,11 @@ export const removerOcupante = async (req, res) => {
         if (erroArmario) throw erroArmario;
 
         return res.json({
-            mensagem: pagamentoExcluido
-                ? 'Ocupante removido e pagamento excluído do histórico.'
-                : 'Ocupante removido. O pagamento permanece no histórico.',
+            mensagem: estorno
+                ? 'Ocupante removido e devolução registrada no histórico.'
+                : 'Ocupante removido. O pagamento permanece no histórico, sem devolução.',
             armario: { id, status: 'disponivel' },
-            pagamentoExcluido
+            estorno
         });
     } catch (err) {
         console.error('Erro ao remover o ocupante do armário:', err.message);

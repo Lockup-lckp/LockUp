@@ -1,12 +1,21 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { nomearCorredor, rotuloCorredor, rotuloCorredorPlural } from '../utils/rotuloCorredor';
+import { nomearCorredor, rotuloCorredor } from '../utils/rotuloCorredor';
 
 // Diálogo do ocupante de um armário: transferir para outro, ou remover.
 //
 // Substituiu o antigo botão "Remover", que fazia a coisa errada por padrão:
-// desvincular deixa o armário livre, mas o aluno pagou — e a escola quase
-// sempre quer MOVER, não tirar. Agora a troca é o caminho principal, e remover
-// exige dizer o que acontece com o dinheiro.
+// desvincular deixa o armário livre, mas o aluno pagou — a escola quase sempre
+// quer MOVER, não tirar.
+//
+// A escolha do destino é por DOIS SELETORES em cascata, e não por uma grade de
+// botões: com centenas de armários a grade virava uma parede de números que o
+// admin tinha de percorrer com o olho. Aqui ele escolhe o corredor que já tinha
+// em mente e depois o número.
+//
+// Remover NÃO apaga o histórico. Se houve devolução do dinheiro, o sistema
+// lança um estorno — uma linha de valor negativo apontando para a cobrança
+// original. Apagar esconderia que houve movimento; estornar registra que houve
+// cobrança e devolução.
 
 export default function ModalTrocarArmario({
   armario,               // armário de origem, com ocupante
@@ -15,12 +24,12 @@ export default function ModalTrocarArmario({
   ocupado,               // true quando é aluno pagante; funcionário não tem locação
   aoFechar,
   aoTrocar,              // (novoArmarioId) => Promise
-  aoRemover              // (excluirPagamento) => Promise
+  aoRemover              // (registrarEstorno) => Promise
 }) {
   const [aba, setAba] = useState('trocar');
+  const [corredorDestino, setCorredorDestino] = useState('');
   const [destino, setDestino] = useState('');
-  const [filtroCorredor, setFiltroCorredor] = useState('');
-  const [excluirPagamento, setExcluirPagamento] = useState(false);
+  const [registrarEstorno, setRegistrarEstorno] = useState(false);
   const [processando, setProcessando] = useState(false);
   const [erro, setErro] = useState(null);
 
@@ -37,16 +46,12 @@ export default function ModalTrocarArmario({
     return lista.sort((a, b) => String(a).localeCompare(String(b), 'pt-BR', { numeric: true }));
   }, [armariosDisponiveis]);
 
-  // Com centenas de armários livres, a lista inteira é inútil: o admin sabe
-  // para qual corredor quer mover, não para qual dos 300 números.
   const candidatos = useMemo(() => {
-    const lista = filtroCorredor
-      ? armariosDisponiveis.filter((a) => a.corredor === filtroCorredor)
-      : armariosDisponiveis;
-    return [...lista].sort((a, b) =>
-      String(a.nome).localeCompare(String(b.nome), 'pt-BR', { numeric: true })
-    );
-  }, [armariosDisponiveis, filtroCorredor]);
+    if (!corredorDestino) return [];
+    return armariosDisponiveis
+      .filter((a) => a.corredor === corredorDestino)
+      .sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR', { numeric: true }));
+  }, [armariosDisponiveis, corredorDestino]);
 
   if (!armario) return null;
 
@@ -63,11 +68,12 @@ export default function ModalTrocarArmario({
   };
 
   const nomeOcupante = armario.usuarioNome || armario.usuario_nome || 'Ocupante';
+  const rotulo = rotuloCorredor(escola).toLowerCase();
 
   return (
     <div className="lckp-modal__backdrop" onClick={() => !processando && aoFechar()} role="presentation">
       <div
-        className="lckp-modal lckp-modal--largo"
+        className="lckp-modal lckp-modal--medio"
         role="dialog"
         aria-modal="true"
         aria-labelledby="titulo-trocar"
@@ -108,108 +114,97 @@ export default function ModalTrocarArmario({
             onClick={() => setAba('remover')}
             className={`lckp-aba ${aba === 'remover' ? 'lckp-aba--ativa' : ''}`}
           >
-            Remover do armário
+            Remover
           </button>
         </div>
 
-        <div className="lckp-contrato__corpo">
-          {erro && <p className="lckp-chip lckp-chip--danger" style={{ marginBottom: '1rem' }}>{erro}</p>}
+        <div className="lckp-troca__corpo">
+          {erro && <p className="lckp-chip lckp-chip--danger lckp-troca__erro">{erro}</p>}
 
           {aba === 'trocar' ? (
-            <>
-              <p className="lckp-troca__intro">
-                O ocupante passa para o armário escolhido, e o pagamento vai
-                junto — o histórico continua apontando para a mesma pessoa.
+            armariosDisponiveis.length === 0 ? (
+              <p className="lckp-chip lckp-chip--danger">
+                Não há armários disponíveis para receber a transferência.
               </p>
-
-              {armariosDisponiveis.length === 0 ? (
-                <p className="lckp-chip lckp-chip--danger">
-                  Não há armários disponíveis nesta instituição para receber a transferência.
+            ) : (
+              <>
+                <p className="lckp-troca__intro">
+                  O ocupante e o pagamento passam para o armário escolhido.
                 </p>
-              ) : (
-                <>
-                  <label className="lckp-label" htmlFor="filtro-corredor-troca">
-                    Filtrar por {rotuloCorredor(escola).toLowerCase()}
-                  </label>
-                  <select
-                    id="filtro-corredor-troca"
-                    className="lckp-input"
-                    value={filtroCorredor}
-                    onChange={(e) => { setFiltroCorredor(e.target.value); setDestino(''); }}
-                  >
-                    <option value="">Todos os {rotuloCorredorPlural(escola)}</option>
-                    {corredores.map((c) => (
-                      <option key={c} value={c}>{nomearCorredor(escola, c)}</option>
-                    ))}
-                  </select>
 
-                  <p className="lckp-troca__contagem">
-                    {candidatos.length} armário{candidatos.length === 1 ? '' : 's'} disponível{candidatos.length === 1 ? '' : 'eis'}
-                  </p>
+                <label className="lckp-label" htmlFor="corredor-destino">{rotuloCorredor(escola)}</label>
+                <select
+                  id="corredor-destino"
+                  className="lckp-input"
+                  value={corredorDestino}
+                  onChange={(e) => { setCorredorDestino(e.target.value); setDestino(''); }}
+                >
+                  <option value="">Selecione o {rotulo}</option>
+                  {corredores.map((c) => (
+                    <option key={c} value={c}>
+                      {nomearCorredor(escola, c)} — {armariosDisponiveis.filter((a) => a.corredor === c).length} livres
+                    </option>
+                  ))}
+                </select>
 
-                  <div className="lckp-troca__grade" role="radiogroup" aria-label="Armário de destino">
-                    {candidatos.map((a) => (
-                      <button
-                        type="button"
-                        key={a.id}
-                        role="radio"
-                        aria-checked={destino === a.id}
-                        onClick={() => setDestino(a.id)}
-                        className={`lckp-troca__opcao ${destino === a.id ? 'lckp-troca__opcao--ativa' : ''}`}
-                      >
-                        <strong>{a.nome}</strong>
-                        <span>{nomearCorredor(escola, a.corredor)}</span>
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </>
+                <label className="lckp-label lckp-troca__espaco" htmlFor="armario-destino">Armário</label>
+                <select
+                  id="armario-destino"
+                  className="lckp-input"
+                  value={destino}
+                  onChange={(e) => setDestino(e.target.value)}
+                  disabled={!corredorDestino}
+                >
+                  <option value="">
+                    {corredorDestino ? 'Selecione o armário' : `Escolha o ${rotulo} primeiro`}
+                  </option>
+                  {candidatos.map((a) => (
+                    <option key={a.id} value={a.id}>{a.nome}</option>
+                  ))}
+                </select>
+              </>
+            )
           ) : (
             <>
               <p className="lckp-troca__intro">
-                O armário volta a ficar disponível. Escolha o que acontece com o
-                pagamento deste aluno.
+                O armário volta a ficar disponível. O pagamento continua no
+                histórico — o que muda é se houve devolução do valor.
               </p>
 
-              {/* O padrão é MANTER, e de propósito: `rentals` é o extrato da
-                  escola. Sumir dali significa sumir do relatório anual. */}
-              <label className={`lckp-troca__escolha ${!excluirPagamento ? 'lckp-troca__escolha--ativa' : ''}`}>
-                <input
-                  type="radio"
-                  name="destino-pagamento"
-                  checked={!excluirPagamento}
-                  onChange={() => setExcluirPagamento(false)}
-                />
-                <span>
-                  <strong>Manter o pagamento no histórico</strong>
-                  A locação continua no extrato e no relatório anual. O aluno pagou, e o registro disso permanece.
-                </span>
-              </label>
+              {ocupado ? (
+                <>
+                  <label className={`lckp-troca__escolha ${!registrarEstorno ? 'lckp-troca__escolha--ativa' : ''}`}>
+                    <input
+                      type="radio"
+                      name="devolucao"
+                      checked={!registrarEstorno}
+                      onChange={() => setRegistrarEstorno(false)}
+                    />
+                    <span>
+                      <strong>Sem devolução</strong>
+                      O valor fica com a instituição. É o caso do encerramento por
+                      descumprimento do contrato.
+                    </span>
+                  </label>
 
-              <label className={`lckp-troca__escolha ${excluirPagamento ? 'lckp-troca__escolha--perigo' : ''}`}>
-                <input
-                  type="radio"
-                  name="destino-pagamento"
-                  checked={excluirPagamento}
-                  onChange={() => setExcluirPagamento(true)}
-                />
-                <span>
-                  <strong>Excluir o pagamento do histórico</strong>
-                  A locação é apagada e o valor sai do faturamento do ciclo. Use apenas quando o lançamento foi um erro — cobrança de teste ou aluno errado.
-                </span>
-              </label>
-
-              {excluirPagamento && (
-                <p className="lckp-chip lckp-chip--danger lckp-troca__aviso">
-                  Esta exclusão não pode ser desfeita.
-                </p>
-              )}
-
-              {!ocupado && (
+                  <label className={`lckp-troca__escolha ${registrarEstorno ? 'lckp-troca__escolha--ativa' : ''}`}>
+                    <input
+                      type="radio"
+                      name="devolucao"
+                      checked={registrarEstorno}
+                      onChange={() => setRegistrarEstorno(true)}
+                    />
+                    <span>
+                      <strong>Registrar devolução</strong>
+                      Lança um estorno no histórico, com valor negativo, e o
+                      faturamento do ciclo cai nesse valor.
+                    </span>
+                  </label>
+                </>
+              ) : (
                 <p className="lckp-troca__nota">
-                  Este armário está atribuído a um funcionário e não possui
-                  pagamento vinculado — a escolha acima não terá efeito.
+                  Armário de funcionário: não há pagamento vinculado, então não
+                  existe devolução a registrar.
                 </p>
               )}
             </>
@@ -228,18 +223,18 @@ export default function ModalTrocarArmario({
               disabled={processando || !destino}
               className="lckp-btn"
             >
-              {processando ? 'Transferindo...' : 'Transferir ocupante'}
+              {processando ? 'Transferindo...' : 'Transferir'}
             </button>
           ) : (
             <button
               type="button"
-              onClick={() => executar(() => aoRemover(excluirPagamento))}
+              onClick={() => executar(() => aoRemover(ocupado && registrarEstorno))}
               disabled={processando}
-              className={`lckp-btn ${excluirPagamento ? 'lckp-btn--danger' : ''}`}
+              className="lckp-btn"
             >
               {processando
                 ? 'Removendo...'
-                : excluirPagamento ? 'Remover e excluir pagamento' : 'Remover ocupante'}
+                : registrarEstorno && ocupado ? 'Remover e devolver' : 'Remover'}
             </button>
           )}
         </footer>

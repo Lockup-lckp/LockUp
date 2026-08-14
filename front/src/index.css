@@ -584,41 +584,6 @@ body {
   color: var(--on-bg-muted);
 }
 
-/* Grade de armários livres: alvo grande o bastante para o dedo, e numeração
-   tabular para os números ficarem alinhados entre si. */
-.lckp-troca__grade {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
-  gap: 0.5rem;
-  max-height: 16rem;
-  overflow-y: auto;
-  padding: 0.15rem;
-}
-
-.lckp-troca__opcao {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.15rem;
-  padding: 0.6rem 0.4rem;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-control);
-  background: rgba(0, 0, 0, 0.2);
-  color: var(--on-bg);
-  font: inherit;
-  cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
-}
-.lckp-troca__opcao strong { font-size: 0.9375rem; font-variant-numeric: tabular-nums; }
-.lckp-troca__opcao span { font-size: 0.6875rem; color: var(--on-bg-muted); }
-.lckp-troca__opcao:hover { border-color: var(--secondary-color); }
-.lckp-troca__opcao--ativa {
-  border-color: var(--primary-color);
-  background: color-mix(in srgb, var(--primary-color) 12%, transparent);
-}
-
-/* Escolha do destino do pagamento: cartão inteiro clicável, porque um rádio
-   solto de 16px é alvo ruim e a consequência de errar aqui é apagar dinheiro. */
 .lckp-troca__escolha {
   display: grid;
   grid-template-columns: 1.1rem 1fr;
@@ -662,4 +627,17 @@ body {
   .lckp-troca__grade { grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr)); max-height: 12rem; }
   .lckp-troca__rodape { flex-direction: column-reverse; }
   .lckp-troca__rodape .lckp-btn { width: 100%; justify-content: center; }
+}
+
+/* Modal compacto: o de troca não tem texto longo, só dois seletores ou duas
+   escolhas. A largura do contrato (42rem) deixava tudo perdido. */
+.lckp-modal--medio { max-width: 30rem; display: flex; flex-direction: column; max-height: min(85vh, 40rem); }
+
+.lckp-troca__corpo { padding: 1.35rem 1.75rem; overflow-y: auto; }
+.lckp-troca__espaco { margin-top: 1rem; }
+.lckp-troca__erro { margin-bottom: 1rem; }
+
+@media (max-width: 640px) {
+  .lckp-troca__corpo { padding-inline: 1.1rem; }
+  .lckp-modal--medio { max-height: 90vh; }
 }
