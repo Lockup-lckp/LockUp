@@ -14,7 +14,10 @@ services:
     buildCommand: npm install
     startCommand: npm start
     autoDeploy: true
-    healthCheckPath: /
+    # O backend nao responde em "/": a unica rota de saude e /status, e todo o
+    # resto cai no 404. Com healthCheckPath: / o Render marcaria o servico como
+    # nao saudavel e ficaria reiniciando um processo que esta funcionando.
+    healthCheckPath: /status
     envVars:
       - key: NODE_VERSION
         value: 20

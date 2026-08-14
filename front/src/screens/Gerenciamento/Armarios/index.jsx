@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTravarScroll } from '../../../utils/travarScroll';
 import { useParams } from 'react-router-dom';
 import { armariosService } from '../../../services/armariosServices';
 import { usuarioService } from '../../../services/usuariosServices';
@@ -63,6 +64,9 @@ export default function GerenciamentoArmarios() {
 
   // Armario cujo ocupante esta sendo transferido ou removido.
   const [armarioParaTrocar, setArmarioParaTrocar] = useState(null);
+
+  // Congela o fundo com qualquer dialogo aberto. O de troca trava sozinho.
+  useTravarScroll(modalAberto || modalFuncionarioAberto || modalLoteAberto || Boolean(corredorParaExcluir));
   const [excluindoCorredor, setExcluindoCorredor] = useState(false);
 
   // Derivado, não guardado em estado: setar estado no corpo do efeito provoca

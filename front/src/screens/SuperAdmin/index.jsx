@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTravarScroll } from '../../utils/travarScroll';
 import { authService } from '../../services/authService';
 import { usuarioService } from '../../services/usuariosServices';
 import { escolaService } from '../../services/escolaService';
@@ -209,6 +210,9 @@ function Painel({ usuario, onSair }) {
   const [criandoEscola, setCriandoEscola] = useState(false);
 
   const [escolaEditando, setEscolaEditando] = useState(null);
+
+  // Congela o fundo enquanto o formulario da escola esta aberto.
+  useTravarScroll(Boolean(escolaEditando));
   const [comissaoEdit, setComissaoEdit] = useState('');
   const [valorArmarioEdit, setValorArmarioEdit] = useState('');
   const [gatewayIdEdit, setGatewayIdEdit] = useState('');

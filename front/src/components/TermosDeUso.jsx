@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useTravarScroll } from '../utils/travarScroll';
 
 // Contrato de locação da instituição, exibido no checkout antes do pagamento.
 //
@@ -11,6 +12,9 @@ import React, { useEffect, useRef } from 'react';
 // O texto vem de `schools.contrato_texto`, uma cláusula por linha.
 
 export default function ModalTermos({ escola, aoFechar }) {
+  // Congela o fundo: sem isso a rolagem atravessa o dialogo.
+  useTravarScroll();
+
   const caixaRef = useRef(null);
 
   useEffect(() => {

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useTravarScroll } from '../utils/travarScroll';
 import { nomearCorredor, rotuloCorredor } from '../utils/rotuloCorredor';
 
 // Diálogo de confirmação do armário selecionado pelo aluno.
@@ -8,6 +9,11 @@ import { nomearCorredor, rotuloCorredor } from '../utils/rotuloCorredor';
 //
 // Fechar SEMPRE desmarca o armário — é o caminho de "quero escolher outro".
 export default function ModalArmario({ armario, escola, valorArmario, atingiuLimite, limiteArmarios = 1, aoFechar, aoConfirmar }) {
+  // Congela o fundo, mas SO quando ha armario: este componente fica sempre
+  // montado e devolve null sem selecao — travar incondicionalmente prenderia
+  // a rolagem da pagina inteira.
+  useTravarScroll(Boolean(armario));
+
   const caixaRef = useRef(null);
 
   useEffect(() => {

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTravarScroll } from '../utils/travarScroll';
 import { Link, useLocation } from 'react-router-dom';
 
 // Peças compartilhadas pelas duas barras laterais (aluno e admin), que antes
@@ -109,6 +110,9 @@ export function ItemNav({ para, rotulo, Icone, onNavegar }) {
  * Casca da barra lateral: fundo escurecido no celular e o painel deslizante.
  */
 export function PainelLateral({ isOpen, onClose, titulo, children }) {
+
+  // A gaveta cobre a tela no celular: o fundo nao pode rolar por tras dela.
+  useTravarScroll(isOpen);
   return (
     <>
       {isOpen && (

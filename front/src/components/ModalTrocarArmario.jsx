@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTravarScroll } from '../utils/travarScroll';
 import { nomearCorredor, rotuloCorredor } from '../utils/rotuloCorredor';
 
 // Poucas sugestoes de propria: a lista longa era o problema que este campo
@@ -30,6 +31,9 @@ export default function ModalTrocarArmario({
   aoTrocar,              // (novoArmarioId) => Promise
   aoRemover              // (registrarEstorno) => Promise
 }) {
+  // Congela o fundo enquanto ha armario em edicao.
+  useTravarScroll(Boolean(armario));
+
   const [aba, setAba] = useState('trocar');
   const [busca, setBusca] = useState('');
   const [destino, setDestino] = useState('');
