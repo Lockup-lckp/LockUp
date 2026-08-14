@@ -1,16 +1,20 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { nomearCorredor, rotuloCorredor } from '../utils/rotuloCorredor';
 
+// Poucas sugestoes de propria: a lista longa era o problema que este campo
+// veio resolver. Quem nao achou nos 6 primeiros digita mais um caractere.
+const LIMITE_SUGESTOES = 6;
+
 // Diálogo do ocupante de um armário: transferir para outro, ou remover.
 //
 // Substituiu o antigo botão "Remover", que fazia a coisa errada por padrão:
 // desvincular deixa o armário livre, mas o aluno pagou — a escola quase sempre
 // quer MOVER, não tirar.
 //
-// A escolha do destino é por DOIS SELETORES em cascata, e não por uma grade de
-// botões: com centenas de armários a grade virava uma parede de números que o
-// admin tinha de percorrer com o olho. Aqui ele escolhe o corredor que já tinha
-// em mente e depois o número.
+// O destino se escolhe DIGITANDO o número. Antes era uma grade com todos os
+// armários livres, depois dois seletores em cascata — os dois obrigavam a
+// percorrer centenas de opções com o olho. Quem opera já sabe o número que
+// quer; o campo só precisa confirmar que ele está livre.
 //
 // Remover NÃO apaga o histórico. Se houve devolução do dinheiro, o sistema
 // lança um estorno — uma linha de valor negativo apontando para a cobrança
@@ -27,7 +31,7 @@ export default function ModalTrocarArmario({
   aoRemover              // (registrarEstorno) => Promise
 }) {
   const [aba, setAba] = useState('trocar');
-  const [corredorDestino, setCorredorDestino] = useState('');
+  const [busca, setBusca] = useState('');
   const [destino, setDestino] = useState('');
   const [registrarEstorno, setRegistrarEstorno] = useState(false);
   const [processando, setProcessando] = useState(false);
@@ -41,17 +45,40 @@ export default function ModalTrocarArmario({
     return () => document.removeEventListener('keydown', aoTeclar);
   }, [aoFechar, processando]);
 
-  const corredores = useMemo(() => {
-    const lista = [...new Set(armariosDisponiveis.map((a) => a.corredor).filter(Boolean))];
-    return lista.sort((a, b) => String(a).localeCompare(String(b), 'pt-BR', { numeric: true }));
-  }, [armariosDisponiveis]);
-
+  // Busca por digitação. Mostra resultado só depois que a pessoa escreve algo:
+  // abrir a lista inteira era justamente o que tornava o diálogo pesado.
   const candidatos = useMemo(() => {
-    if (!corredorDestino) return [];
+    const termo = busca.trim().toLowerCase();
+    if (!termo) return [];
+
     return armariosDisponiveis
-      .filter((a) => a.corredor === corredorDestino)
-      .sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR', { numeric: true }));
-  }, [armariosDisponiveis, corredorDestino]);
+      .filter((a) => {
+        const nome = String(a.nome ?? '').toLowerCase();
+        const corredor = String(a.corredor ?? '').toLowerCase();
+        return nome.includes(termo) || corredor.includes(termo);
+      })
+      .sort((a, b) => {
+        // Quem COMEÇA com o que foi digitado vem primeiro: quem escreve "10"
+        // quer o armário 10 antes do 110.
+        const a1 = String(a.nome ?? '').toLowerCase().startsWith(termo);
+        const b1 = String(b.nome ?? '').toLowerCase().startsWith(termo);
+        if (a1 !== b1) return a1 ? -1 : 1;
+        return String(a.nome).localeCompare(String(b.nome), 'pt-BR', { numeric: true });
+      })
+      .slice(0, LIMITE_SUGESTOES);
+  }, [armariosDisponiveis, busca]);
+
+  const totalEncontrados = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    if (!termo) return 0;
+    return armariosDisponiveis.filter((a) => {
+      const nome = String(a.nome ?? '').toLowerCase();
+      const corredor = String(a.corredor ?? '').toLowerCase();
+      return nome.includes(termo) || corredor.includes(termo);
+    }).length;
+  }, [armariosDisponiveis, busca]);
+
+  const escolhido = armariosDisponiveis.find((a) => a.id === destino) || null;
 
   if (!armario) return null;
 
@@ -132,36 +159,58 @@ export default function ModalTrocarArmario({
                   O ocupante e o pagamento passam para o armário escolhido.
                 </p>
 
-                <label className="lckp-label" htmlFor="corredor-destino">{rotuloCorredor(escola)}</label>
-                <select
-                  id="corredor-destino"
+                <label className="lckp-label" htmlFor="busca-armario">
+                  Número do armário
+                </label>
+                <input
+                  id="busca-armario"
+                  type="text"
                   className="lckp-input"
-                  value={corredorDestino}
-                  onChange={(e) => { setCorredorDestino(e.target.value); setDestino(''); }}
-                >
-                  <option value="">Selecione o {rotulo}</option>
-                  {corredores.map((c) => (
-                    <option key={c} value={c}>
-                      {nomearCorredor(escola, c)} — {armariosDisponiveis.filter((a) => a.corredor === c).length} livres
-                    </option>
-                  ))}
-                </select>
+                  placeholder={`Digite o número ou o ${rotulo}`}
+                  value={busca}
+                  onChange={(e) => { setBusca(e.target.value); setDestino(''); }}
+                  autoComplete="off"
+                  autoFocus
+                />
 
-                <label className="lckp-label lckp-troca__espaco" htmlFor="armario-destino">Armário</label>
-                <select
-                  id="armario-destino"
-                  className="lckp-input"
-                  value={destino}
-                  onChange={(e) => setDestino(e.target.value)}
-                  disabled={!corredorDestino}
-                >
-                  <option value="">
-                    {corredorDestino ? 'Selecione o armário' : `Escolha o ${rotulo} primeiro`}
-                  </option>
-                  {candidatos.map((a) => (
-                    <option key={a.id} value={a.id}>{a.nome}</option>
-                  ))}
-                </select>
+                {/* A lista só existe enquanto há busca sem escolha feita: depois
+                    de escolher, ela sai da frente e fica só a confirmação. */}
+                {busca.trim() && !escolhido && (
+                  candidatos.length === 0 ? (
+                    <p className="lckp-troca__vazio">
+                      Nenhum armário disponível com "{busca.trim()}".
+                    </p>
+                  ) : (
+                    <>
+                      <ul className="lckp-troca__sugestoes">
+                        {candidatos.map((a) => (
+                          <li key={a.id}>
+                            <button type="button" onClick={() => setDestino(a.id)}>
+                              <strong>{a.nome}</strong>
+                              <span>{nomearCorredor(escola, a.corredor)}</span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                      {totalEncontrados > candidatos.length && (
+                        <p className="lckp-troca__vazio">
+                          Mais {totalEncontrados - candidatos.length} encontrados. Digite mais para afinar.
+                        </p>
+                      )}
+                    </>
+                  )
+                )}
+
+                {escolhido && (
+                  <div className="lckp-troca__escolhido">
+                    <span>
+                      Destino: <strong>{escolhido.nome}</strong> · {nomearCorredor(escola, escolhido.corredor)}
+                    </span>
+                    <button type="button" onClick={() => { setDestino(''); setBusca(''); }}>
+                      Trocar
+                    </button>
+                  </div>
+                )}
               </>
             )
           ) : (
