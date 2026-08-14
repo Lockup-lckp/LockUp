@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { MercadoPagoConfig, Payment } from 'mercadopago';
 import supabase from '../config/database.js';
+import { enviarConfirmacaoLocacao, emailHabilitado } from '../servicos/email.js';
 import {
     criarCobrancaPagBank,
     validarWebhookPagBank,
@@ -518,6 +519,9 @@ export const webhookPagamento = async (req, res) => {
 
             if (aluguelAtualizado && statusTraduzido === 'aprovado') {
                 console.log(`[LCKP WEBHOOK] Sucesso! Armário ${aluguelAtualizado.locker_id} liberado para uso.`);
+                // Sem await: a resposta ao gateway nao espera o e-mail. Webhook
+                // que demora demais e reenviado, e o reenvio duplicaria a mensagem.
+                enviarEmailDeConfirmacao(aluguelAtualizado);
             }
         }
 
@@ -625,6 +629,9 @@ export const webhookPagBank = async (req, res) => {
 
         if (aluguelAtualizado && evento.statusTraduzido === 'aprovado') {
             console.log(`[LCKP PAGBANK] Armário ${aluguelAtualizado.locker_id} liberado para uso.`);
+            // Sem await: a resposta ao gateway nao espera o e-mail. Webhook
+            // que demora demais e reenviado, e o reenvio duplicaria a mensagem.
+            enviarEmailDeConfirmacao(aluguelAtualizado);
         }
 
         return res.status(200).send('Webhook processado.');
@@ -723,5 +730,54 @@ export const obterStatusPagamento = async (req, res) => {
         return res.json({ status_pagamento: aluguel.status_pagamento });
     } catch (err) {
         return res.status(500).json({ error: err.message });
+    }
+};
+// Confirmação por e-mail depois que a locação é aprovada.
+//
+// Roda DEPOIS de o armário já estar liberado, e nunca bloqueia: se o envio
+// falhar, o aluno continua com o armário. Um problema no Resend não pode
+// desfazer um pagamento.
+//
+// Busca os dados aqui em vez de recebê-los prontos porque os dois webhooks
+// (Mercado Pago e PagBank) chegam com formatos diferentes e só têm em comum a
+// linha de `rentals` já atualizada.
+const enviarEmailDeConfirmacao = async (aluguel) => {
+    if (!emailHabilitado() || !aluguel?.user_id) return;
+
+    try {
+        const [{ data: aluno }, { data: escola }, { data: armario }] = await Promise.all([
+            supabase.from('users').select('nome_completo, email_institucional').eq('id', aluguel.user_id).maybeSingle(),
+            supabase.from('schools').select('name, rotulo_corredor').eq('id', aluguel.school_id).maybeSingle(),
+            supabase.from('lockers').select('nome, corredor').eq('id', aluguel.locker_id).maybeSingle()
+        ]);
+
+        if (!aluno?.email_institucional) {
+            console.warn('[LCKP EMAIL] Aluno sem e-mail cadastrado — confirmação não enviada.');
+            return;
+        }
+
+        const rotulo = escola?.rotulo_corredor === 'corredor' ? 'Corredor' : 'Bloco';
+        const validoAte = aluguel.valido_ate
+            ? new Date(`${aluguel.valido_ate}T12:00:00Z`).toLocaleDateString('pt-BR')
+            : 'o fim do ciclo letivo';
+
+        const resultado = await enviarConfirmacaoLocacao({
+            para: aluno.email_institucional,
+            nomeAluno: aluno.nome_completo,
+            nomeEscola: escola?.name,
+            armario: armario?.nome,
+            corredor: armario?.corredor,
+            rotuloCorredor: rotulo,
+            valor: aluguel.valor,
+            modalidade: aluguel.modalidade,
+            validoAte
+        });
+
+        if (!resultado.ok) {
+            console.error('[LCKP EMAIL] Confirmação não enviada:', resultado.erro);
+        }
+    } catch (err) {
+        // Engolido de propósito: o armário já está com o aluno.
+        console.error('[LCKP EMAIL] Falha ao montar a confirmação:', err.message);
     }
 };

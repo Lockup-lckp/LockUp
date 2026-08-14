@@ -704,3 +704,73 @@ body {
   cursor: pointer;
   flex-shrink: 0;
 }
+
+/* Confirmação de compra aprovada. Sem X e sem clique no fundo: a única saída é
+   o botão, para o aluno ler o número do armário antes de sair. */
+.lckp-aprovado {
+  max-width: 25rem;
+  padding: 2rem 1.75rem 1.75rem;
+  text-align: center;
+}
+
+.lckp-aprovado__selo {
+  width: 3.5rem;
+  height: 3.5rem;
+  margin: 0 auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--success) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--success) 45%, transparent);
+  color: var(--success);
+}
+
+.lckp-aprovado__titulo {
+  margin: 0;
+  font-family: var(--font-display, 'Space Grotesk', sans-serif);
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--on-bg);
+}
+.lckp-aprovado__sub { margin: 0.3rem 0 1.5rem; font-size: 0.9375rem; color: var(--on-bg-muted); }
+
+/* Duas colunas: o número do armário é o dado que o aluno vai anotar, então
+   ganha destaque próprio em vez de virar mais uma linha de texto. */
+.lckp-aprovado__dados {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  margin: 0 0 1.25rem;
+  background: var(--border-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+  text-align: left;
+}
+.lckp-aprovado__dados > div { background: var(--surface-color); padding: 0.75rem 0.9rem; }
+.lckp-aprovado__dados dt {
+  font-size: 0.6875rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--on-bg-muted);
+  margin-bottom: 0.15rem;
+}
+.lckp-aprovado__dados dd {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--on-bg);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.lckp-aprovado__email {
+  margin: 0 0 1.5rem;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--on-bg-muted);
+}
+.lckp-aprovado__email strong { color: var(--on-bg); }
+
+.lckp-aprovado__acao { width: 100%; justify-content: center; }

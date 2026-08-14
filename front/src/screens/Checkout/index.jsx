@@ -5,7 +5,7 @@ import { validarCPF, aplicarMascaraCPF } from '../../utils/validadorCpf';
 import { useEscola } from '../../theme/EscolaContext.jsx';
 import { API_BASE } from '../../services/api';
 import ModalTermos from '../../components/TermosDeUso.jsx';
-import { nomearCorredor } from '../../utils/rotuloCorredor';
+import { nomearCorredor, rotuloCorredor } from '../../utils/rotuloCorredor';
 import './Checkout.css';
 
 // Chave pública do Mercado Pago — NUNCA a Access Token/Secret aqui, só a Public Key.
@@ -67,6 +67,10 @@ export default function Checkout() {
   // ter tido a chance de ler as regras da locação antes de pagar.
   const [aceitouTermos, setAceitouTermos] = useState(false);
   const [termosAbertos, setTermosAbertos] = useState(false);
+
+  // Compra aprovada: o aluno precisa VER a confirmacao antes de sair da tela.
+  // Antes era uma frase que sumia junto com o redirecionamento automatico.
+  const [aprovado, setAprovado] = useState(false);
 
   // Modalidade da locação, conforme o contrato da escola.
   const [modalidade, setModalidade] = useState('anual');
@@ -161,10 +165,11 @@ export default function Checkout() {
             const resultado = await response.json();
             if (resultado.status_pagamento === 'aprovado') {
               clearInterval(interval);
-              setStatusMensagem('🎉 Pagamento aprovado! Seu armário foi liberado.');
-              setTimeout(() => {
-                navigate(`/${schoolCode}/home`);
-              }, 2500);
+              // Não redireciona sozinho: o aluno precisa VER a confirmação e
+              // anotar o número do armário. Antes a frase sumia junto com a
+              // troca de tela, em 2,5 segundos.
+              setAprovado(true);
+              setStatusMensagem('');
             }
           }
         } catch (err) {
@@ -282,9 +287,10 @@ export default function Checkout() {
 
           if (resultadoPb.status_pagamento === 'aprovado') {
             setTransactionId(resultadoPb.transaction_id || '');
-            setStatusMensagem('🎉 Pagamento aprovado! Seu armário foi liberado.');
+            setAprovado(true);
+            setStatusMensagem('');
             setPasso(2);
-            setTimeout(() => navigate(`/${schoolCode}/home`), 2500);
+
           } else if (resultadoPb.status_pagamento === 'pendente') {
             setTransactionId(resultadoPb.transaction_id || '');
             setStatusMensagem('Pagamento em análise...');
@@ -711,6 +717,55 @@ export default function Checkout() {
       </div>
 
       {termosAbertos && <ModalTermos escola={escola} aoFechar={() => setTermosAbertos(false)} />}
+
+      {/* Compra aprovada. Sem botão de fechar no X e sem clique no fundo: a
+          única saída é o botão, para o aluno ler antes de sair. */}
+      {aprovado && (
+        <div className="lckp-modal__backdrop" role="presentation">
+          <div className="lckp-modal lckp-aprovado" role="dialog" aria-modal="true" aria-labelledby="titulo-aprovado">
+            <div className="lckp-aprovado__selo" aria-hidden="true">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+            </div>
+
+            <h3 id="titulo-aprovado" className="lckp-aprovado__titulo">Pagamento processado</h3>
+            <p className="lckp-aprovado__sub">Seu armário foi liberado.</p>
+
+            <dl className="lckp-aprovado__dados">
+              <div>
+                <dt>Armário</dt>
+                <dd>{m_armario.nome}</dd>
+              </div>
+              <div>
+                <dt>{rotuloCorredor(escola)}</dt>
+                <dd>{m_armario.corredor}</dd>
+              </div>
+              <div>
+                <dt>Período</dt>
+                <dd>{modalidade === 'semestral' ? 'Semestral' : 'Anual'}</dd>
+              </div>
+              <div>
+                <dt>Válido até</dt>
+                <dd>{validoAte}</dd>
+              </div>
+            </dl>
+
+            <p className="lckp-aprovado__email">
+              Enviamos a confirmação com estes dados para o seu e-mail
+              institucional. Você também encontra tudo em <strong>Meu Armário</strong>.
+            </p>
+
+            <button
+              type="button"
+              className="lckp-btn lckp-aprovado__acao"
+              onClick={() => navigate(`/${schoolCode}/meu-armario`)}
+            >
+              Ver meu armário
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
