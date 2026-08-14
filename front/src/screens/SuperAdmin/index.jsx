@@ -394,6 +394,15 @@ function Painel({ usuario, onSair }) {
       // Só envia o token quando o campo foi preenchido. Campo vazio mantém a
       // credencial atual — senão, abrir e salvar o modal apagaria a chave da
       // escola sem ninguém perceber.
+      // Só envia os campos preenchidos: em branco significa manter a
+      // credencial atual, e mandar vazio a APAGARIA.
+      const preenchidas = Object.fromEntries(
+        Object.entries(credenciaisEdit).filter(([, v]) => String(v || '').trim())
+      );
+      if (Object.keys(preenchidas).length) {
+        payload.credenciais_gateway = preenchidas;
+      }
+
       if (pagbankTokenEdit.trim()) {
         payload.pagbank_token = pagbankTokenEdit.trim();
       }
@@ -775,6 +784,50 @@ function Painel({ usuario, onSair }) {
                     ))}
                   </select>
                 </div>
+
+                {/* Campos de credencial vindos do CATÁLOGO. O Banco do Brasil
+                    pede seis; o PagBank, um; o Mercado Pago, nenhum (a conta é
+                    da LCKP). Antes isso estava escrito na tela, um bloco por
+                    gateway — banco novo exigia mexer aqui.
+
+                    Em branco significa "mantém a que já existe": o servidor
+                    nunca devolve a credencial, então não há o que pré-preencher,
+                    e limpar sem querer apagaria a chave da escola. */}
+                {(() => {
+                  const descritor = catalogo.gateways.find((g) => g.id === gatewayEdit);
+                  if (!descritor?.campos?.length) return null;
+                  return (
+                    <div className="flex flex-col gap-4">
+                      {!descritor.implementado && (
+                        <p className="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded-md px-3 py-2">
+                          ⚠️ {descritor.observacao || 'Integração ainda não disponível.'}
+                        </p>
+                      )}
+                      {descritor.campos.map((campo) => (
+                        <div key={campo.chave}>
+                          <label className="block text-sm text-gray-300 mb-1">
+                            {campo.rotulo}
+                            {escolaEditando.credenciais_configuradas && (
+                              <span className="ml-2 text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                                já configurado
+                              </span>
+                            )}
+                          </label>
+                          <input
+                            type={campo.segredo ? 'password' : 'text'}
+                            autoComplete="off"
+                            value={credenciaisEdit[campo.chave] || ''}
+                            onChange={(e) =>
+                              setCredenciaisEdit((atual) => ({ ...atual, [campo.chave]: e.target.value }))
+                            }
+                            placeholder={escolaEditando.credenciais_configuradas ? 'Deixe em branco para manter' : ''}
+                            className="w-full bg-[var(--bg-color)] border border-white/10 rounded-md px-3 py-2 text-white focus:outline-none focus:border-[var(--primary-color)]"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
 
                 {gatewayEdit === 'mercadopago' ? (
                   <div>

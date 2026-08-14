@@ -51,8 +51,18 @@ const validarAssinaturaWebhook = (req) => {
 };
 
 // Inicializa a SDK do Mercado Pago com o Access Token Master da plataforma lckp
-const client = new MercadoPagoConfig({ 
-    accessToken: process.env.MP_ACCESS_TOKEN || 'SUA_CHAVE_ACCESS_TOKEN_MASTER_AQUI' 
+// Sem fallback de propósito. Com um valor literal aqui, esquecer a variável no
+// deploy não quebrava nada: o backend subia normalmente e só falhava na hora de
+// cobrar, com um erro incompreensível para o aluno e para quem fosse investigar.
+// Ausente, é melhor derrubar na partida — quem sobe o serviço vê na hora.
+if (!process.env.MP_ACCESS_TOKEN) {
+    throw new Error(
+        'MP_ACCESS_TOKEN não configurado. O backend não sobe sem a credencial do gateway.'
+    );
+}
+
+const client = new MercadoPagoConfig({
+    accessToken: process.env.MP_ACCESS_TOKEN
 });
 const paymentClient = new Payment(client);
 
@@ -254,6 +264,11 @@ export const iniciarCheckout = async (req, res) => {
             .from('lockers')
             .select('nome')
             .eq('usuario_id', req.user.id)
+            // Filtra pela escola de propósito. Hoje um aluno pertence a uma
+            // instituição só, então a contagem daria o mesmo — mas isso é um
+            // pressuposto implícito, e o limite é POR ESCOLA. Explicitar aqui
+            // faz a regra continuar certa se um dia a premissa mudar.
+            .eq('school_id', armario.school_id)
             .limit(limiteArmarios + 1);
 
         if ((armariosDoAluno?.length || 0) >= limiteArmarios) {
