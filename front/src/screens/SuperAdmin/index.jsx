@@ -213,7 +213,18 @@ function Painel({ usuario, onSair }) {
 
   // Congela o fundo enquanto o formulario da escola esta aberto.
   useTravarScroll(Boolean(escolaEditando));
-  const [comissaoEdit, setComissaoEdit] = useState('');
+
+  // Catalogo de gateways: carregado uma vez. Falha aqui nao pode derrubar o
+  // painel inteiro -- o seletor apenas fica vazio.
+  useEffect(() => {
+    escolaService.buscarCatalogoGateways()
+      .then(setCatalogo)
+      .catch((e) => console.error('Nao foi possivel carregar o catalogo de gateways:', e));
+  }, []);
+  // Catalogo vindo do backend: e ele que diz quais gateways existem e quais
+  // credenciais cada um pede. Antes os campos do PagBank estavam escritos aqui.
+  const [catalogo, setCatalogo] = useState({ padrao: 'bancodobrasil', gateways: [] });
+  const [credenciaisEdit, setCredenciaisEdit] = useState({});
   const [valorArmarioEdit, setValorArmarioEdit] = useState('');
   const [gatewayIdEdit, setGatewayIdEdit] = useState('');
   const [gatewayEdit, setGatewayEdit] = useState('mercadopago');
@@ -346,7 +357,7 @@ function Painel({ usuario, onSair }) {
 
   const abrirEdicaoEscola = (escola) => {
     setEscolaEditando(escola);
-    setComissaoEdit(escola.taxa_comissao != null ? String(Number(escola.taxa_comissao) * 100) : '');
+    setCredenciaisEdit({});
     setValorArmarioEdit(escola.valor_armario != null ? String(escola.valor_armario) : '');
     setGatewayIdEdit(escola.gateway_recipient_id || '');
     setGatewayEdit(escola.gateway || 'mercadopago');
@@ -366,8 +377,7 @@ function Painel({ usuario, onSair }) {
 
     setErroEdicao('');
 
-    const comissaoNumero = comissaoEdit.trim() === '' ? null : parseFloat(comissaoEdit.replace(',', '.')) / 100;
-    if (comissaoNumero !== null && (Number.isNaN(comissaoNumero) || comissaoNumero < 0 || comissaoNumero > 1)) {
+    if (false) {
       setErroEdicao('Informe uma comissão entre 0 e 100%.');
       return;
     }
@@ -375,7 +385,6 @@ function Painel({ usuario, onSair }) {
     setSalvandoEdicao(true);
     try {
       const payload = {
-        taxa_comissao: comissaoNumero,
         valor_armario: valorArmarioEdit.trim() === '' ? null : parseFloat(valorArmarioEdit.replace(',', '.')),
         gateway_recipient_id: gatewayIdEdit.trim() || null,
         gateway: gatewayEdit,
@@ -513,7 +522,7 @@ function Painel({ usuario, onSair }) {
                           : '—'}
                       </td>
                       <td className="p-3 whitespace-nowrap">
-                        {escola.taxa_comissao != null ? `${(Number(escola.taxa_comissao) * 100).toFixed(1)}%` : '—'}
+                        {escola.credenciais_configuradas || escola.pagbank_configurado ? 'Configurado' : '—'}
                       </td>
                       <td className="p-3 whitespace-nowrap">
                         {escola.gateway_recipient_id ? (
@@ -728,17 +737,6 @@ function Painel({ usuario, onSair }) {
 
               <div className="flex flex-col gap-4">
                 <div>
-                  <label className="block text-sm text-gray-300 mb-1">Comissão do LCKP (%)</label>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={comissaoEdit}
-                    onChange={(e) => setComissaoEdit(e.target.value)}
-                    placeholder="Ex: 5"
-                    className="w-full bg-[var(--bg-color)] border border-white/10 rounded-md px-3 py-2 text-white focus:outline-none focus:border-[var(--primary-color)]"
-                  />
-                </div>
-                <div>
                   <label className="block text-sm text-gray-300 mb-1">Valor do armário (R$)</label>
                   <input
                     type="text"
@@ -770,19 +768,22 @@ function Painel({ usuario, onSair }) {
                     onChange={(e) => setGatewayEdit(e.target.value)}
                     className="w-full bg-[var(--bg-color)] border border-white/10 rounded-md px-3 py-2 text-white focus:outline-none focus:border-[var(--primary-color)]"
                   >
-                    <option value="mercadopago">Mercado Pago</option>
-                    <option value="pagbank">PagBank</option>
+                    {catalogo.gateways.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.nome}{g.legado ? ' (legado)' : ''}{g.implementado ? '' : ' — sem integração'}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
                 {gatewayEdit === 'mercadopago' ? (
                   <div>
-                    <label className="block text-sm text-gray-300 mb-1">Gateway recipient ID (split Mercado Pago)</label>
+                    <label className="block text-sm text-gray-300 mb-1">Conta que recebe no Mercado Pago (recipient ID)</label>
                     <input
                       type="text"
                       value={gatewayIdEdit}
                       onChange={(e) => setGatewayIdEdit(e.target.value)}
-                      placeholder="Deixe em branco se ainda não tiver split ativo"
+                      placeholder="Sem isto o pagamento fica na conta da LCKP"
                       className="w-full bg-[var(--bg-color)] border border-white/10 rounded-md px-3 py-2 text-white focus:outline-none focus:border-[var(--primary-color)]"
                     />
                   </div>

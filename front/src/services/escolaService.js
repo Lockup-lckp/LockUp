@@ -5,6 +5,15 @@ const API_URL = `${API_BASE}/schools`;
 export const escolaService = {
   // Busca a identidade visual e os dados públicos da escola pelo código da URL.
   // Retorna: id, name, codigo, cores, logo_url e valor_armario (rota pública, sem dados sensíveis).
+  // Meios de pagamento suportados e quais credenciais cada um exige. O painel
+  // monta o formulario a partir daqui em vez de ter os campos escritos na tela.
+  buscarCatalogoGateways: async () => {
+    const response = await fetch(`${API_URL}/catalogo/gateways`, { headers: getAuthHeaders() });
+    const resultado = await response.json();
+    if (!response.ok) throw new Error(resultado.error || 'Erro ao carregar os meios de pagamento.');
+    return resultado;
+  },
+
   buscarPorCodigo: async (codigo) => {
     try {
       const response = await fetch(`${API_URL}/codigo/${codigo}`, {

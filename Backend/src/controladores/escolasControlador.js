@@ -1,5 +1,6 @@
 import supabase from '../config/database.js';
-import { cifrar } from '../utils/cripto.js';
+import { cifrar, cifrarCredenciais } from '../utils/cripto.js';
+import { obterGateway, validarConfiguracaoGateway, listarGateways, GATEWAY_PADRAO } from '../servicos/gateways/catalogo.js';
 import { obterEscolaPorCodigo, invalidarCacheEscolas } from '../servicos/cacheEscola.js';
 
 // Campos que o admin de uma escola pode alterar na PRÓPRIA instituição (personalização).
@@ -35,7 +36,7 @@ const CAMPOS_EDITAVEIS_ADMIN = [
 
 // Nunca devolvidos a cliente nenhum, nem ao superadmin: uma credencial que
 // trafega para o navegador é uma credencial vazada.
-const CAMPOS_SECRETOS = ['pagbank_token_cifrado'];
+const CAMPOS_SECRETOS = ['pagbank_token_cifrado', 'credenciais_gateway_cifrado'];
 
 // Contrato público da escola (login, tema, checkout). É montado em JS a partir
 // de select('*') em vez de nomear as colunas na consulta: nomear coluna que
@@ -87,6 +88,9 @@ const removerSegredos = (escola) => {
   for (const campo of CAMPOS_SECRETOS) delete limpa[campo];
   // Sinaliza se já existe credencial, sem revelar qual.
   limpa.pagbank_configurado = Boolean(escola.pagbank_token_cifrado);
+  // Formato generico: um JSON cifrado que serve a qualquer gateway. O painel
+  // so precisa saber SE existe -- o valor nunca volta.
+  limpa.credenciais_configuradas = Boolean(escola.credenciais_gateway_cifrado);
   return limpa;
 };
 
@@ -248,6 +252,33 @@ export const atualizarEscola = async (req, res) => {
     if ('pagbank_token_cifrado' in req.body && !('pagbank_token' in req.body)) {
       delete camposParaAtualizar.pagbank_token_cifrado;
     }
+
+    // Credenciais genéricas: um objeto com os campos que AQUELE gateway pede
+    // (o catálogo define quais). Chega em texto puro uma única vez, é cifrado
+    // aqui e nunca mais sai. Objeto vazio limpa; ausente mantém o que existe.
+    if ('credenciais_gateway' in camposParaAtualizar) {
+      const bruto = camposParaAtualizar.credenciais_gateway;
+      delete camposParaAtualizar.credenciais_gateway;
+
+      const gatewayAlvo = camposParaAtualizar.gateway || req.body.gateway;
+      if (gatewayAlvo && !obterGateway(gatewayAlvo)) {
+        return res.status(400).json({ error: `Gateway '${gatewayAlvo}' não é suportado.` });
+      }
+
+      camposParaAtualizar.credenciais_gateway_cifrado = cifrarCredenciais(bruto);
+    }
+    if ('credenciais_gateway_cifrado' in req.body && !('credenciais_gateway' in req.body)) {
+      delete camposParaAtualizar.credenciais_gateway_cifrado;
+    }
+
+    // Trocar de gateway para um sem adaptador deixaria a escola configurada num
+    // meio de pagamento que não sabe cobrar — e o aluno descobriria no checkout.
+    if (camposParaAtualizar.gateway) {
+      const conferencia = validarConfiguracaoGateway({ gateway: camposParaAtualizar.gateway });
+      if (!conferencia.valido) {
+        return res.status(400).json({ error: conferencia.erro });
+      }
+    }
   } else {
     camposParaAtualizar = {};
     for (const campo of CAMPOS_EDITAVEIS_ADMIN) {
@@ -265,6 +296,16 @@ export const atualizarEscola = async (req, res) => {
       .eq('id', id)
       .select()
       .single();
+
+    // Violação de CHECK não é "não encontrada": o registro existe e a regra é
+    // que recusou. Traduzir tudo como 404 mandava o admin procurar a escola
+    // quando o problema era o dado — no caso do semestral, o preço faltando.
+    if (error?.code === '23514') {
+      const regra = error.message?.includes('semestral')
+        ? 'Para oferecer a locação semestral é preciso definir o preço dela.'
+        : 'Alguma configuração enviada viola uma regra da instituição.';
+      return res.status(400).json({ error: regra });
+    }
 
     if (error || !data) {
       return res.status(404).json({ error: 'Instituição não localizada para atualização.' });
@@ -375,5 +416,39 @@ export const enviarLogo = async (req, res) => {
   } catch (err) {
     console.error('Erro ao enviar a logo:', err.message);
     return res.status(500).json({ error: 'Não foi possível enviar a logo.' });
+  }
+};
+
+// CATÁLOGO DE GATEWAYS
+//
+// O painel do superadmin monta o formulário de credenciais a partir daqui, em
+// vez de ter os campos do PagBank escritos na tela. Assim, banco novo aparece
+// no painel assim que entra no catálogo — sem mexer no front.
+//
+// Devolve só metadado: rótulos e quais campos são obrigatórios. Nenhum valor de
+// credencial passa por esta rota.
+export const listarCatalogoGateways = async (req, res) => {
+  try {
+    const catalogo = listarGateways().map((g) => ({
+      id: g.id,
+      nome: g.nome,
+      legado: Boolean(g.legado),
+      implementado: Boolean(g.implementado),
+      observacao: g.observacao || null,
+      campos: g.campos.map((c) => ({
+        chave: c.chave,
+        rotulo: c.rotulo,
+        segredo: Boolean(c.segredo),
+        obrigatorio: Boolean(c.obrigatorio)
+      })),
+      // Só o Mercado Pago usa recebedor: é o que faz o dinheiro cair na conta
+      // da escola em vez da nossa.
+      campoRecebedor: g.campoRecebedor || null
+    }));
+
+    return res.json({ padrao: GATEWAY_PADRAO, gateways: catalogo });
+  } catch (err) {
+    console.error('Erro ao listar o catálogo de gateways:', err.message);
+    return res.status(500).json({ error: 'Não foi possível carregar os meios de pagamento.' });
   }
 };

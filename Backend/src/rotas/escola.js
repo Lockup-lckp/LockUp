@@ -6,7 +6,8 @@ import {
   atualizarEscola,
   excluirEscola,
   criarEscola,
-  enviarLogo
+  enviarLogo,
+  listarCatalogoGateways
 } from '../controladores/escolasControlador.js';
 import { verificarToken, exigirAdmin, exigirSuperadmin } from '../middlewares/autenticacaoMiddleware.js';
 
@@ -14,6 +15,12 @@ const router = Router();
 
 // PÚBLICA: identidade visual da escola pelo código (a tela de login/tema precisa antes de autenticar).
 router.get('/codigo/:codigo', buscarEscolaPorCodigo);
+
+// SUPERADMIN: meios de pagamento suportados e quais credenciais cada um exige.
+// Declarada ANTES de '/:id' — o Express casa na ordem, e 'catalogo' seria lido
+// como um id se viesse depois. (O id tem regex de UUID, mas manter a ordem
+// evita o problema no dia em que alguém relaxar aquela regex.)
+router.get('/catalogo/gateways', verificarToken, exigirSuperadmin, listarCatalogoGateways);
 
 // SUPERADMIN: lista todas as instituições da plataforma.
 router.get('/', verificarToken, exigirSuperadmin, listarEscolas);

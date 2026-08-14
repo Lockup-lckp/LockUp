@@ -121,6 +121,12 @@ export default function Personalizacao() {
   const [encerramentoDia, setEncerramentoDia] = useState('20');
   const [encerramentoMes, setEncerramentoMes] = useState('12');
 
+  // Métodos de aluguel. O anual sempre existe; o semestral a escola liga ou não.
+  const [permiteSemestral, setPermiteSemestral] = useState(false);
+  const [valorSemestral, setValorSemestral] = useState('');
+  const [encSemestralDia, setEncSemestralDia] = useState('6');
+  const [encSemestralMes, setEncSemestralMes] = useState('7');
+
   const [salvando, setSalvando] = useState(false);
   const [feedback, setFeedback] = useState(null); // { tipo: 'sucesso'|'erro', texto }
 
@@ -138,6 +144,10 @@ export default function Personalizacao() {
     setAberturaMes(String(escola.abertura_mes ?? 2));
     setEncerramentoDia(String(escola.encerramento_dia ?? 20));
     setEncerramentoMes(String(escola.encerramento_mes ?? 12));
+    setPermiteSemestral(Boolean(escola.permite_semestral));
+    setValorSemestral(escola.valor_armario_semestral != null ? String(escola.valor_armario_semestral) : '');
+    setEncSemestralDia(String(escola.encerramento_semestral_dia ?? 6));
+    setEncSemestralMes(String(escola.encerramento_semestral_mes ?? 7));
   }, [escola]);
 
   // Redireciona quem não é admin (a API também bloqueia, mas evitamos exibir a tela).
@@ -204,6 +214,29 @@ export default function Personalizacao() {
 
     const valorNumero = parseFloat(String(valorArmario).replace(',', '.'));
     if (!Number.isNaN(valorNumero)) payload.valor_armario = valorNumero;
+
+    // Semestral: o banco tem um CHECK que impede ligar sem preço — o checkout
+    // cobraria NULL. Barramos aqui para o admin ver uma frase útil em vez de um
+    // erro de Postgres.
+    const valorSem = parseFloat(String(valorSemestral).replace(',', '.'));
+    if (permiteSemestral && (Number.isNaN(valorSem) || valorSem <= 0)) {
+      setFeedback({ tipo: 'erro', texto: 'Defina o preço da locação semestral antes de oferecê-la.' });
+      setSalvando(false);
+      return;
+    }
+
+    const semDia = inteiroOuNulo(encSemestralDia, 1, 31);
+    const semMes = inteiroOuNulo(encSemestralMes, 1, 12);
+    if (permiteSemestral && (semDia === null || semMes === null)) {
+      setFeedback({ tipo: 'erro', texto: 'Confira a data de encerramento do semestre.' });
+      setSalvando(false);
+      return;
+    }
+
+    payload.permite_semestral = permiteSemestral;
+    if (!Number.isNaN(valorSem)) payload.valor_armario_semestral = valorSem;
+    if (semDia !== null) payload.encerramento_semestral_dia = semDia;
+    if (semMes !== null) payload.encerramento_semestral_mes = semMes;
 
     try {
       const atualizada = await escolaService.atualizarConfiguracao(escola.id, payload);
@@ -309,6 +342,78 @@ export default function Personalizacao() {
               onChange={(e) => setValorArmario(e.target.value)}
             />
           </div>
+        </div>
+
+        <div className="lckp-card perso-card">
+          <h3>Métodos de aluguel</h3>
+          <p className="perso-ajuda">
+            O que o aluno pode escolher no checkout. A locação anual existe
+            sempre; a semestral só aparece se a escola oferecer.
+          </p>
+
+          <div className="perso-field">
+            <div className="perso-metodo perso-metodo--fixo">
+              <div>
+                <strong>Anual</strong>
+                <span>Até {String(encerramentoDia).padStart(2, '0')}/{String(encerramentoMes).padStart(2, '0')}</span>
+              </div>
+              <span className="lckp-chip">Sempre disponível</span>
+            </div>
+
+            <label className={`perso-metodo ${permiteSemestral ? 'perso-metodo--ativo' : ''}`}>
+              <input
+                type="checkbox"
+                checked={permiteSemestral}
+                onChange={(e) => {
+                  const ligando = e.target.checked;
+                  setPermiteSemestral(ligando);
+                  // Sugere metade do anual ao ligar pela primeira vez: é o que
+                  // a escola combinou, e digitar o valor de novo só convida a
+                  // errar. Continua editável.
+                  if (ligando && !valorSemestral) {
+                    const anual = parseFloat(String(valorArmario).replace(',', '.'));
+                    if (!Number.isNaN(anual) && anual > 0) setValorSemestral((anual / 2).toFixed(2));
+                  }
+                }}
+              />
+              <div>
+                <strong>Semestral</strong>
+                <span>Meia locação, encerrando no fim do primeiro semestre</span>
+              </div>
+            </label>
+          </div>
+
+          {permiteSemestral && (
+            <>
+              <div className="perso-field">
+                <label className="lckp-label">Valor da locação semestral (R$)</label>
+                <input
+                  className="lckp-input"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="Ex: 50.00"
+                  value={valorSemestral}
+                  onChange={(e) => setValorSemestral(e.target.value)}
+                />
+                <p className="perso-ajuda">Sugerido: metade do valor anual.</p>
+              </div>
+
+              <div className="perso-field">
+                <label className="lckp-label">Encerramento do semestre</label>
+                <div className="perso-data">
+                  <input className="lckp-input" type="number" min="1" max="31" value={encSemestralDia}
+                    onChange={(e) => setEncSemestralDia(e.target.value)} aria-label="Dia do encerramento semestral" />
+                  <span>/</span>
+                  <input className="lckp-input" type="number" min="1" max="12" value={encSemestralMes}
+                    onChange={(e) => setEncSemestralMes(e.target.value)} aria-label="Mês do encerramento semestral" />
+                </div>
+                <p className="perso-ajuda">
+                  Quem comprar depois dessa data não vê a opção semestral — seria
+                  pagar por um prazo já vencido.
+                </p>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="lckp-card perso-card">

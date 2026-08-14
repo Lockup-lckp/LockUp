@@ -203,3 +203,31 @@
   background: rgba(0, 0, 0, 0.15);
 }
 .perso-logo-preview .vazio { font-size: 0.8125rem; color: var(--on-bg-muted); }
+
+/* Métodos de aluguel: cada opção é um cartão inteiro clicável — a caixa de
+   16px sozinha é alvo ruim e a escolha aqui muda o que o aluno pode comprar. */
+.perso-metodo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.6rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.perso-metodo:hover { border-color: var(--secondary-color); }
+.perso-metodo input { accent-color: var(--primary-color); width: 17px; height: 17px; flex-shrink: 0; }
+.perso-metodo div { flex: 1; min-width: 0; }
+.perso-metodo strong { display: block; font-size: 0.9375rem; }
+.perso-metodo span { display: block; font-size: 0.75rem; color: var(--on-bg-muted); }
+
+.perso-metodo--ativo {
+  border-color: var(--primary-color);
+  background: color-mix(in srgb, var(--primary-color) 8%, transparent);
+}
+
+/* O anual não é uma escolha: não tem caixa e não responde ao clique. */
+.perso-metodo--fixo { cursor: default; justify-content: space-between; }
+.perso-metodo--fixo:hover { border-color: var(--border-color); }
