@@ -2,6 +2,7 @@ import supabase from '../config/database.js';
 import { cifrar, cifrarCredenciais } from '../utils/cripto.js';
 import { obterGateway, validarConfiguracaoGateway, listarGateways, GATEWAY_PADRAO } from '../servicos/gateways/catalogo.js';
 import { obterEscolaPorCodigo, invalidarCacheEscolas } from '../servicos/cacheEscola.js';
+import { testarCredencialBB, registrarWebhookBB } from '../servicos/gateways/bancoDoBrasil.js';
 
 // Campos que o admin de uma escola pode alterar na PRÓPRIA instituição (personalização).
 // Campos sensíveis (codigo, gateway, credenciais, taxa_comissao, name) ficam restritos ao
@@ -427,6 +428,79 @@ export const enviarLogo = async (req, res) => {
 //
 // Devolve só metadado: rótulos e quais campos são obrigatórios. Nenhum valor de
 // credencial passa por esta rota.
+// SUPERADMIN: confere a credencial do Banco do Brasil de uma escola.
+//
+// Existe para o erro aparecer AQUI, no painel, no dia em que a credencial for
+// cadastrada — e não no checkout do primeiro aluno. Autentica de verdade contra
+// o banco; não é validação de formato.
+export const testarCredencialGateway = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const { data: escola, error } = await supabase
+      .from('schools')
+      .select('id, name, codigo, gateway, gateway_ambiente, credenciais_gateway_cifrado')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error || !escola) {
+      return res.status(404).json({ error: 'Instituição não localizada.' });
+    }
+
+    if (escola.gateway !== 'bancodobrasil') {
+      return res.status(400).json({
+        error: `O teste de credencial existe hoje só para o Banco do Brasil. Esta instituição está em '${escola.gateway}'.`
+      });
+    }
+
+    const resultado = await testarCredencialBB(escola);
+    return res.json(resultado);
+  } catch (err) {
+    // A mensagem do adaptador é a informação útil (qual campo falta, o que o
+    // banco respondeu). Trocá-la por um texto genérico esconderia o diagnóstico.
+    console.error('[LCKP BB] Teste de credencial falhou:', err.message);
+    return res.status(400).json({ ok: false, error: err.message });
+  }
+};
+
+// SUPERADMIN: registra no Banco do Brasil a URL que recebe as notificações.
+//
+// Passo obrigatório e fácil de esquecer: sem ele a cobrança é criada e paga
+// normalmente, mas nada avisa o sistema — o aluno paga e o armário não abre.
+export const registrarWebhookGateway = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const { data: escola, error } = await supabase
+      .from('schools')
+      .select('id, name, codigo, gateway, gateway_ambiente, credenciais_gateway_cifrado')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error || !escola) {
+      return res.status(404).json({ error: 'Instituição não localizada.' });
+    }
+
+    if (escola.gateway !== 'bancodobrasil') {
+      return res.status(400).json({ error: 'Esta instituição não está configurada no Banco do Brasil.' });
+    }
+
+    const base = (process.env.BACKEND_PUBLIC_URL || '').replace(/\/+$/, '');
+    if (!base.startsWith('https://')) {
+      return res.status(400).json({
+        error: 'BACKEND_PUBLIC_URL precisa estar definida com https:// para registrar o webhook. O banco recusa endereço sem TLS.'
+      });
+    }
+
+    const webhookUrl = `${base}/pagamentos/webhook/bb/${escola.codigo}`;
+    const resultado = await registrarWebhookBB(escola, webhookUrl);
+    return res.json(resultado);
+  } catch (err) {
+    console.error('[LCKP BB] Registro de webhook falhou:', err.message);
+    return res.status(400).json({ ok: false, error: err.message });
+  }
+};
+
 export const listarCatalogoGateways = async (req, res) => {
   try {
     const catalogo = listarGateways().map((g) => ({
@@ -434,6 +508,11 @@ export const listarCatalogoGateways = async (req, res) => {
       nome: g.nome,
       legado: Boolean(g.legado),
       implementado: Boolean(g.implementado),
+      // `provado` distingue "o código existe" de "alguém já pagou por aqui".
+      // O painel usa para avisar que o gateway ainda não passou por transação
+      // real, em vez de deixar quem configura descobrir sozinho.
+      provado: g.provado !== false,
+      formasPagamento: g.formasPagamento || null,
       observacao: g.observacao || null,
       campos: g.campos.map((c) => ({
         chave: c.chave,

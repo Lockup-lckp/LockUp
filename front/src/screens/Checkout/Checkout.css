@@ -86,6 +86,10 @@
 
 /* Cartões de forma de pagamento */
 .payment-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+/* Escola que só recebe Pix tem uma opção só: duas colunas deixariam metade
+   da linha vazia, como se algo tivesse falhado ao carregar. */
+.payment-options:has(> :only-child) { grid-template-columns: 1fr; }
+.payment-note { margin: 10px 0 0; font-size: 13px; color: var(--paper-400); }
 .payment-card {
   display: flex; align-items: center; gap: 12px; background: var(--ink-700);
   border: 1px solid var(--ink-600); border-radius: 12px; padding: 16px; cursor: pointer;

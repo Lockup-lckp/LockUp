@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { iniciarCheckout, webhookPagamento, webhookPagBank, obterConfigPagamento, obterStatusPagamento, listarHistoricoPagamentos } from '../controladores/pagamentosControlador.js';
+import { iniciarCheckout, webhookPagamento, webhookPagBank, webhookBancoDoBrasil, obterConfigPagamento, obterStatusPagamento, listarHistoricoPagamentos } from '../controladores/pagamentosControlador.js';
 import { verificarToken, exigirAdmin } from '../middlewares/autenticacaoMiddleware.js';
 
 const router = Router();
@@ -27,6 +27,8 @@ router.get('/webhook', responderSonda);
 router.head('/webhook', (req, res) => res.status(200).end());
 router.get('/webhook/pagbank/:schoolCode', responderSonda);
 router.head('/webhook/pagbank/:schoolCode', (req, res) => res.status(200).end());
+router.get('/webhook/bb/:schoolCode', responderSonda);
+router.head('/webhook/bb/:schoolCode', (req, res) => res.status(200).end());
 
 // Webhook assíncrono para notificações diretas do Mercado Pago
 router.post('/webhook', webhookPagamento);
@@ -35,5 +37,10 @@ router.post('/webhook', webhookPagamento);
 // tem a própria credencial, e é ela que valida a assinatura. Sem isso teríamos
 // de ler o corpo (ainda não confiável) só para descobrir qual chave usar.
 router.post('/webhook/pagbank/:schoolCode', webhookPagBank);
+
+// Webhook do Banco do Brasil. O código da escola vai na URL pelo mesmo motivo:
+// é preciso saber QUAL credencial usar para consultar a cobrança no banco —
+// e é essa consulta, não o corpo recebido, que decide se o armário abre.
+router.post('/webhook/bb/:schoolCode', webhookBancoDoBrasil);
 
 export default router;

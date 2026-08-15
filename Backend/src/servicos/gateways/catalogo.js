@@ -35,21 +35,24 @@ export const GATEWAYS = Object.freeze({
         campos: [
             { chave: 'client_id', rotulo: 'Client ID', segredo: true, obrigatorio: true },
             { chave: 'client_secret', rotulo: 'Client Secret', segredo: true, obrigatorio: true },
-            { chave: 'app_key', rotulo: 'Chave de aplicação (gw-dev-app-key)', segredo: true, obrigatorio: true },
-            { chave: 'chave_pix', rotulo: 'Chave Pix da conta', segredo: false, obrigatorio: true },
+            { chave: 'app_key', rotulo: 'Chave de aplicação (gw-app-key)', segredo: true, obrigatorio: true },
+            { chave: 'chave_pix', rotulo: 'Chave Pix da conta da instituição', segredo: false, obrigatorio: true },
             { chave: 'certificado', rotulo: 'Certificado de cliente mTLS (PEM)', segredo: true, obrigatorio: true },
             { chave: 'certificado_chave', rotulo: 'Chave privada do certificado (PEM)', segredo: true, obrigatorio: true }
         ],
-        // Ainda NÃO implementado: faltam o certificado de CLIENTE mTLS (os
-        // arquivos recebidos são as cadeias de servidor do BB) e a chave Pix
-        // registrada na conta da instituição. Declarado aqui para o painel já
-        // saber o que pedir, e para o checkout recusar com uma frase clara em
-        // vez de falhar de um jeito incompreensível.
-        implementado: false,
+        // O adaptador existe e segue o padrão Pix do Banco Central. O que ainda
+        // não aconteceu é o teste com credencial real — o cadastro de
+        // desenvolvedor está em aprovação no banco. Por isso `provado: false`:
+        // o sistema funciona, mas ninguém pagou por aqui ainda.
+        implementado: true,
+        provado: false,
+        // Só Pix. Cartão pelo BB exige TEF com pinpad no totem, que é outro
+        // projeto — está no documento de formas de pagamento entregue à escola.
+        formasPagamento: ['pix'],
         identificaWebhook:
-            'A definir na integração. Precisa responder "de qual escola é esta notificação" ANTES de confiar no corpo — sem isso o dinheiro entra e o armário não abre.',
+            'O código da escola vai na URL (/pagamentos/webhook/bb/:schoolCode). O corpo da notificação NÃO é confiável: ele só aponta qual cobrança olhar, e o status é confirmado consultando a API do banco com a nossa própria credencial.',
         observacao:
-            'Exige mTLS com certificado de cliente, que não vem junto das cadeias públicas do banco.'
+            'Exige certificado de cliente mTLS e a chave Pix registrada na conta da instituição. O dinheiro nasce na conta da escola.'
     },
 
     mercadopago: {

@@ -7,7 +7,9 @@ import {
   excluirEscola,
   criarEscola,
   enviarLogo,
-  listarCatalogoGateways
+  listarCatalogoGateways,
+  testarCredencialGateway,
+  registrarWebhookGateway
 } from '../controladores/escolasControlador.js';
 import { verificarToken, exigirAdmin, exigirSuperadmin } from '../middlewares/autenticacaoMiddleware.js';
 
@@ -46,6 +48,13 @@ router.post(
   exigirAdmin,
   enviarLogo
 );
+
+// SUPERADMIN: operação do gateway da escola.
+// Testar autentica de verdade no banco; registrar cadastra a URL de notificação
+// na chave Pix da instituição. Os dois são passos de configuração, não de uso —
+// rodados uma vez, quando a credencial chega.
+router.post('/:id/gateway/testar', verificarToken, exigirSuperadmin, testarCredencialGateway);
+router.post('/:id/gateway/webhook', verificarToken, exigirSuperadmin, registrarWebhookGateway);
 
 // SUPERADMIN: criar e excluir instituições.
 router.post('/', verificarToken, exigirSuperadmin, criarEscola);

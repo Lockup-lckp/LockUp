@@ -137,12 +137,53 @@ export default function Checkout() {
   const [passo, setPasso] = useState(1);
   // imagemUrl atende o PagBank, que devolve o QR como link para um PNG;
   // imagemBase64 atende o Mercado Pago, que embute a imagem na resposta.
+  // imagemLocal atende o Banco do Brasil, que devolve SÓ o texto do BRCode
+  // (pixCopiaECola) — sem ela o aluno ficaria olhando um spinner para sempre,
+  // com a cobrança criada e nenhum QR na tela.
   const [qrCodeData, setQrCodeData] = useState({ copiaECola: '', imagemBase64: '', imagemUrl: '' });
+  const [imagemLocal, setImagemLocal] = useState({ para: '', url: '' });
+
+  // O Banco do Brasil só recebe Pix: cartão por lá exigiria TEF com pinpad no
+  // totem. Oferecer a opção deixaria o aluno preencher o cartão inteiro para
+  // levar um erro no fim.
+  const aceitaCartao = configPagamento.gateway !== 'bancodobrasil';
   const [transactionId, setTransactionId] = useState('');
   const [statusMensagem, setStatusMensagem] = useState('');
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
   const processandoRef = useRef(false); // Trava síncrona contra duplo-clique/duplo-submit
+
+  // Desenha o QR quando o gateway manda só o texto do BRCode (caso do Banco do
+  // Brasil). O import é dinâmico para a biblioteca não entrar no pacote de quem
+  // paga por outro gateway — ela só é baixada quando faz falta.
+  useEffect(() => {
+    if (!qrCodeData.copiaECola || qrCodeData.imagemBase64 || qrCodeData.imagemUrl) return;
+
+    let cancelado = false;
+    (async () => {
+      try {
+        // A qrcode é CommonJS: no navegador o Vite entrega tudo sob `default`,
+        // e um `const { toDataURL } = await import(...)` sai undefined — o QR
+        // nunca aparecia e o aluno ficava no spinner. Aceita as duas formas.
+        const mod = await import('qrcode');
+        const toDataURL = mod.default?.toDataURL || mod.toDataURL;
+        const url = await toDataURL(qrCodeData.copiaECola, { margin: 1, width: 280 });
+        // Guarda junto o código que gerou a imagem. É o que dispensa limpar o
+        // estado quando o Pix muda: a imagem antiga simplesmente deixa de casar
+        // com o código atual, sem um setState a mais no corpo do efeito.
+        if (!cancelado) setImagemLocal({ para: qrCodeData.copiaECola, url });
+      } catch (err) {
+        // O "copia e cola" continua na tela e resolve o pagamento sozinho.
+        console.error('Não foi possível desenhar o QR:', err);
+      }
+    })();
+
+    return () => { cancelado = true; };
+  }, [qrCodeData.copiaECola, qrCodeData.imagemBase64, qrCodeData.imagemUrl]);
+
+  // Só vale se foi desenhada a partir do código que está na tela agora.
+  const qrDesenhadoLocal =
+    imagemLocal.para && imagemLocal.para === qrCodeData.copiaECola ? imagemLocal.url : '';
 
   // Polling automático para escutar a aprovação do pagamento via Webhook/Backend
   useEffect(() => {
@@ -458,21 +499,28 @@ export default function Checkout() {
                   </div>
                 </label>
 
-                <label className={`payment-card${formaPagamento === 'cartao' ? ' is-selected' : ''}`}>
-                  <input
-                    type="radio"
-                    name="formaPagamento"
-                    value="cartao"
-                    checked={formaPagamento === 'cartao'}
-                    onChange={() => setFormaPagamento('cartao')}
-                  />
-                  <CardIcon />
-                  <div>
-                    <span className="option-title">Cartão de crédito</span>
-                    <span className="option-subtitle">Em até 12x</span>
-                  </div>
-                </label>
+                {aceitaCartao && (
+                  <label className={`payment-card${formaPagamento === 'cartao' ? ' is-selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="formaPagamento"
+                      value="cartao"
+                      checked={formaPagamento === 'cartao'}
+                      onChange={() => setFormaPagamento('cartao')}
+                    />
+                    <CardIcon />
+                    <div>
+                      <span className="option-title">Cartão de crédito</span>
+                      <span className="option-subtitle">Em até 12x</span>
+                    </div>
+                  </label>
+                )}
               </div>
+              {!aceitaCartao && (
+                <p className="payment-note">
+                  Esta instituição recebe apenas por Pix.
+                </p>
+              )}
             </div>
 
             {/* Seção Dados do Comprador */}
@@ -638,7 +686,7 @@ export default function Checkout() {
           /* Passo 2: Tela Dinâmica de Pagamento e Renderização de QR Code */
           <div className="form-layout">
             <div className="card-section qr-card">
-              {qrCodeData.imagemBase64 || qrCodeData.imagemUrl ? (
+              {qrCodeData.imagemBase64 || qrCodeData.imagemUrl || qrDesenhadoLocal ? (
                 <div>
                   <h2 style={{ color: 'var(--brass-400)', fontFamily: 'var(--font-display)', margin: '0 0 8px' }}>
                     Pague com Pix
@@ -652,7 +700,7 @@ export default function Checkout() {
                       src={
                         qrCodeData.imagemBase64
                           ? `data:image/jpeg;base64,${qrCodeData.imagemBase64}`
-                          : qrCodeData.imagemUrl
+                          : qrCodeData.imagemUrl || qrDesenhadoLocal
                       }
                       alt="QR Code Pix"
                     />
@@ -674,7 +722,7 @@ export default function Checkout() {
                 <div className="processing-state">
                   <Spinner large />
                   <h3>{statusMensagem || 'Processando transação...'}</h3>
-                  <p>Comunicando com o gateway do Mercado Pago...</p>
+                  <p>Comunicando com o banco...</p>
                 </div>
               )}
             </div>
