@@ -215,22 +215,30 @@ function Painel({ usuario, onSair }) {
   // Congela o fundo enquanto o formulario da escola esta aberto.
   useTravarScroll(Boolean(escolaEditando));
 
+  // Catalogo vindo do backend: e ele que diz quais gateways existem e quais
+  // credenciais cada um pede. Antes os campos do PagBank estavam escritos aqui.
+  const [catalogo, setCatalogo] = useState({ padrao: 'bancodobrasil', gateways: [] });
+
   // Catalogo de gateways: carregado uma vez. Falha aqui nao pode derrubar o
-  // painel inteiro -- o seletor apenas fica vazio.
+  // painel inteiro -- o seletor apenas fica vazio. Declarado DEPOIS do estado
+  // de proposito: usar setCatalogo antes da linha que o cria funciona por
+  // acidente (o efeito roda depois do render) e o lint reprova, com razao.
   useEffect(() => {
     escolaService.buscarCatalogoGateways()
       .then(setCatalogo)
       .catch((e) => console.error('Nao foi possivel carregar o catalogo de gateways:', e));
   }, []);
-  // Catalogo vindo do backend: e ele que diz quais gateways existem e quais
-  // credenciais cada um pede. Antes os campos do PagBank estavam escritos aqui.
-  const [catalogo, setCatalogo] = useState({ padrao: 'bancodobrasil', gateways: [] });
   const [credenciaisEdit, setCredenciaisEdit] = useState({});
   const [valorArmarioEdit, setValorArmarioEdit] = useState('');
   const [gatewayIdEdit, setGatewayIdEdit] = useState('');
   const [gatewayEdit, setGatewayEdit] = useState('mercadopago');
   const [pagbankTokenEdit, setPagbankTokenEdit] = useState('');
-  const [pagbankAmbienteEdit, setPagbankAmbienteEdit] = useState('sandbox');
+  // Ambiente do gateway. Chamava-se pagbank_ambiente quando havia um gateway
+  // so; a coluna generica e `gateway_ambiente`, que e a que os adaptadores leem.
+  const [ambienteEdit, setAmbienteEdit] = useState('producao');
+  // Resultado do "testar credencial" / "registrar webhook" do Banco do Brasil.
+  const [diagnostico, setDiagnostico] = useState(null); // { tipo, texto }
+  const [testando, setTestando] = useState(false);
   const [tipoMatriculaEdit, setTipoMatriculaEdit] = useState('rm');
   const [salvandoEdicao, setSalvandoEdicao] = useState(false);
   const [erroEdicao, setErroEdicao] = useState('');
@@ -247,7 +255,7 @@ function Painel({ usuario, onSair }) {
     try {
       const todos = await usuarioService.buscarTodos();
       setSuperadmins(todos.filter((u) => u.role === 'superadmin'));
-    } catch (err) {
+    } catch {
       setErro('Não foi possível carregar a lista de administradores.');
     } finally {
       setCarregando(false);
@@ -260,7 +268,7 @@ function Painel({ usuario, onSair }) {
     try {
       const todas = await escolaService.listarTodas();
       setEscolas(Array.isArray(todas) ? todas : []);
-    } catch (err) {
+    } catch {
       setErroEscolas('Não foi possível carregar a lista de instituições.');
     } finally {
       setCarregandoEscolas(false);
@@ -273,7 +281,7 @@ function Painel({ usuario, onSair }) {
     try {
       const todos = await leadsService.listarTodos();
       setLeads(Array.isArray(todos) ? todos : []);
-    } catch (err) {
+    } catch {
       setErroLeads('Não foi possível carregar os pedidos de contato.');
     } finally {
       setCarregandoLeads(false);
@@ -362,7 +370,8 @@ function Painel({ usuario, onSair }) {
     setValorArmarioEdit(escola.valor_armario != null ? String(escola.valor_armario) : '');
     setGatewayIdEdit(escola.gateway_recipient_id || '');
     setGatewayEdit(escola.gateway || 'mercadopago');
-    setPagbankAmbienteEdit(escola.pagbank_ambiente || 'sandbox');
+    setAmbienteEdit(escola.gateway_ambiente || escola.pagbank_ambiente || 'producao');
+    setDiagnostico(null);
     setTipoMatriculaEdit(escola.tipo_matricula || 'rm');
     // Nunca vem preenchido: a API só informa se EXISTE credencial
     // (pagbank_configurado), jamais o valor. Digitar aqui substitui a atual.
@@ -378,18 +387,14 @@ function Painel({ usuario, onSair }) {
 
     setErroEdicao('');
 
-    if (false) {
-      setErroEdicao('Confira os dados informados.');
-      return;
-    }
-
     setSalvandoEdicao(true);
     try {
       const payload = {
         valor_armario: valorArmarioEdit.trim() === '' ? null : parseFloat(valorArmarioEdit.replace(',', '.')),
         gateway_recipient_id: gatewayIdEdit.trim() || null,
         gateway: gatewayEdit,
-        pagbank_ambiente: pagbankAmbienteEdit,
+        gateway_ambiente: ambienteEdit,
+        ...(gatewayEdit === 'pagbank' ? { pagbank_ambiente: ambienteEdit } : {}),
         tipo_matricula: tipoMatriculaEdit
       };
       // Só envia o token quando o campo foi preenchido. Campo vazio mantém a
@@ -415,6 +420,42 @@ function Painel({ usuario, onSair }) {
       setErroEdicao(err.message || 'Erro ao salvar as alterações.');
     } finally {
       setSalvandoEdicao(false);
+    }
+  };
+
+  // Conferência da credencial do Banco do Brasil.
+  //
+  // Autentica de verdade contra o banco. Existe porque o modo antigo de
+  // descobrir que a credencial estava errada era o primeiro aluno não
+  // conseguindo pagar — e aí já é tarde, e ninguém liga o erro à configuração.
+  const testarCredencial = async () => {
+    setTestando(true);
+    setDiagnostico(null);
+    try {
+      const r = await escolaService.testarCredencialGateway(escolaEditando.id);
+      setDiagnostico({
+        tipo: r.webhook_registrado ? 'sucesso' : 'atencao',
+        texto: r.webhook_registrado
+          ? `Autenticou no Banco do Brasil (${r.ambiente}). Webhook já registrado.`
+          : `Autenticou no Banco do Brasil (${r.ambiente}), mas o webhook ainda NÃO está registrado — sem ele o aluno paga e o armário não abre.`
+      });
+    } catch (err) {
+      setDiagnostico({ tipo: 'erro', texto: err.message });
+    } finally {
+      setTestando(false);
+    }
+  };
+
+  const registrarWebhook = async () => {
+    setTestando(true);
+    setDiagnostico(null);
+    try {
+      const r = await escolaService.registrarWebhookGateway(escolaEditando.id);
+      setDiagnostico({ tipo: 'sucesso', texto: `Webhook registrado em ${r.webhookUrl}` });
+    } catch (err) {
+      setDiagnostico({ tipo: 'erro', texto: err.message });
+    } finally {
+      setTestando(false);
     }
   };
 
@@ -830,7 +871,65 @@ function Painel({ usuario, onSair }) {
                   );
                 })()}
 
-                {gatewayEdit === 'mercadopago' ? (
+                {/* Ambiente: vale para qualquer gateway que tenha sandbox.
+                    O Mercado Pago não tem — a conta é da LCKP e o modo de teste
+                    é outra credencial. */}
+                {gatewayEdit !== 'mercadopago' && (
+                  <div>
+                    <label className="block text-sm text-gray-300 mb-1">Ambiente</label>
+                    <select
+                      value={ambienteEdit}
+                      onChange={(e) => setAmbienteEdit(e.target.value)}
+                      className="w-full bg-[var(--bg-color)] border border-white/10 rounded-md px-3 py-2 text-white focus:outline-none focus:border-[var(--primary-color)]"
+                    >
+                      <option value="sandbox">Sandbox (testes)</option>
+                      <option value="producao">Produção (cobra de verdade)</option>
+                    </select>
+                  </div>
+                )}
+
+                {/* Operação do Banco do Brasil. Os dois passos que faltavam ter
+                    tela: sem eles, conferir a credencial e registrar o webhook
+                    só era possível por linha de comando. */}
+                {gatewayEdit === 'bancodobrasil' && escolaEditando.credenciais_configuradas && (
+                  <div className="border border-white/10 rounded-md p-3 flex flex-col gap-2">
+                    <p className="text-xs text-gray-400">
+                      Depois de salvar a credencial, confira se ela funciona e registre
+                      a URL de notificação. Sem o webhook o aluno paga e o armário não abre.
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={testarCredencial}
+                        disabled={testando}
+                        className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-md text-xs font-semibold text-gray-200 transition-colors disabled:opacity-50"
+                      >
+                        {testando ? 'Conferindo...' : 'Testar credencial'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={registrarWebhook}
+                        disabled={testando}
+                        className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-md text-xs font-semibold text-gray-200 transition-colors disabled:opacity-50"
+                      >
+                        Registrar webhook
+                      </button>
+                    </div>
+                    {diagnostico && (
+                      <p className={`text-xs rounded-md px-3 py-2 border ${
+                        diagnostico.tipo === 'sucesso'
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                          : diagnostico.tipo === 'atencao'
+                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                            : 'bg-red-500/10 text-red-400 border-red-500/30'
+                      }`}>
+                        {diagnostico.texto}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {gatewayEdit === 'mercadopago' && (
                   <div>
                     <label className="block text-sm text-gray-300 mb-1">Conta que recebe no Mercado Pago (recipient ID)</label>
                     <input
@@ -841,19 +940,14 @@ function Painel({ usuario, onSair }) {
                       className="w-full bg-[var(--bg-color)] border border-white/10 rounded-md px-3 py-2 text-white focus:outline-none focus:border-[var(--primary-color)]"
                     />
                   </div>
-                ) : (
+                )}
+
+                {/* Campo legado do PagBank. Só aparece no PagBank: antes ele
+                    saía para todo gateway que não fosse Mercado Pago, então uma
+                    escola no Banco do Brasil via um campo "Token do PagBank"
+                    logo abaixo dos seis campos do BB. */}
+                {gatewayEdit === 'pagbank' && (
                   <>
-                    <div>
-                      <label className="block text-sm text-gray-300 mb-1">Ambiente do PagBank</label>
-                      <select
-                        value={pagbankAmbienteEdit}
-                        onChange={(e) => setPagbankAmbienteEdit(e.target.value)}
-                        className="w-full bg-[var(--bg-color)] border border-white/10 rounded-md px-3 py-2 text-white focus:outline-none focus:border-[var(--primary-color)]"
-                      >
-                        <option value="sandbox">Sandbox (testes)</option>
-                        <option value="producao">Produção (cobra de verdade)</option>
-                      </select>
-                    </div>
 
                     <div>
                       <label className="block text-sm text-gray-300 mb-1">

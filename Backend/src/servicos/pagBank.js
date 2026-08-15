@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { decifrar } from '../utils/cripto.js';
+import { decifrar, decifrarCredenciais } from '../utils/cripto.js';
 import { ErroDeNegocio } from '../utils/erros.js';
 
 // Adaptador do PagBank (API de Pedidos).
@@ -30,15 +30,36 @@ const traduzirStatusPagBank = (status) => {
     return 'recusado'; // DECLINED, CANCELED
 };
 
-const obterToken = (escola) => {
-    const token = decifrar(escola.pagbank_token_cifrado);
+/**
+ * Token da conta da escola.
+ *
+ * Lê os DOIS formatos de propósito. Desde a migração de 2026-08-10 o painel do
+ * superadmin grava toda credencial no formato genérico
+ * (`credenciais_gateway_cifrado`, um JSON cifrado); as escolas configuradas
+ * antes têm o token na coluna própria `pagbank_token_cifrado`.
+ *
+ * Ler só a coluna antiga era uma armadilha silenciosa: quem reconfigurasse o
+ * PagBank pelo painel salvava um token que este adaptador nunca leria, e o
+ * checkout respondia "credencial não configurada" com a credencial na tela.
+ */
+export const obterTokenPagBank = (escola) => {
+    const generico = decifrarCredenciais(escola.credenciais_gateway_cifrado);
+    const token = generico.token
+        || (escola.pagbank_token_cifrado ? decifrar(escola.pagbank_token_cifrado) : null);
+
     if (!token) {
         throw new ErroDeNegocio('A credencial do PagBank desta instituição não está configurada.');
     }
     return token;
 };
 
-const obterBaseUrl = (escola) => URLS[escola.pagbank_ambiente] || URLS.sandbox;
+const obterToken = obterTokenPagBank;
+
+// Mesma história do token: `gateway_ambiente` é o campo atual, `pagbank_ambiente`
+// é o de antes da unificação. O padrão é sandbox — errar para o lado que não
+// move dinheiro de verdade.
+const obterBaseUrl = (escola) =>
+    URLS[escola.gateway_ambiente || escola.pagbank_ambiente] || URLS.sandbox;
 
 const chamarApi = async (escola, caminho, corpo) => {
     const resposta = await fetch(`${obterBaseUrl(escola)}${caminho}`, {

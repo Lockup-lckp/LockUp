@@ -145,7 +145,7 @@ const FAQ = [
   },
   {
     pergunta: 'Como funciona o pagamento?',
-    resposta: 'O aluno paga por Pix ou cartão direto no navegador, dentro do portal da sua escola. A aprovação do Mercado Pago libera o armário automaticamente.'
+    resposta: 'O aluno paga por Pix ou cartão direto no navegador, dentro do portal da sua escola. A confirmação do banco libera o armário automaticamente.'
   },
   {
     pergunta: 'Como vocês tratam os dados da escola e dos alunos (LGPD)?',
@@ -175,7 +175,7 @@ const POLITICA_PRIVACIDADE = [
       'Dados da escola: razão social, CNPJ, endereço, e-mail institucional, telefone e dados bancários da instituição.',
       'Dados de contato de quem cadastra/gerencia: nome, e-mail e telefone.',
       'Dados dos alunos: nome, e-mail, telefone, rm e ra, data de nascimento, turma, número do armário alugado, histórico de pagamentos e recibo.',
-      'Dados de pagamento e integração bancária: preferências de pagamento e as chaves/credenciais de API das instituições financeiras (ex.: chave de API do Mercado Pago) configuradas pela escola para processar pagamentos.',
+      'Dados de pagamento e integração bancária: preferências de pagamento e as credenciais de API da instituição financeira escolhida pela escola (Banco do Brasil, Mercado Pago ou PagBank) para processar os pagamentos.',
       'Dados de navegação: cookies essenciais e, mediante consentimento, cookies de análise de uso.'
     ]
   },
@@ -196,7 +196,7 @@ const POLITICA_PRIVACIDADE = [
   {
     titulo: '5. Compartilhamento de dados',
     paragrafos: [
-      'Compartilhamos dados apenas com: (a) processadores de pagamento (ex.: Mercado Pago), estritamente para aprovar e liquidar transações; (b) provedores de infraestrutura e hospedagem; (c) autoridades públicas, quando houver ordem judicial ou obrigação legal.',
+      'Compartilhamos dados apenas com: (a) a instituição de pagamento escolhida pela escola — Banco do Brasil, Mercado Pago ou PagBank —, estritamente para aprovar e liquidar transações; (b) provedores de infraestrutura e hospedagem; (c) autoridades públicas, quando houver ordem judicial ou obrigação legal.',
       'Nunca vendemos dados pessoais. Os dados de uma escola ou de seus alunos jamais são exibidos para outra instituição.'
     ]
   },
@@ -239,7 +239,7 @@ const TERMOS_USO = [
   {
     titulo: '3. Locação e pagamento',
     paragrafos: [
-      'O valor e a duração da locação são definidos pela escola. O pagamento é processado por instituição de pagamento integrada (ex.: Mercado Pago) e a liberação do armário ocorre automaticamente após a aprovação.',
+      'O valor e a duração da locação são definidos pela escola. O pagamento é processado pela instituição financeira contratada pela escola e a liberação do armário ocorre automaticamente após a confirmação.',
       'Todas as transações são regidas também pelos termos do processador de pagamento utilizado.'
     ]
   },
@@ -890,7 +890,7 @@ export default function Landing() {
             <div className="space-y-5">
               {[
                 { Icone: IconShield, titulo: 'Criptografia e acesso restrito', texto: 'Dados transmitidos com TLS e armazenados com controle de acesso, segregação por escola e monitoramento.' },
-                { Icone: IconLock, titulo: 'Chave de API de pagamento protegida', texto: 'As credenciais bancárias (ex.: chave de API do Mercado Pago) ficam criptografadas e são usadas apenas para processar pagamentos.' },
+                { Icone: IconLock, titulo: 'Chave de API de pagamento protegida', texto: 'As credenciais bancárias da escola ficam criptografadas em repouso (AES-256-GCM) e são usadas apenas para processar pagamentos.' },
                 { Icone: IconDoc, titulo: 'Seus direitos garantidos', texto: 'Você pode solicitar acesso, correção, portabilidade ou exclusão dos dados a qualquer momento, conforme o art. 18 da LGPD.' }
               ].map(({ Icone, titulo, texto }) => (
                 <div key={titulo} className="flex gap-4">
