@@ -216,7 +216,11 @@ export default function Checkout() {
         } catch (err) {
           console.error('Erro ao verificar status do pagamento:', err);
         }
-      }, 4000); // Checa a cada 4 segundos
+      }, 2000); // Checa a cada 2 segundos.
+      // Era 4s. O aluno fica olhando a tela esperando o "aprovado" aparecer, e
+      // metade do intervalo é metade da espera percebida. A consulta é uma
+      // leitura barata por transação, e o webhook do banco continua sendo quem
+      // realmente confirma — isto aqui só encurta o tempo até a tela reagir.
     }
     return () => clearInterval(interval);
   }, [passo, transactionId, navigate, schoolCode]);
@@ -396,7 +400,9 @@ export default function Checkout() {
           setTransactionId(resultado.transaction_id || '');
           setStatusMensagem('🎉 Pagamento aprovado! Seu armário foi liberado.');
           setPasso(2);
-          setTimeout(() => navigate(`/${schoolCode}/home`), 2500);
+          // 1200ms em vez de 2500: dá para ler "pagamento aprovado" sem deixar
+          // o aluno parado diante de uma tela que já cumpriu o seu papel.
+          setTimeout(() => navigate(`/${schoolCode}/home`), 1200);
         } else if (resultado.status_pagamento === 'pendente') {
           setTransactionId(resultado.transaction_id || '');
           setStatusMensagem('Pagamento em análise...');

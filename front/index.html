@@ -10,6 +10,12 @@
          serializava CSS -> parse -> fonte e atrasava o primeiro texto. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Mesma ideia para o backend. A primeira chamada da aplicação (buscar a
+         escola da URL) só acontece depois que o JS carrega e executa; sem isto
+         ela ainda paga DNS + TLS + handshake ali na hora. O Vite troca
+         %VITE_API_URL% pelo valor do build. -->
+    <link rel="preconnect" href="%VITE_API_URL%" crossorigin />
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap"

@@ -49,13 +49,15 @@ export default function AlterarSenha() {
 
       setSucesso('Senha alterada com sucesso! Redirecionando...');
 
+      // 800ms em vez de 2000: tempo de ler "senha alterada" sem ficar parado
+      // olhando uma tela que já terminou o que tinha para fazer.
       setTimeout(() => {
         if (schoolCode) {
           navigate(`/${schoolCode}/home`);
         } else {
           navigate('/home');
         }
-      }, 2000);
+      }, 800);
 
     } catch (err) {
       console.error('Erro ao alterar senha:', err);
