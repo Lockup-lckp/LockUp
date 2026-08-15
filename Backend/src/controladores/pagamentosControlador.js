@@ -8,6 +8,11 @@ import {
     lerEventoWebhookPagBank,
     obterChavePublicaPagBank
 } from '../servicos/pagBank.js';
+import {
+    criarCobrancaBB,
+    consultarCobrancaBB,
+    lerTxidsDaNotificacaoBB
+} from '../servicos/gateways/bancoDoBrasil.js';
 
 // Valida a assinatura HMAC do webhook do Mercado Pago (header x-signature).
 // Sem isso, qualquer um poderia forjar uma notificação de "pagamento aprovado" e liberar armários de graça.
@@ -332,8 +337,62 @@ export const iniciarCheckout = async (req, res) => {
         // Mercado Pago exige HTTPS explícito e rejeita localhost/127.0.0.1
         const isWebhookValido = rawNotificationUrl && rawNotificationUrl.startsWith('https://');
 
-        // 3.1 GATEWAY POR ESCOLA. Hoje só a ETEC Bento Quirino usa PagBank;
-        // todas as demais seguem no Mercado Pago (padrão da coluna).
+        // 3.1 GATEWAY POR ESCOLA — Banco do Brasil.
+        //
+        // É o caminho das ETECs: a conta é da APM da própria instituição, então
+        // o dinheiro nasce lá. Só Pix; cartão pelo BB exigiria TEF com pinpad
+        // no totem, que é outro projeto.
+        if (escola.gateway === 'bancodobrasil') {
+            const formaPedida = mp_data?.formaPagamento
+                || (mp_data?.token || mp_data?.cartaoCriptografado ? 'cartao' : 'pix');
+            if (formaPedida === 'cartao') {
+                return res.status(400).json({
+                    error: 'Esta instituição recebe apenas por Pix. O pagamento com cartão não está disponível.'
+                });
+            }
+
+            const cobranca = await criarCobrancaBB({
+                escola,
+                armario,
+                valorTotal,
+                transactionId,
+                cliente: { nome, cpf },
+                expiraEm
+            });
+
+            const { error: erroAluguelBB } = await supabase
+                .from('rentals')
+                .insert([{
+                    user_id: req.user.id,
+                    locker_id: armario.id,
+                    school_id: armario.school_id,
+                    transaction_id: transactionId,
+                    status_pagamento: cobranca.statusTraduzido,
+                    // O txid da cobrança. É por ele que a notificação do banco
+                    // reencontra esta locação.
+                    gateway_id: cobranca.gatewayId,
+                    valor: valorTotal,
+                    expira_em: expiraEm,
+                    ano_letivo: anoLetivoAtual(escola),
+                    modalidade: plano.modalidade,
+                    valido_ate: plano.validoAte
+                }]);
+
+            if (erroAluguelBB) throw erroAluguelBB;
+
+            return res.json({
+                sucesso: true,
+                status_pagamento: cobranca.statusTraduzido,
+                transaction_id: transactionId,
+                // O BB devolve o BRCode (pixCopiaECola); o front desenha o QR a
+                // partir dele, porque o banco não manda imagem pronta.
+                qr_code: cobranca.qrCode,
+                qr_code_base64: null
+            });
+        }
+
+        // 3.2 GATEWAY POR ESCOLA — PagBank (legado).
+        // Todas as demais seguem no Mercado Pago (padrão da coluna).
         // No PagBank a credencial é da conta da PRÓPRIA escola, então o dinheiro
         // já cai lá — não há split, comissão nem application_fee neste caminho.
         if (escola.gateway === 'pagbank') {
@@ -652,6 +711,94 @@ export const webhookPagBank = async (req, res) => {
         return res.status(200).send('Webhook processado.');
     } catch (err) {
         console.error('[LCKP ERROR] Falha ao processar o webhook do PagBank:', err.message);
+        return res.status(500).json({ error: err.message });
+    }
+};
+
+// Webhook do Banco do Brasil (padrão Pix do Banco Central).
+//
+// DIFERENÇA IMPORTANTE em relação aos outros dois gateways: aqui não há
+// assinatura HMAC no corpo. O padrão Pix autentica a notificação por mTLS, com
+// o certificado do BANCO — e esse handshake termina no proxy do Render, não
+// chega até aqui. Validar a assinatura, portanto, é impossível.
+//
+// A saída é não precisar confiar no corpo: a notificação é tratada como um
+// SINAL ("olhe a cobrança X") e o status vem de uma consulta à API do banco,
+// autenticada com a credencial da própria escola. Quem descobrisse esta URL e
+// mandasse um JSON forjado não conseguiria liberar nada: o txid inventado não
+// existe no banco, e o real volta com o status verdadeiro.
+export const webhookBancoDoBrasil = async (req, res) => {
+    const { schoolCode } = req.params;
+
+    try {
+        const { data: escola, error: erroEscola } = await supabase
+            .from('schools')
+            .select('id, codigo, name, gateway, gateway_ambiente, credenciais_gateway_cifrado')
+            .eq('codigo', schoolCode)
+            .maybeSingle();
+
+        if (erroEscola || !escola) {
+            console.warn(`[LCKP BB] Notificação para escola desconhecida: ${schoolCode}`);
+            return res.status(404).send('Instituição não encontrada.');
+        }
+
+        // O BB valida a URL cadastrando-a com uma chamada vazia. Responder
+        // diferente de 2xx aqui faria o cadastro do webhook falhar.
+        const txids = lerTxidsDaNotificacaoBB(req.body);
+        if (!txids.length) {
+            return res.status(200).send('OK - Notificação sem cobrança associada.');
+        }
+
+        for (const txid of txids) {
+            let confirmacao;
+            try {
+                confirmacao = await consultarCobrancaBB(escola, txid);
+            } catch (err) {
+                // Cobrança inexistente é o caso da notificação forjada: nada a
+                // fazer, e responder 500 faria o banco reenviar para sempre.
+                console.warn(`[LCKP BB] Não foi possível confirmar a cobrança ${txid}: ${err.message}`);
+                continue;
+            }
+
+            if (confirmacao.statusTraduzido !== 'aprovado') {
+                console.log(`[LCKP BB] Cobrança ${txid} ainda em '${confirmacao.statusTraduzido}'.`);
+                continue;
+            }
+
+            // Só agora, com o status vindo do banco, a locação é atualizada.
+            // O eq('school_id') é a trava multi-tenant: um txid de uma escola
+            // não pode liberar armário de outra.
+            const { data: aluguelAtualizado, error } = await supabase
+                .from('rentals')
+                .update({ status_pagamento: 'aprovado' })
+                .eq('gateway_id', txid)
+                .eq('school_id', escola.id)
+                .neq('status_pagamento', 'aprovado')
+                .select()
+                .maybeSingle();
+
+            if (error) throw error;
+            if (!aluguelAtualizado) continue; // já processada
+
+            // Pagamento a menor: o banco aceita, mas a locação não está paga.
+            // Registrar em log alto porque exige decisão humana — o armário já
+            // foi liberado pela trigger e alguém precisa cobrar a diferença.
+            if (confirmacao.valorPago !== null
+                && confirmacao.valorPago + 0.001 < Number(aluguelAtualizado.valor)) {
+                console.error(
+                    `[LCKP BB] ATENÇÃO: cobrança ${txid} paga a menor — recebido R$ ${confirmacao.valorPago}, esperado R$ ${aluguelAtualizado.valor}.`
+                );
+            }
+
+            console.log(`[LCKP BB] Armário ${aluguelAtualizado.locker_id} liberado para uso.`);
+            // Sem await: a resposta ao banco não espera o e-mail. Notificação
+            // que demora demais é reenviada, e o reenvio duplicaria a mensagem.
+            enviarEmailDeConfirmacao(aluguelAtualizado);
+        }
+
+        return res.status(200).send('Webhook processado.');
+    } catch (err) {
+        console.error('[LCKP ERROR] Falha ao processar o webhook do Banco do Brasil:', err.message);
         return res.status(500).json({ error: err.message });
     }
 };
