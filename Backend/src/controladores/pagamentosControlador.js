@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { MercadoPagoConfig, Payment } from 'mercadopago';
 import supabase from '../config/database.js';
 import { enviarConfirmacaoLocacao, emailHabilitado } from '../servicos/email.js';
+import { responderErro } from '../utils/erros.js';
 import {
     criarCobrancaPagBank,
     validarWebhookPagBank,
@@ -529,7 +530,7 @@ export const iniciarCheckout = async (req, res) => {
 
     } catch (err) {
         console.error('[LCKP ERROR] Falha no fluxo de checkout:', err);
-        return res.status(500).json({ error: err.message });
+        return responderErro(res, err, 'pagamentos');
     }
 };
 
@@ -602,7 +603,7 @@ export const webhookPagamento = async (req, res) => {
         return res.status(200).send('Webhook processado.');
     } catch (err) {
         console.error('[LCKP ERROR] Falha ao processar o webhook do gateway:', err.message);
-        return res.status(500).json({ error: err.message });
+        return responderErro(res, err, 'pagamentos');
     }
 };
 
@@ -711,7 +712,7 @@ export const webhookPagBank = async (req, res) => {
         return res.status(200).send('Webhook processado.');
     } catch (err) {
         console.error('[LCKP ERROR] Falha ao processar o webhook do PagBank:', err.message);
-        return res.status(500).json({ error: err.message });
+        return responderErro(res, err, 'pagamentos');
     }
 };
 
@@ -799,7 +800,7 @@ export const webhookBancoDoBrasil = async (req, res) => {
         return res.status(200).send('Webhook processado.');
     } catch (err) {
         console.error('[LCKP ERROR] Falha ao processar o webhook do Banco do Brasil:', err.message);
-        return res.status(500).json({ error: err.message });
+        return responderErro(res, err, 'pagamentos');
     }
 };
 
@@ -891,7 +892,7 @@ export const obterStatusPagamento = async (req, res) => {
 
         return res.json({ status_pagamento: aluguel.status_pagamento });
     } catch (err) {
-        return res.status(500).json({ error: err.message });
+        return responderErro(res, err, 'pagamentos');
     }
 };
 // Confirmação por e-mail depois que a locação é aprovada.

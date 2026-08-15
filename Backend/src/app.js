@@ -8,11 +8,25 @@ import rotasPagamentos from './rotas/pagamentos.js';
 import rotasUsuarios from './rotas/usuarios.js';
 import rotasEscolas from './rotas/escola.js';
 import rotasLeads from './rotas/leads.js';
+import { limiteGeral } from './middlewares/limitadores.js';
 
 const app = express();
 
+// O Render (como Vercel e Cloudflare) termina o TLS num proxy e repassa o IP
+// real em X-Forwarded-For. Sem confiar nesse cabeçalho, req.ip seria o do
+// proxy e TODOS os usuários cairiam no mesmo balde de rate limit — um visitante
+// abusivo derrubaria o login da rede inteira.
+//
+// 1 = confia num único salto (o proxy da plataforma). Nunca use `true` aqui:
+// o Express passaria a aceitar qualquer IP que o cliente alegasse ter, e o
+// limitador viraria enfeite.
+app.set('trust proxy', 1);
+
 // Cabeçalhos de segurança padrão (XSS, sniffing, etc.)
 app.use(helmet());
+
+// Teto geral por IP, antes de qualquer rota.
+app.use(limiteGeral);
 
 // Origens liberadas via env. Ex: CORS_ORIGINS="http://localhost:5173,https://app.lckp.com.br"
 const origensPermitidas = (process.env.CORS_ORIGINS || 'http://localhost:5173')

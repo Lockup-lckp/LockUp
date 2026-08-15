@@ -1,6 +1,23 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import supabase from '../config/database.js';
+import { responderErro, ErroDeNegocio } from '../utils/erros.js';
+
+// Trilha de auditoria de autenticação.
+//
+// Sem isto, um ataque de força bruta em curso é invisível e não há como
+// investigar depois "quem entrou nessa conta na terça". O rate limit barra;
+// o log é o que permite PERCEBER que houve tentativa.
+//
+// Registra identificador e IP. NUNCA a senha, nem o hash, nem o token.
+const registrarAuth = (evento, { email, escola, ip, motivo }) => {
+    const partes = [`[LCKP AUTH] ${evento}`];
+    if (email) partes.push(`usuario=${email}`);
+    if (escola) partes.push(`escola=${escola}`);
+    if (ip) partes.push(`ip=${ip}`);
+    if (motivo) partes.push(`motivo=${motivo}`);
+    console.log(partes.join(' '));
+};
 
 export const login = async (req, res) => {
     // ⚡ Agora recebemos o schoolCode enviado pelo Frontend junto com as credenciais.
@@ -37,6 +54,9 @@ export const login = async (req, res) => {
             .maybeSingle();
 
         if (erroUsuario || !usuario) {
+            registrarAuth('LOGIN NEGADO', {
+                email: email_institucional, escola: schoolCode, ip: req.ip, motivo: 'usuario inexistente'
+            });
             return res.status(404).json({ error: 'Usuário não encontrado.' });
         }
 
@@ -49,6 +69,11 @@ export const login = async (req, res) => {
                 return res.status(400).json({ error: 'O código da escola é obrigatório para realizar o login.' });
             }
             if (usuario.school_id !== escola.id) {
+                // Vale log alto: tentar entrar no portal de OUTRA escola com
+                // credencial válida é o sinal mais claro de abuso multi-tenant.
+                registrarAuth('LOGIN NEGADO', {
+                    email: email_institucional, escola: schoolCode, ip: req.ip, motivo: 'escola divergente'
+                });
                 return res.status(403).json({
                     error: 'Este usuário não possui permissão para acessar o portal desta instituição.'
                 });
@@ -58,6 +83,9 @@ export const login = async (req, res) => {
         // 4. Compara a senha crua com o hash guardado no banco
         const senhaValida = await bcrypt.compare(senha, usuario.senha_hash);
         if (!senhaValida) {
+            registrarAuth('LOGIN NEGADO', {
+                email: email_institucional, escola: schoolCode, ip: req.ip, motivo: 'senha incorreta'
+            });
             return res.status(401).json({ error: 'Senha incorreta.' });
         }
 
@@ -67,6 +95,10 @@ export const login = async (req, res) => {
             process.env.JWT_SECRET,
             { expiresIn: '24h' }
         );
+
+        registrarAuth('LOGIN OK', {
+            email: email_institucional, escola: schoolCode, ip: req.ip, motivo: usuario.role
+        });
 
         res.json({
             token,
@@ -79,14 +111,31 @@ export const login = async (req, res) => {
             }
         });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        responderErro(res, err, 'autenticacao');
     }
 };
+
+// Piso da senha nova. Não é política de complexidade — é o mínimo para a troca
+// não ser um retrocesso: a senha inicial é a matrícula, e trocá-la por algo
+// mais fraco do que ela derrota o propósito da tela.
+const TAMANHO_MINIMO_SENHA = 6;
+// bcrypt ignora tudo além de 72 BYTES. Aceitar mais é mentir para o usuário:
+// ele digitaria 100 caracteres e só os 72 primeiros valeriam.
+const TAMANHO_MAXIMO_SENHA = 72;
 
 export const alterarSenha = async (req, res) => {
     const { nova_senha } = req.body;
 
     try {
+        // Sem esta validação a rota aceitava senha VAZIA: bcrypt.hash('')
+        // devolve um hash válido, e o usuário ficava sem senha nenhuma.
+        if (typeof nova_senha !== 'string' || nova_senha.trim().length < TAMANHO_MINIMO_SENHA) {
+            throw new ErroDeNegocio(`A nova senha precisa ter pelo menos ${TAMANHO_MINIMO_SENHA} caracteres.`);
+        }
+        if (Buffer.byteLength(nova_senha, 'utf8') > TAMANHO_MAXIMO_SENHA) {
+            throw new ErroDeNegocio(`A nova senha não pode passar de ${TAMANHO_MAXIMO_SENHA} caracteres.`);
+        }
+
         const salt = await bcrypt.genSalt(10);
         const hash = await bcrypt.hash(nova_senha, salt);
 
@@ -100,8 +149,10 @@ export const alterarSenha = async (req, res) => {
 
         if (error) throw error;
 
+        registrarAuth('SENHA ALTERADA', { email: req.user.id, ip: req.ip });
+
         res.json({ mensagem: 'Senha alterada com sucesso!' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        responderErro(res, err, 'autenticacao');
     }
 };

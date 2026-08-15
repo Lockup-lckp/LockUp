@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import https from 'https';
 import { decifrarCredenciais } from '../../utils/cripto.js';
+import { ErroDeNegocio } from '../../utils/erros.js';
 
 // Adaptador do Banco do Brasil (API Pix).
 //
@@ -78,7 +79,7 @@ export const obterCredenciaisBB = (escola) => {
         .map(([, rotulo]) => rotulo);
 
     if (faltando.length) {
-        throw new Error(
+        throw new ErroDeNegocio(
             `As credenciais do Banco do Brasil desta instituição estão incompletas. Falta: ${faltando.join(', ')}.`
         );
     }
@@ -174,7 +175,8 @@ const obterToken = async (escola, cred) => {
 
     if (resposta.status !== 200 || !resposta.json?.access_token) {
         const detalhe = resposta.json?.error_description || resposta.json?.error || resposta.texto?.slice(0, 200);
-        throw new Error(`Falha ao autenticar no Banco do Brasil (${resposta.status}). ${detalhe || ''}`.trim());
+        // 502: a falha é do outro lado, não do cliente que pediu o Pix.
+        throw new ErroDeNegocio(`Falha ao autenticar no Banco do Brasil (${resposta.status}). ${detalhe || ''}`.trim(), 502);
     }
 
     const token = resposta.json.access_token;
@@ -211,7 +213,7 @@ const chamarApi = async (escola, cred, caminho, { metodo = 'GET', corpo } = {}) 
             ? erro.violacoes.map((v) => v.razao || v.propriedade).filter(Boolean).join('; ')
             : null;
         const detalhe = violacoes || erro?.detail || erro?.title || resposta.texto?.slice(0, 200);
-        throw new Error(`Banco do Brasil respondeu ${resposta.status}. ${detalhe || ''}`.trim());
+        throw new ErroDeNegocio(`Banco do Brasil respondeu ${resposta.status}. ${detalhe || ''}`.trim(), 502);
     }
 
     return resposta.json;

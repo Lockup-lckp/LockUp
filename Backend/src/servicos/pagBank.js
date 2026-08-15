@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { decifrar } from '../utils/cripto.js';
+import { ErroDeNegocio } from '../utils/erros.js';
 
 // Adaptador do PagBank (API de Pedidos).
 //
@@ -32,7 +33,7 @@ const traduzirStatusPagBank = (status) => {
 const obterToken = (escola) => {
     const token = decifrar(escola.pagbank_token_cifrado);
     if (!token) {
-        throw new Error('A credencial do PagBank desta instituição não está configurada.');
+        throw new ErroDeNegocio('A credencial do PagBank desta instituição não está configurada.');
     }
     return token;
 };
@@ -55,7 +56,7 @@ const chamarApi = async (escola, caminho, corpo) => {
     if (!resposta.ok) {
         // O PagBank devolve error_messages[] com description/parameter_name.
         const detalhe = dados?.error_messages?.map((e) => e.description).join('; ');
-        throw new Error(detalhe || `PagBank respondeu ${resposta.status}.`);
+        throw new ErroDeNegocio(detalhe || `PagBank respondeu ${resposta.status}.`, 502);
     }
 
     return dados;
@@ -117,7 +118,7 @@ export const criarCobrancaPagBank = async ({
         }];
     } else {
         if (!dadosPagamento?.cartaoCriptografado) {
-            throw new Error('Os dados do cartão não foram cifrados pelo SDK do PagBank.');
+            throw new ErroDeNegocio('Os dados do cartão não foram cifrados pelo SDK do PagBank.');
         }
         corpo.charges = [{
             reference_id: transactionId,

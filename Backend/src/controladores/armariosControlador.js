@@ -2,6 +2,7 @@ import supabase from '../config/database.js';
 // Resolve o schoolCode da URL para o school_id real. Vem do cache compartilhado:
 // era uma consulta ao banco por requisição, sempre devolvendo a mesma linha.
 import { obterIdEscolaPorCodigo } from '../servicos/cacheEscola.js';
+import { responderErro } from '../utils/erros.js';
 
 // LISTAR ARMÁRIOS FILTRADOS POR ESCOLA
 export const listarArmarios = async (req, res) => {
@@ -44,7 +45,7 @@ export const listarArmarios = async (req, res) => {
         res.json(armariosFormatados);
     } catch (err) {
         console.error("Erro ao listar armários:", err.message);
-        res.status(500).json({ error: err.message });
+        responderErro(res, err, 'armarios');
     }
 };
 
@@ -81,7 +82,7 @@ export const criarArmario = async (req, res) => {
         res.status(201).json(data[0]);
     } catch (err) {
         console.error("Erro ao criar armário:", err.message);
-        res.status(500).json({ error: err.message });
+        responderErro(res, err, 'armarios');
     }
 };
 
@@ -158,7 +159,7 @@ export const criarArmariosEmLote = async (req, res) => {
         });
     } catch (err) {
         console.error("Erro ao criar armários em lote:", err.message);
-        res.status(500).json({ error: err.message });
+        responderErro(res, err, 'armarios');
     }
 };
 
@@ -281,7 +282,7 @@ export const atualizarArmario = async (req, res) => {
         res.json(armarioAtualizado);
     } catch (err) {
         console.error("Erro ao atualizar armário:", err.message);
-        res.status(500).json({ error: err.message });
+        responderErro(res, err, 'armarios');
     }
 };
 
@@ -310,7 +311,7 @@ export const excluirArmario = async (req, res) => {
         res.json({ message: 'Armário removido com sucesso.' });
     } catch (err) {
         console.error("Erro ao excluir armário:", err.message);
-        res.status(500).json({ error: err.message });
+        responderErro(res, err, 'armarios');
     }
 };
 // Carrega o armário garantindo que ele é da escola de quem pediu. Devolve

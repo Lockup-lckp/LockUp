@@ -3,6 +3,7 @@ import { cifrar, cifrarCredenciais } from '../utils/cripto.js';
 import { obterGateway, validarConfiguracaoGateway, listarGateways, GATEWAY_PADRAO } from '../servicos/gateways/catalogo.js';
 import { obterEscolaPorCodigo, invalidarCacheEscolas } from '../servicos/cacheEscola.js';
 import { testarCredencialBB, registrarWebhookBB } from '../servicos/gateways/bancoDoBrasil.js';
+import { responderErro } from '../utils/erros.js';
 
 // Campos que o admin de uma escola pode alterar na PRÓPRIA instituição (personalização).
 // Campos sensíveis (codigo, gateway, credenciais, taxa_comissao, name) ficam restritos ao
@@ -459,7 +460,10 @@ export const testarCredencialGateway = async (req, res) => {
     // A mensagem do adaptador é a informação útil (qual campo falta, o que o
     // banco respondeu). Trocá-la por um texto genérico esconderia o diagnóstico.
     console.error('[LCKP BB] Teste de credencial falhou:', err.message);
-    return res.status(400).json({ ok: false, error: err.message });
+    // responderErro preserva a mensagem quando ela é ErroDeNegocio — que é o
+    // caso de tudo que o adaptador do BB lança, e é justamente o diagnóstico
+    // que o superadmin precisa ler. Só o inesperado vira texto genérico.
+    return responderErro(res, err, 'gateway BB');
   }
 };
 
@@ -497,7 +501,10 @@ export const registrarWebhookGateway = async (req, res) => {
     return res.json(resultado);
   } catch (err) {
     console.error('[LCKP BB] Registro de webhook falhou:', err.message);
-    return res.status(400).json({ ok: false, error: err.message });
+    // responderErro preserva a mensagem quando ela é ErroDeNegocio — que é o
+    // caso de tudo que o adaptador do BB lança, e é justamente o diagnóstico
+    // que o superadmin precisa ler. Só o inesperado vira texto genérico.
+    return responderErro(res, err, 'gateway BB');
   }
 };
 
