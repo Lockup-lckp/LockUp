@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { checkoutService } from '../../../services/checkoutServices';
-import { useEscola } from '../../../theme/EscolaContext.jsx';
+import { useEscola } from '../../../theme/contextoEscola.js';
 import RelatorioAnual from '../../../components/RelatorioAnual.jsx';
 import { nomearCorredor } from '../../../utils/rotuloCorredor';
 
@@ -36,7 +36,7 @@ export default function HistoricoPagamentos() {
         setErro(null);
         const dados = await checkoutService.buscarHistorico(schoolCode);
         setHistorico(Array.isArray(dados) ? dados : []);
-      } catch (err) {
+      } catch {
         setErro('Não foi possível carregar o histórico de pagamentos.');
       } finally {
         setCarregando(false);

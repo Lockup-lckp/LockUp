@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { usuarioService } from '../../../services/usuariosServices';
-import { useEscola } from '../../../theme/EscolaContext.jsx';
+import { useEscola } from '../../../theme/contextoEscola.js';
 import './Gerenciamento.css';
 
 export default function Gerenciamento() {
@@ -49,6 +49,25 @@ export default function Gerenciamento() {
   // estado direto no corpo do efeito dispara renderização em cascata.
   const escolaNaoIdentificada = !escolaCarregando && !schoolIdUuid;
 
+  // Declarada ANTES do efeito que a usa. Chamar uma const declarada mais
+  // abaixo funciona por acidente — o efeito so roda depois do render — e
+  // quebra no dia em que alguem mover o codigo.
+  const carregarUsuarios = async (schoolIdParaFiltro = schoolIdUuid) => {
+    try {
+      const dados = await usuarioService.buscarTodos(schoolIdParaFiltro);
+      if (Array.isArray(dados)) {
+        setUsuarios(dados);
+      } else if (dados && typeof dados === 'object') {
+        const chaveArray = Object.keys(dados).find(key => Array.isArray(dados[key]));
+        setUsuarios(chaveArray ? dados[chaveArray] : []);
+      } else {
+        setUsuarios([]);
+      }
+    } catch (err) {
+      console.error("Erro ao recarregar lista de usuários:", err);
+    }
+  };
+
   useEffect(() => {
     if (escolaCarregando || !schoolIdUuid) return;
 
@@ -68,28 +87,11 @@ export default function Gerenciamento() {
     };
 
     inicializarDados();
+    // carregarUsuarios e recriada a cada render e nao entra nas dependencias
+    // de proposito: incluir faria a busca rodar sem parar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolIdUuid, escolaCarregando]);
 
-  // Sempre que mudar o termo de busca, reseta para a primeira página
-  useEffect(() => {
-    setPaginaAtual(1);
-  }, [termoBusca]);
-
-  const carregarUsuarios = async (schoolIdParaFiltro = schoolIdUuid) => {
-    try {
-      const dados = await usuarioService.buscarTodos(schoolIdParaFiltro);
-      if (Array.isArray(dados)) {
-        setUsuarios(dados);
-      } else if (dados && typeof dados === 'object') {
-        const chaveArray = Object.keys(dados).find(key => Array.isArray(dados[key]));
-        setUsuarios(chaveArray ? dados[chaveArray] : []);
-      } else {
-        setUsuarios([]);
-      }
-    } catch (err) {
-      console.error("Erro ao recarregar lista de usuários:", err);
-    }
-  };
 
   const mostrarNotificacao = (mensagem, tipo = 'erro') => {
     setNotificacao({ aberto: true, mensagem, tipo });
@@ -170,7 +172,7 @@ export default function Gerenciamento() {
             })
           );
           mostrarNotificacao('Cargo updated com sucesso!', 'sucesso');
-        } catch (err) {
+        } catch {
           mostrarNotificacao('Erro ao alterar a permissão no servidor.', 'erro');
           carregarUsuarios();
         } finally {
@@ -197,7 +199,7 @@ export default function Gerenciamento() {
             usuariosAnteriores.filter((u) => (u.id || u.uid) !== idValido)
           );
           mostrarNotificacao('Usuário removido com sucesso.', 'sucesso');
-        } catch (err) {
+        } catch {
           mostrarNotificacao('Erro ao excluir o usuário.', 'erro');
         } finally {
           setModalConfig((prev) => ({ ...prev, aberto: false }));
@@ -383,7 +385,7 @@ export default function Gerenciamento() {
         type="text"
         placeholder="Buscar por nome ou e-mail nesta escola..."
         value={termoBusca}
-        onChange={(e) => setTermoBusca(e.target.value)}
+        onChange={(e) => { setTermoBusca(e.target.value); setPaginaAtual(1); }}
         className="search-input"
       />
 

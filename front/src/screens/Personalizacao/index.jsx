@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { escolaService } from '../../services/escolaService';
-import { useEscola } from '../../theme/EscolaContext.jsx';
+import { useEscola } from '../../theme/contextoEscola.js';
 import './Personalizacao.css';
 
 // A estilização do sistema é FIXA na marca LCKP — a escola não escolhe cores.
@@ -130,8 +130,22 @@ export default function Personalizacao() {
   const [salvando, setSalvando] = useState(false);
   const [feedback, setFeedback] = useState(null); // { tipo: 'sucesso'|'erro', texto }
 
-  useEffect(() => {
-    if (!escola) return;
+  // Preenche o formulário quando a escola carrega (ou quando troca).
+  //
+  // Ajuste durante a RENDERIZAÇÃO, não em efeito. É o formato que a
+  // documentação do React indica para "estado que deriva de uma prop": em
+  // efeito, os doze setters rodariam depois da primeira pintura e a tela
+  // apareceria por um instante com os campos vazios antes de preencher.
+  //
+  // O marcador guarda de QUAL OBJETO escola o formulário foi preenchido — sem
+  // ele isto viraria laço infinito, já que cada setter dispara nova
+  // renderização. A comparação é por identidade, e não por id, para manter o
+  // comportamento do efeito que existia aqui: depois de salvar,
+  // atualizarEscolaLocal cria um objeto novo e o formulário se ressincroniza
+  // com os valores já normalizados pelo servidor.
+  const [formularioDaEscola, setFormularioDaEscola] = useState(null);
+  if (escola && escola !== formularioDaEscola) {
+    setFormularioDaEscola(escola);
     setLogoUrl(escola.logo_url && escola.logo_url !== 'null' ? escola.logo_url : '');
     setLogo2Url(escola.logo_2_url && escola.logo_2_url !== 'null' ? escola.logo_2_url : '');
     setLogo1Posicao(escola.logo_1_posicao || 'esquerda');
@@ -148,7 +162,7 @@ export default function Personalizacao() {
     setValorSemestral(escola.valor_armario_semestral != null ? String(escola.valor_armario_semestral) : '');
     setEncSemestralDia(String(escola.encerramento_semestral_dia ?? 6));
     setEncSemestralMes(String(escola.encerramento_semestral_mes ?? 7));
-  }, [escola]);
+  }
 
   // Redireciona quem não é admin (a API também bloqueia, mas evitamos exibir a tela).
   useEffect(() => {

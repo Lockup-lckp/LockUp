@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { checkoutService } from '../../services/checkoutServices';
 import { validarCPF, aplicarMascaraCPF } from '../../utils/validadorCpf';
-import { useEscola } from '../../theme/EscolaContext.jsx';
+import { useEscola } from '../../theme/contextoEscola.js';
 import { API_BASE } from '../../services/api';
 import ModalTermos from '../../components/TermosDeUso.jsx';
 import { nomearCorredor, rotuloCorredor } from '../../utils/rotuloCorredor';

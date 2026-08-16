@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useEscola } from '../theme/EscolaContext.jsx';
+import { useEscola } from '../theme/contextoEscola.js';
 
 export default function NavBar({ onMenuClick }) {
   const navigate = useNavigate();
