@@ -41,7 +41,12 @@ SELECT codigo,
        name,
        gateway,
        gateway_ambiente,
-       credenciais_gateway_cifrado IS NOT NULL AS credenciais_cadastradas
+       credenciais_gateway_cifrado IS NOT NULL AS credenciais_cadastradas,
+       -- Marca quais linhas a parte 3 vai alcançar. Confira que só as duas
+       -- ETECs aparecem com 'true' antes de rodar.
+       (codigo = 'etec-043'
+        OR name ILIKE '%bento%quirino%'
+        OR name ILIKE '%conselheiro%ant%nio%prado%') AS alvo_do_update
   FROM schools
  ORDER BY codigo;
 
@@ -57,16 +62,25 @@ SELECT codigo,
 -- Ou seja: rode agora (não muda nada), cadastre as credenciais no painel, e
 -- rode de novo (aí sim vira). É seguro repetir quantas vezes quiser.
 --
--- ATENÇÃO AOS CÓDIGOS: 'etec-043' é a ETEC Bento Quirino, confirmado nas
--- migrações anteriores. O código do ETECAP NÃO consta em lugar nenhum do
--- repositório — confira no resultado da parte 2 e ajuste a lista abaixo antes
--- de rodar. Um código errado aqui não dá erro: simplesmente não casa com
--- escola nenhuma e o UPDATE afeta 0 linhas.
+-- COMO AS DUAS ESCOLAS SÃO IDENTIFICADAS: o código da Bento Quirino é
+-- 'etec-043', confirmado nas migrações anteriores. O do ETECAP (ETEC
+-- Conselheiro Antônio Prado) não consta no repositório, então ela é encontrada
+-- pelo NOME.
+--
+-- O ILIKE usa '%' no lugar dos acentos ('Ant%nio') de propósito: assim casa
+-- tanto com "Antônio" quanto com "Antonio", que é o tipo de diferença que faz
+-- um UPDATE afetar 0 linhas sem dar erro nenhum.
+--
+-- Confira na parte 2 que as duas — e SOMENTE as duas — aparecem antes de rodar.
 
 UPDATE schools
    SET gateway = 'bancodobrasil',
        gateway_ambiente = 'producao'
- WHERE codigo IN ('etec-043' /* Bento Quirino */, 'etecap' /* CONFERIR na parte 2 */)
+ WHERE (
+         codigo = 'etec-043'                          -- ETEC Bento Quirino
+         OR name ILIKE '%bento%quirino%'
+         OR name ILIKE '%conselheiro%ant%nio%prado%'  -- ETECAP
+       )
    AND credenciais_gateway_cifrado IS NOT NULL
    AND gateway IS DISTINCT FROM 'bancodobrasil';
 
@@ -83,5 +97,7 @@ SELECT codigo,
        gateway_ambiente,
        credenciais_gateway_cifrado IS NOT NULL AS credenciais_cadastradas
   FROM schools
- WHERE codigo IN ('etec-043', 'etecap')
+ WHERE codigo = 'etec-043'
+    OR name ILIKE '%bento%quirino%'
+    OR name ILIKE '%conselheiro%ant%nio%prado%'
  ORDER BY codigo;
