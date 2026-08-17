@@ -503,13 +503,6 @@ function ModalAcessoEscola({ aberto, aoFechar }) {
     };
   }, [aberto, aoFechar]);
 
-  useEffect(() => {
-    if (aberto) {
-      setCodigo('');
-      setErro('');
-    }
-  }, [aberto]);
-
   if (!aberto) return null;
 
   const handleSubmit = (e) => {
@@ -599,14 +592,6 @@ function ModalCadastro({ aberto, aoFechar, aoAbrirPrivacidade }) {
       window.removeEventListener('keydown', onKey);
     };
   }, [aberto, aoFechar]);
-
-  useEffect(() => {
-    if (aberto) {
-      setErro('');
-      setSucesso('');
-      setCampos(CAMPOS_INICIAIS);
-    }
-  }, [aberto]);
 
   if (!aberto) return null;
 
@@ -733,15 +718,17 @@ export default function Landing() {
   const [modalLegal, setModalLegal] = useState(null); // 'privacidade' | 'termos' | null
   const [modalCadastro, setModalCadastro] = useState(false);
   const [modalAcesso, setModalAcesso] = useState(false);
-  const [cookieConsent, setCookieConsent] = useState(null);
-  const rootRef = useRef(null);
-
-  useEffect(() => {
+  // Lido na inicializacao, nao em efeito: em efeito o banner aparecia por um
+  // instante para quem ja tinha respondido, porque a leitura so acontecia
+  // depois da primeira pintura.
+  const [cookieConsent, setCookieConsent] = useState(() => {
     try {
-      const salvo = localStorage.getItem('lckp-cookie-consent');
-      if (salvo) setCookieConsent(salvo);
-    } catch { /* ignore */ }
-  }, []);
+      return localStorage.getItem('lckp-cookie-consent');
+    } catch {
+      return null; // navegacao privada / storage bloqueado
+    }
+  });
+  const rootRef = useRef(null);
 
   // Animações de entrada: IntersectionObserver + transições CSS (ver
   // utils/revelar.js e Landing.css). Substituiu gsap + ScrollTrigger.
@@ -985,13 +972,17 @@ export default function Landing() {
       <ModalLegal aberto={modalLegal === 'termos'} titulo="Termos de Uso" icone={<IconDoc className="w-5 h-5" />} secoes={TERMOS_USO} aoFechar={() => setModalLegal(null)} />
 
       {/* ═══ MODAL DE ACESSO DA ESCOLA ═══ */}
+      {/* key: remonta a cada abertura, entao o formulario nasce limpo sem
+          precisar de um efeito que apague os campos. */}
       <ModalAcessoEscola
+        key={`acesso-${modalAcesso}`}
         aberto={modalAcesso}
         aoFechar={() => setModalAcesso(false)}
       />
 
       {/* ═══ MODAL DE CADASTRO ═══ */}
       <ModalCadastro
+        key={`cadastro-${modalCadastro}`}
         aberto={modalCadastro}
         aoFechar={() => setModalCadastro(false)}
         aoAbrirPrivacidade={() => setModalLegal('privacidade')}

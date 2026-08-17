@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { armariosService } from '../../services/armariosServices';
-import { useEscola } from '../../theme/EscolaContext.jsx';
+import { useEscola } from '../../theme/contextoEscola.js';
 import ModalArmario from '../../components/ModalArmario.jsx';
 import { nomearCorredor, rotuloCorredor } from '../../utils/rotuloCorredor';
 import '../HomeAdmin/HomeAdmin.css';
@@ -31,13 +31,16 @@ export default function Home() {
   const armariosPorPagina = 30;
 
   useEffect(() => {
-    if (!schoolCode) {
-      setErro("Código da instituição não identificado na URL.");
-      setLoading(false);
-      return;
-    }
-
     const carregarDados = async () => {
+      // A guarda vive DENTRO da funcao assincrona: no corpo do efeito ela
+      // atualizaria estado de forma sincrona na montagem, provocando uma
+      // renderizacao em cascata.
+      if (!schoolCode) {
+        setErro("Código da instituição não identificado na URL.");
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setErro(null);
@@ -61,7 +64,7 @@ export default function Home() {
         const alunoId = usuarioLogado.id;
         // lockers.usuario_id é a coluna real do vínculo aluno-armário.
         setArmariosDoAluno(dados.filter((item) => item.usuario_id === alunoId).length);
-      } catch (err) {
+      } catch {
         setErro("Não foi possível carregar os armários.");
       } finally {
         setLoading(false);

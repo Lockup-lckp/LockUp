@@ -23,7 +23,11 @@ export const authService = {
 
       return data;
     } catch (error) {
-      throw new Error(error.message || 'Erro de conexão com o servidor.');
+      // `cause` preserva o erro original. Sem ela, uma falha de rede virava
+      // apenas "Erro de conexão" e o motivo real (DNS, CORS, TLS) sumia — o que
+      // torna impossível distinguir, no console, servidor fora do ar de
+      // navegador bloqueando a chamada.
+      throw new Error(error.message || 'Erro de conexão com o servidor.', { cause: error });
     }
   },
 
@@ -46,7 +50,11 @@ export const authService = {
 
       return data;
     } catch (error) {
-      throw new Error(error.message || 'Erro de conexão com o servidor.');
+      // `cause` preserva o erro original. Sem ela, uma falha de rede virava
+      // apenas "Erro de conexão" e o motivo real (DNS, CORS, TLS) sumia — o que
+      // torna impossível distinguir, no console, servidor fora do ar de
+      // navegador bloqueando a chamada.
+      throw new Error(error.message || 'Erro de conexão com o servidor.', { cause: error });
     }
   }
 };

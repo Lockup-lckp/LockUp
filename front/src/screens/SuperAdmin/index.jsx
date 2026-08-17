@@ -232,7 +232,6 @@ function Painel({ usuario, onSair }) {
   const [valorArmarioEdit, setValorArmarioEdit] = useState('');
   const [gatewayIdEdit, setGatewayIdEdit] = useState('');
   const [gatewayEdit, setGatewayEdit] = useState('mercadopago');
-  const [pagbankTokenEdit, setPagbankTokenEdit] = useState('');
   // Ambiente do gateway. Chamava-se pagbank_ambiente quando havia um gateway
   // so; a coluna generica e `gateway_ambiente`, que e a que os adaptadores leem.
   const [ambienteEdit, setAmbienteEdit] = useState('producao');
@@ -289,9 +288,13 @@ function Painel({ usuario, onSair }) {
   };
 
   useEffect(() => {
-    carregar();
-    carregarEscolas();
-    carregarLeads();
+    // As tres cargas sao independentes e disparam juntas, dentro de uma funcao
+    // assincrona: no corpo do efeito elas atualizariam estado de forma sincrona
+    // na montagem, provocando renderizacao em cascata.
+    const carregarTudo = async () => {
+      await Promise.allSettled([carregar(), carregarEscolas(), carregarLeads()]);
+    };
+    carregarTudo();
   }, []);
 
   // Instituições filtradas pela busca + fatiadas em páginas de 20 (evita renderizar
@@ -373,9 +376,6 @@ function Painel({ usuario, onSair }) {
     setAmbienteEdit(escola.gateway_ambiente || escola.pagbank_ambiente || 'producao');
     setDiagnostico(null);
     setTipoMatriculaEdit(escola.tipo_matricula || 'rm');
-    // Nunca vem preenchido: a API só informa se EXISTE credencial
-    // (pagbank_configurado), jamais o valor. Digitar aqui substitui a atual.
-    setPagbankTokenEdit('');
     setErroEdicao('');
   };
 
@@ -394,23 +394,16 @@ function Painel({ usuario, onSair }) {
         gateway_recipient_id: gatewayIdEdit.trim() || null,
         gateway: gatewayEdit,
         gateway_ambiente: ambienteEdit,
-        ...(gatewayEdit === 'pagbank' ? { pagbank_ambiente: ambienteEdit } : {}),
         tipo_matricula: tipoMatriculaEdit
       };
-      // Só envia o token quando o campo foi preenchido. Campo vazio mantém a
-      // credencial atual — senão, abrir e salvar o modal apagaria a chave da
-      // escola sem ninguém perceber.
-      // Só envia os campos preenchidos: em branco significa manter a
-      // credencial atual, e mandar vazio a APAGARIA.
+      // Só envia os campos de credencial preenchidos: em branco significa
+      // manter a credencial atual, e mandar vazio a APAGARIA. Vale para
+      // qualquer gateway — o PagBank é só o campo `token` aqui dentro.
       const preenchidas = Object.fromEntries(
         Object.entries(credenciaisEdit).filter(([, v]) => String(v || '').trim())
       );
       if (Object.keys(preenchidas).length) {
         payload.credenciais_gateway = preenchidas;
-      }
-
-      if (pagbankTokenEdit.trim()) {
-        payload.pagbank_token = pagbankTokenEdit.trim();
       }
 
       await escolaService.atualizarConfiguracao(escolaEditando.id, payload);
@@ -819,11 +812,16 @@ function Painel({ usuario, onSair }) {
                     onChange={(e) => setGatewayEdit(e.target.value)}
                     className="w-full bg-[var(--bg-color)] border border-white/10 rounded-md px-3 py-2 text-white focus:outline-none focus:border-[var(--primary-color)]"
                   >
-                    {catalogo.gateways.map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {g.nome}{g.legado ? ' (legado)' : ''}{g.implementado ? '' : ' — sem integração'}
-                      </option>
-                    ))}
+                    {catalogo.gateways
+                      // Esconde os pausados (BB), que o backend recusa gravar.
+                      // A escola que JÁ estiver num gateway pausado continua
+                      // aparecendo, para não sumir a opção atual dela do seletor.
+                      .filter((g) => !g.pausado || g.id === escolaEditando.gateway)
+                      .map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.nome}{g.legado ? ' (legado)' : ''}{g.pausado ? ' (pausado)' : ''}{g.implementado ? '' : ' — sem integração'}
+                        </option>
+                      ))}
                   </select>
                 </div>
 
@@ -942,37 +940,11 @@ function Painel({ usuario, onSair }) {
                   </div>
                 )}
 
-                {/* Campo legado do PagBank. Só aparece no PagBank: antes ele
-                    saía para todo gateway que não fosse Mercado Pago, então uma
-                    escola no Banco do Brasil via um campo "Token do PagBank"
-                    logo abaixo dos seis campos do BB. */}
-                {gatewayEdit === 'pagbank' && (
-                  <>
-
-                    <div>
-                      <label className="block text-sm text-gray-300 mb-1">
-                        Token do PagBank da escola
-                        {escolaEditando.pagbank_configurado && (
-                          <span className="ml-2 text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                            já configurado
-                          </span>
-                        )}
-                      </label>
-                      <input
-                        type="password"
-                        autoComplete="new-password"
-                        value={pagbankTokenEdit}
-                        onChange={(e) => setPagbankTokenEdit(e.target.value)}
-                        placeholder={escolaEditando.pagbank_configurado ? 'Deixe em branco para manter o atual' : 'Cole aqui o token da conta da escola'}
-                        className="w-full bg-[var(--bg-color)] border border-white/10 rounded-md px-3 py-2 text-white focus:outline-none focus:border-[var(--primary-color)]"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Guardado cifrado no banco e nunca devolvido pela API — nem para você.
-                        O dinheiro cai direto na conta da instituição.
-                      </p>
-                    </div>
-                  </>
-                )}
+                {/* O token do PagBank é o campo `token` do catálogo, renderizado
+                    pelo bloco genérico de credenciais acima. O input legado que
+                    existia aqui mostrava um SEGUNDO campo de token só para o
+                    PagBank — quem configurava não sabia qual preencher. Removido:
+                    agora há um único campo, "Token da conta PagBank". */}
               </div>
 
               <div className="flex justify-end gap-2 mt-6">
