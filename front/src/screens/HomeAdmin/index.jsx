@@ -20,13 +20,16 @@ export default function HomeAdmin() {
   const armariosPorPagina = 30;
 
   useEffect(() => {
-    if (!schoolCode) {
-      setErro("Código da instituição não identificado na URL.");
-      setLoading(false);
-      return;
-    }
-
     const carregarDados = async () => {
+      // A guarda vive DENTRO da funcao assincrona: no corpo do efeito ela
+      // atualizaria estado de forma sincrona na montagem, provocando uma
+      // renderizacao em cascata.
+      if (!schoolCode) {
+        setErro("Código da instituição não identificado na URL.");
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setErro(null);
@@ -39,7 +42,7 @@ export default function HomeAdmin() {
         if (listaCorredores.length > 0) {
           setCorredorAtivo(listaCorredores[0]);
         }
-      } catch (err) {
+      } catch {
         setErro("Não foi possível carregar os armários.");
       } finally {
         setLoading(false);

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { authService } from '../../services/authService';
-import { useEscola } from '../../theme/EscolaContext.jsx';
+import { useEscola } from '../../theme/contextoEscola.js';
 import './Login.css'; // Reaproveita perfeitamente os estilos do login
 
 export default function AlterarSenha() {
