@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import { MercadoPagoConfig, Payment } from 'mercadopago';
 import supabase from '../config/database.js';
 import { enviarConfirmacaoLocacao, emailHabilitado } from '../servicos/email.js';
-import { responderErro } from '../utils/erros.js';
+import { responderErro, ErroDeNegocio } from '../utils/erros.js';
 import {
     criarCobrancaPagBank,
     validarWebhookPagBank,
@@ -56,21 +56,34 @@ const validarAssinaturaWebhook = (req) => {
     }
 };
 
-// Inicializa a SDK do Mercado Pago com o Access Token Master da plataforma lckp
-// Sem fallback de propósito. Com um valor literal aqui, esquecer a variável no
-// deploy não quebrava nada: o backend subia normalmente e só falhava na hora de
-// cobrar, com um erro incompreensível para o aluno e para quem fosse investigar.
-// Ausente, é melhor derrubar na partida — quem sobe o serviço vê na hora.
-if (!process.env.MP_ACCESS_TOKEN) {
-    throw new Error(
-        'MP_ACCESS_TOKEN não configurado. O backend não sobe sem a credencial do gateway.'
-    );
-}
+// SDK do Mercado Pago, criada sob demanda.
+//
+// O Mercado Pago deixou de ser o único gateway: as ETECs recebem pelo Banco do
+// Brasil, com credencial da própria conta. Derrubar o processo na partida por
+// falta de MP_ACCESS_TOKEN obrigaria a manter uma credencial do Mercado Pago
+// viva só para o serviço iniciar, mesmo sem nenhuma escola usando.
+//
+// A checagem continua existindo — apenas mudou de lugar. Ela agora acontece
+// quando alguém de fato tenta cobrar pelo Mercado Pago, que é o momento em que
+// a ausência importa. O motivo original da trava (subir sem credencial e só
+// descobrir na hora de cobrar, com erro incompreensível) continua atendido: a
+// mensagem abaixo diz exatamente o que falta.
+let paymentClient = null;
 
-const client = new MercadoPagoConfig({
-    accessToken: process.env.MP_ACCESS_TOKEN
-});
-const paymentClient = new Payment(client);
+const obterClienteMercadoPago = () => {
+    if (!process.env.MP_ACCESS_TOKEN) {
+        throw new ErroDeNegocio(
+            'Esta instituição está configurada no Mercado Pago, mas o servidor não tem a credencial (MP_ACCESS_TOKEN). Fale com o suporte do LCKP.',
+            503
+        );
+    }
+    if (!paymentClient) {
+        paymentClient = new Payment(new MercadoPagoConfig({
+            accessToken: process.env.MP_ACCESS_TOKEN
+        }));
+    }
+    return paymentClient;
+};
 
 // Prazo para o pagamento chegar. Passado isso a locação vira 'expirado' e não
 // pode mais ser aprovada — impede o caso do aluno pagar um QR antigo horas
@@ -186,6 +199,39 @@ const encerrarCiclosVencidos = async () => {
     } catch (err) {
         // Não pode derrubar um checkout legítimo.
         console.error('[LCKP] Falha ao encerrar ciclos vencidos:', err.message);
+    }
+};
+
+// Locação expirada NUNCA volta a ser aprovada.
+//
+// Depois de 30 minutos sem pagamento a locação vira 'expirado' e o armário
+// volta à prateleira — outro aluno pode tê-lo levado desde então. Aprovar a
+// locação antiga nesse ponto dispara a trigger que vincula o armário e tira o
+// armário de quem pagou dentro do prazo.
+//
+// Os três gateways recebem uma data de validade junto da cobrança, então o
+// pagamento tardio deveria ser recusado pelo próprio banco. Isto aqui é a
+// segunda tranca: quando o dinheiro entra mesmo assim, é melhor a locação
+// ficar parada e alguém resolver na mão do que o armário trocar de dono
+// sozinho.
+const naoMexerNoExpirado = (consulta) => consulta.neq('status_pagamento', 'expirado');
+
+// Dinheiro que entrou numa locação já vencida. Não há decisão automática certa
+// aqui — devolver ou honrar depende de o armário ainda estar livre —, então o
+// caminho é registrar alto e deixar para uma pessoa.
+// Recebe a consulta já montada (com select e filtros) porque o supabase-js
+// exige o select ANTES dos filtros — montá-la aqui obrigaria a passar os
+// critérios de cada gateway, que são diferentes entre si.
+const alertarPagamentoDeExpirada = async (consulta) => {
+    try {
+        const { data } = await consulta.maybeSingle();
+        if (!data) return; // Não era expirada: só notificação repetida.
+        console.error(
+            `[LCKP ATENÇÃO] Pagamento aprovado de locação EXPIRADA — transação ${data.transaction_id}, ` +
+            `armário ${data.locker_id}, R$ ${data.valor}. O armário NÃO foi liberado. Requer decisão manual.`
+        );
+    } catch (err) {
+        console.error('[LCKP] Falha ao apurar pagamento de locação expirada:', err.message);
     }
 };
 
@@ -490,7 +536,7 @@ export const iniciarCheckout = async (req, res) => {
         }
 
         // 6. Envia a cobrança em tempo real para o gateway do Mercado Pago
-        const mpResponse = await paymentClient.create(paymentData);
+        const mpResponse = await obterClienteMercadoPago().create(paymentData);
 
         // 7. Registra o histórico da locação na tabela 'rentals' vinculando o ID do gateway e salvando as chaves estrangeiras
         const statusTraduzido = traduzirStatusMercadoPago(mpResponse.status);
@@ -564,7 +610,7 @@ export const webhookPagamento = async (req, res) => {
 
             let mpPayment;
             try {
-                mpPayment = await paymentClient.get({ id: paymentId });
+                mpPayment = await obterClienteMercadoPago().get({ id: paymentId });
             } catch (erroConsulta) {
                 // Pagamento inexistente (ex.: o "Simular notificação" do painel,
                 // que manda um id fictício). Devolver 500 aqui faria o Mercado
@@ -582,15 +628,26 @@ export const webhookPagamento = async (req, res) => {
 
             const statusTraduzido = traduzirStatusMercadoPago(mpPayment.status);
 
-            const { data: aluguelAtualizado, error } = await supabase
-                .from('rentals')
-                .update({ status_pagamento: statusTraduzido })
-                .eq('gateway_id', String(paymentId))
-                .neq('status_pagamento', statusTraduzido)
+            const { data: aluguelAtualizado, error } = await naoMexerNoExpirado(
+                supabase
+                    .from('rentals')
+                    .update({ status_pagamento: statusTraduzido })
+                    .eq('gateway_id', String(paymentId))
+                    .neq('status_pagamento', statusTraduzido)
+            )
                 .select()
                 .maybeSingle();
 
             if (error) throw error;
+
+            if (!aluguelAtualizado && statusTraduzido === 'aprovado') {
+                await alertarPagamentoDeExpirada(
+                    supabase.from('rentals')
+                        .select('transaction_id, locker_id, valor')
+                        .eq('gateway_id', String(paymentId))
+                        .eq('status_pagamento', 'expirado')
+                );
+            }
 
             if (aluguelAtualizado && statusTraduzido === 'aprovado') {
                 console.log(`[LCKP WEBHOOK] Sucesso! Armário ${aluguelAtualizado.locker_id} liberado para uso.`);
@@ -616,7 +673,9 @@ export const obterConfigPagamento = async (req, res) => {
     try {
         const { data: escola, error } = await supabase
             .from('schools')
-            .select('id, codigo, gateway, pagbank_token_cifrado, pagbank_ambiente')
+            // As duas gerações de colunas: o painel grava em
+            // credenciais_gateway_cifrado, escolas antigas têm pagbank_token_cifrado.
+            .select('id, codigo, gateway, pagbank_token_cifrado, pagbank_ambiente, credenciais_gateway_cifrado, gateway_ambiente')
             .eq('codigo', schoolCode)
             .maybeSingle();
 
@@ -630,21 +689,21 @@ export const obterConfigPagamento = async (req, res) => {
             return res.json({ gateway });
         }
 
-        if (!escola.pagbank_token_cifrado) {
-            return res.status(400).json({
-                error: 'A credencial do PagBank desta instituição ainda não foi configurada.'
-            });
-        }
-
+        // Checar a coluna antiga aqui recusava escolas configuradas pelo painel,
+        // que grava no formato genérico. Quem sabe onde a credencial mora é o
+        // adaptador — e ele lança ErroDeNegocio com a frase certa se faltar.
         const chavePublica = await obterChavePublicaPagBank(escola);
         return res.json({
             gateway,
-            ambiente: escola.pagbank_ambiente || 'sandbox',
+            ambiente: escola.gateway_ambiente || escola.pagbank_ambiente || 'sandbox',
             chave_publica: chavePublica
         });
     } catch (err) {
-        console.error('[LCKP ERROR] Falha ao obter a configuração de pagamento:', err.message);
-        return res.status(500).json({ error: 'Não foi possível preparar o pagamento.' });
+        // responderErro deixa passar a frase do ErroDeNegocio ("a credencial
+        // desta instituição não está configurada"), que é acionável para quem
+        // administra, e engole o resto atrás de uma mensagem genérica.
+        return responderErro(res, err, 'obter configuração de pagamento',
+            'Não foi possível preparar o pagamento.');
     }
 };
 
@@ -661,7 +720,7 @@ export const webhookPagBank = async (req, res) => {
     try {
         const { data: escola, error: erroEscola } = await supabase
             .from('schools')
-            .select('id, codigo, pagbank_token_cifrado, pagbank_ambiente')
+            .select('id, codigo, pagbank_token_cifrado, pagbank_ambiente, credenciais_gateway_cifrado, gateway_ambiente')
             .eq('codigo', schoolCode)
             .maybeSingle();
 
@@ -689,18 +748,34 @@ export const webhookPagBank = async (req, res) => {
 
         // Casamos pelo reference_id (nosso transaction_id) quando disponível;
         // o id do pedido serve de reserva.
-        let consulta = supabase
-            .from('rentals')
-            .update({ status_pagamento: evento.statusTraduzido })
-            .neq('status_pagamento', evento.statusTraduzido)
-            .eq('school_id', escola.id); // trava multi-tenant
+        let consulta = naoMexerNoExpirado(
+            supabase
+                .from('rentals')
+                .update({ status_pagamento: evento.statusTraduzido })
+                .neq('status_pagamento', evento.statusTraduzido)
+                .eq('school_id', escola.id) // trava multi-tenant
+        );
 
-        consulta = evento.referenciaInterna
-            ? consulta.eq('transaction_id', evento.referenciaInterna)
-            : consulta.eq('gateway_id', evento.gatewayId);
+        // Casa pelo transaction_id quando ele veio; o id do pedido é reserva.
+        const porReferencia = (q) => evento.referenciaInterna
+            ? q.eq('transaction_id', evento.referenciaInterna)
+            : q.eq('gateway_id', evento.gatewayId);
+
+        consulta = porReferencia(consulta);
 
         const { data: aluguelAtualizado, error } = await consulta.select().maybeSingle();
         if (error) throw error;
+
+        if (!aluguelAtualizado && evento.statusTraduzido === 'aprovado') {
+            await alertarPagamentoDeExpirada(
+                porReferencia(
+                    supabase.from('rentals')
+                        .select('transaction_id, locker_id, valor')
+                        .eq('school_id', escola.id)
+                        .eq('status_pagamento', 'expirado')
+                )
+            );
+        }
 
         if (aluguelAtualizado && evento.statusTraduzido === 'aprovado') {
             console.log(`[LCKP PAGBANK] Armário ${aluguelAtualizado.locker_id} liberado para uso.`);
@@ -769,17 +844,31 @@ export const webhookBancoDoBrasil = async (req, res) => {
             // Só agora, com o status vindo do banco, a locação é atualizada.
             // O eq('school_id') é a trava multi-tenant: um txid de uma escola
             // não pode liberar armário de outra.
-            const { data: aluguelAtualizado, error } = await supabase
-                .from('rentals')
-                .update({ status_pagamento: 'aprovado' })
-                .eq('gateway_id', txid)
-                .eq('school_id', escola.id)
-                .neq('status_pagamento', 'aprovado')
+            const { data: aluguelAtualizado, error } = await naoMexerNoExpirado(
+                supabase
+                    .from('rentals')
+                    .update({ status_pagamento: 'aprovado' })
+                    .eq('gateway_id', txid)
+                    .eq('school_id', escola.id)
+                    .neq('status_pagamento', 'aprovado')
+            )
                 .select()
                 .maybeSingle();
 
             if (error) throw error;
-            if (!aluguelAtualizado) continue; // já processada
+
+            if (!aluguelAtualizado) {
+                // Ou já foi processada (notificação repetida), ou expirou antes
+                // do dinheiro chegar. O segundo caso precisa de gente.
+                await alertarPagamentoDeExpirada(
+                    supabase.from('rentals')
+                        .select('transaction_id, locker_id, valor')
+                        .eq('gateway_id', txid)
+                        .eq('school_id', escola.id)
+                        .eq('status_pagamento', 'expirado')
+                );
+                continue;
+            }
 
             // Pagamento a menor: o banco aceita, mas a locação não está paga.
             // Registrar em log alto porque exige decisão humana — o armário já

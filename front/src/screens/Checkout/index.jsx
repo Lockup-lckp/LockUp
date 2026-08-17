@@ -120,12 +120,17 @@ export default function Checkout() {
 
       setConfigPagamento(config);
 
+      // Só o SDK de quem vai cobrar. O `else` genérico que existia aqui
+      // carregava o script do Mercado Pago em escola do Banco do Brasil —
+      // recurso de terceiro baixado e executado sem uso nenhum, e um dado a
+      // mais saindo do navegador do aluno. O BB é Pix puro: o QR é desenhado
+      // por nós e não há SDK a carregar.
       if (config.gateway === 'pagbank') {
         carregarScript(
           'https://assets.pagseguro.com.br/checkout-sdk-js/rc/dist/browser/pagseguro.min.js',
           () => window.PagSeguro
         );
-      } else {
+      } else if (config.gateway === 'mercadopago') {
         carregarScript('https://sdk.mercadopago.com/js/v2', () => window.MercadoPago);
       }
     })();

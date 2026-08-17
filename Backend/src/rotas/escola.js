@@ -1,4 +1,4 @@
-import express, { Router } from 'express';
+import { Router } from 'express';
 import {
   listarEscolas,
   buscarEscolaPorId,
@@ -38,16 +38,10 @@ router.get(
 // O controle fino de quem pode editar o quê fica no controlador.
 router.patch('/:id', verificarToken, atualizarEscola);
 
-// Upload da logo. O parser JSON maior fica SÓ aqui: uma imagem de 2 MB vira
-// ~2,7 MB em base64, e o limite global de 100 KB rejeitaria. Subir o limite
-// global só por causa desta rota abriria todas as outras para corpos enormes.
-router.post(
-  '/:id/logo',
-  express.json({ limit: '5mb' }),
-  verificarToken,
-  exigirAdmin,
-  enviarLogo
-);
+// Upload da logo. O teto maior de corpo é aplicado no app.js, que escolhe o
+// parser pelo caminho — montá-lo aqui não funcionava: o parser global já tinha
+// processado (e rejeitado) a requisição antes de ela chegar nesta rota.
+router.post('/:id/logo', verificarToken, exigirAdmin, enviarLogo);
 
 // SUPERADMIN: operação do gateway da escola.
 // Testar autentica de verdade no banco; registrar cadastra a URL de notificação

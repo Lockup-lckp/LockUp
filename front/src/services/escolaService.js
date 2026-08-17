@@ -14,6 +14,30 @@ export const escolaService = {
     return resultado;
   },
 
+  // Autentica de verdade no banco da escola. Serve para o erro de credencial
+  // aparecer AQUI, na hora de configurar, e não no checkout do primeiro aluno.
+  testarCredencialGateway: async (id) => {
+    const response = await fetch(`${API_URL}/${id}/gateway/testar`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    const resultado = await response.json();
+    if (!response.ok) throw new Error(resultado.error || 'Não foi possível testar a credencial.');
+    return resultado;
+  },
+
+  // Cadastra no banco a URL que recebe as notificações de pagamento. Passo
+  // obrigatório e fácil de esquecer: sem ele o aluno paga e o armário não abre.
+  registrarWebhookGateway: async (id) => {
+    const response = await fetch(`${API_URL}/${id}/gateway/webhook`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    const resultado = await response.json();
+    if (!response.ok) throw new Error(resultado.error || 'Não foi possível registrar o webhook.');
+    return resultado;
+  },
+
   buscarPorCodigo: async (codigo) => {
     try {
       const response = await fetch(`${API_URL}/codigo/${codigo}`, {
