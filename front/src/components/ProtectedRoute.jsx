@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
-import { useEscola } from '../theme/EscolaContext.jsx';
+import { useEscola } from '../theme/contextoEscola.js';
 
 // Guarda de rota das telas internas.
 //

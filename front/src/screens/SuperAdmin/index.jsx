@@ -288,9 +288,13 @@ function Painel({ usuario, onSair }) {
   };
 
   useEffect(() => {
-    carregar();
-    carregarEscolas();
-    carregarLeads();
+    // As tres cargas sao independentes e disparam juntas, dentro de uma funcao
+    // assincrona: no corpo do efeito elas atualizariam estado de forma sincrona
+    // na montagem, provocando renderizacao em cascata.
+    const carregarTudo = async () => {
+      await Promise.allSettled([carregar(), carregarEscolas(), carregarLeads()]);
+    };
+    carregarTudo();
   }, []);
 
   // Instituições filtradas pela busca + fatiadas em páginas de 20 (evita renderizar

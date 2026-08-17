@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { armariosService } from '../../services/armariosServices';
-import { useEscola } from '../../theme/EscolaContext.jsx';
+import { useEscola } from '../../theme/contextoEscola.js';
 import { nomearCorredor, rotuloCorredor } from '../../utils/rotuloCorredor';
 import ModalTermos from '../../components/TermosDeUso.jsx';
 import './MeuArmario.css';

@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, Outlet } from 'react-router-dom';
 import { escolaService } from '../services/escolaService';
+import { EscolaContext } from './contextoEscola.js';
 
 // Contexto que carrega a escola da URL uma única vez e a compartilha com todas as
 // telas (login, home, admin, checkout...). Antes, cada tela fazia seu próprio fetch.
@@ -8,15 +9,8 @@ import { escolaService } from '../services/escolaService';
 // Não há tema por escola: a estilização do sistema é fixa na marca LCKP
 // (ver theme/marca.js e os tokens de :root em index.css). O que a instituição
 // personaliza é a(s) logo(s) e onde elas aparecem.
-const EscolaContext = createContext(null);
-
-export const useEscola = () => {
-  const ctx = useContext(EscolaContext);
-  if (!ctx) {
-    throw new Error('useEscola precisa ser usado dentro de <EscolaProvider>.');
-  }
-  return ctx;
-};
+// O contexto e o hook `useEscola` vivem em ./contextoEscola.js — ver o
+// motivo la (Fast Refresh).
 
 export function EscolaProvider({ children }) {
   const { schoolCode } = useParams();
@@ -44,7 +38,8 @@ export function EscolaProvider({ children }) {
   }, [schoolCode]);
 
   useEffect(() => {
-    carregar();
+    const buscar = async () => { await carregar(); };
+    buscar();
   }, [carregar]);
 
   // Atualiza a escola em memória (ex.: após salvar a personalização, a logo nova

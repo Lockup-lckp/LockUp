@@ -5,7 +5,7 @@ import { armariosService } from '../../../services/armariosServices';
 import { usuarioService } from '../../../services/usuariosServices';
 import { nomearCorredor, rotuloCorredor, rotuloCorredorPlural } from '../../../utils/rotuloCorredor';
 import ModalTrocarArmario from '../../../components/ModalTrocarArmario.jsx';
-import { useEscola } from '../../../theme/EscolaContext.jsx';
+import { useEscola } from '../../../theme/contextoEscola.js';
 
 const STATUS_LABEL = {
   disponivel: 'Disponível',
@@ -73,15 +73,9 @@ export default function GerenciamentoArmarios() {
   // renderização em cascata.
   const escolaNaoIdentificada = !escolaCarregando && !escola?.id;
 
-  useEffect(() => {
-    if (escolaCarregando || !escola?.id) return;
-    carregarDados();
-  }, [escola?.id, escolaCarregando]);
-
-  useEffect(() => {
-    setPaginaAtual(1);
-  }, [termoBusca]);
-
+  // Declarada ANTES do efeito que a usa. Chamar uma const declarada mais
+  // abaixo funciona por acidente — o efeito so roda depois do render, quando a
+  // linha ja executou — e quebra no dia em que alguem mover o codigo.
   const carregarDados = async () => {
     try {
       setCarregando(true);
@@ -121,13 +115,26 @@ export default function GerenciamentoArmarios() {
     }
   };
 
+  useEffect(() => {
+    if (escolaCarregando || !escola?.id) return;
+    // A busca fica numa funcao assincrona declarada aqui dentro, que e o
+    // formato recomendado para efeito que carrega dado: as atualizacoes de
+    // estado saem do caminho sincrono do efeito e nao disparam renderizacao
+    // em cascata na montagem.
+    const buscar = async () => { await carregarDados(); };
+    buscar();
+    // carregarDados e recriada a cada render e nao entra nas dependencias de
+    // proposito: incluir faria a busca rodar sem parar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [escola?.id, escolaCarregando]);
+
   const handleAlterarStatus = async (id, statusAtual) => {
     if (statusAtual === 'alugado' || statusAtual === 'funcionario') return;
     const novoStatus = statusAtual === 'disponivel' ? 'manutencao' : 'disponivel';
     try {
       await armariosService.atualizarStatus(id, novoStatus);
       setArmarios(prev => prev.map(a => a.id === id ? { ...a, status: novoStatus } : a));
-    } catch (err) {
+    } catch {
       alert('Não foi possível alterar o status do armário.');
     }
   };
@@ -204,7 +211,7 @@ export default function GerenciamentoArmarios() {
 
       setModalAberto(false);
       setArmarioSelecionado(null);
-    } catch (err) {
+    } catch {
       alert('Erro ao vincular o usuário ao armário.');
     }
   };
@@ -258,7 +265,7 @@ export default function GerenciamentoArmarios() {
     try {
       await armariosService.excluir(id);
       setArmarios(prev => prev.filter(a => a.id !== id));
-    } catch (err) {
+    } catch {
       alert('Erro ao excluir the armário.');
     }
   };
