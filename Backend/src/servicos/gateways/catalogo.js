@@ -145,6 +145,17 @@ export const validarConfiguracaoGateway = ({ gateway }) => {
         };
     }
 
+    // Gateway pausado tem código pronto, mas não pode receber escola nova: é o
+    // caso do Banco do Brasil, travado na assinatura do termo. Sem esta recusa,
+    // alguém poderia colocar uma escola nele pelo painel e o aluno só descobrir
+    // no checkout que não há como pagar.
+    if (descritor.pausado) {
+        return {
+            valido: false,
+            erro: `A integração com ${descritor.nome} está pausada. ${descritor.observacao}`
+        };
+    }
+
     return { valido: true };
 };
 

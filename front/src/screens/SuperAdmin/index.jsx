@@ -812,11 +812,16 @@ function Painel({ usuario, onSair }) {
                     onChange={(e) => setGatewayEdit(e.target.value)}
                     className="w-full bg-[var(--bg-color)] border border-white/10 rounded-md px-3 py-2 text-white focus:outline-none focus:border-[var(--primary-color)]"
                   >
-                    {catalogo.gateways.map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {g.nome}{g.legado ? ' (legado)' : ''}{g.implementado ? '' : ' — sem integração'}
-                      </option>
-                    ))}
+                    {catalogo.gateways
+                      // Esconde os pausados (BB), que o backend recusa gravar.
+                      // A escola que JÁ estiver num gateway pausado continua
+                      // aparecendo, para não sumir a opção atual dela do seletor.
+                      .filter((g) => !g.pausado || g.id === escolaEditando.gateway)
+                      .map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.nome}{g.legado ? ' (legado)' : ''}{g.pausado ? ' (pausado)' : ''}{g.implementado ? '' : ' — sem integração'}
+                        </option>
+                      ))}
                   </select>
                 </div>
 

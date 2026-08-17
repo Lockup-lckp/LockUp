@@ -519,6 +519,10 @@ export const listarCatalogoGateways = async (req, res) => {
       // O painel usa para avisar que o gateway ainda não passou por transação
       // real, em vez de deixar quem configura descobrir sozinho.
       provado: g.provado !== false,
+      // Gateway pausado (BB): o painel esconde da lista para ninguém colocar
+      // escola nele — o backend também recusa gravar, mas ocultar evita a
+      // confusão de oferecer uma opção que não pode ser salva.
+      pausado: Boolean(g.pausado),
       formasPagamento: g.formasPagamento || null,
       observacao: g.observacao || null,
       campos: g.campos.map((c) => ({
