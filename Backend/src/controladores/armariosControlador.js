@@ -2,7 +2,7 @@ import supabase from '../config/database.js';
 // Resolve o schoolCode da URL para o school_id real. Vem do cache compartilhado:
 // era uma consulta ao banco por requisição, sempre devolvendo a mesma linha.
 import { obterIdEscolaPorCodigo } from '../servicos/cacheEscola.js';
-import { responderErro } from '../utils/erros.js';
+import { responderErro, ErroDeNegocio } from '../utils/erros.js';
 
 // LISTAR ARMÁRIOS FILTRADOS POR ESCOLA
 export const listarArmarios = async (req, res) => {
@@ -183,15 +183,79 @@ const anoLetivoDaEscola = (escola) => {
 //
 // O valor é o mesmo que a escola cobra (`schools.valor_armario`), porque é
 // isso que foi cobrado no balcão.
-const registrarLocacaoPresencial = async (armario, usuarioId) => {
-    const { data: escola } = await supabase
-        .from('schools')
-        .select('id, valor_armario, abertura_dia, abertura_mes, encerramento_dia, encerramento_mes')
-        .eq('id', armario.school_id)
-        .maybeSingle();
+// Campos da escola necessarios para precificar uma venda no balcao.
+const CAMPOS_PLANO_ESCOLA =
+    'id, valor_armario, valor_armario_semestral, permite_semestral, ' +
+    'abertura_dia, abertura_mes, encerramento_dia, encerramento_mes, ' +
+    'encerramento_semestral_dia, encerramento_semestral_mes';
 
-    if (!escola) return;
+// Preco e prazo da modalidade escolhida no balcao.
+//
+// Espelha o resolverModalidade do checkout de proposito: o aluno que paga no
+// caixa e o que paga pelo site precisam receber exatamente o mesmo prazo pelo
+// mesmo valor. Duas regras separadas divergem na primeira vez que a escola
+// mexer no calendario.
+//
+// Lanca ErroDeNegocio em vez de devolver um padrao silencioso: quem escolheu
+// semestral numa escola que so vende anual precisa saber disso, e nao levar um
+// ano inteiro pelo preco que apertou.
+const resolverPlanoPresencial = (escola, modalidadePedida) => {
+    const modalidade = modalidadePedida === 'semestral' ? 'semestral' : 'anual';
 
+    if (modalidade === 'semestral' && !escola.permite_semestral) {
+        throw new ErroDeNegocio(
+            'Esta instituição não oferece locação semestral. Ative a opção em Configurações antes de registrar.'
+        );
+    }
+
+    const valor = modalidade === 'semestral'
+        ? Number(escola.valor_armario_semestral)
+        : Number(escola.valor_armario);
+
+    if (!valor || valor <= 0) {
+        throw new ErroDeNegocio(
+            `O valor da locação ${modalidade} não está configurado para esta instituição.`
+        );
+    }
+
+    const dia = modalidade === 'semestral'
+        ? (escola.encerramento_semestral_dia ?? 6)
+        : (escola.encerramento_dia ?? 20);
+    const mes = modalidade === 'semestral'
+        ? (escola.encerramento_semestral_mes ?? 7)
+        : (escola.encerramento_mes ?? 12);
+
+    const anoLetivo = anoLetivoDaEscola(escola);
+    const validoAte = new Date(Date.UTC(anoLetivo, mes - 1, dia));
+
+    // Semestral registrado DEPOIS do fim do semestre nasceria com prazo
+    // vencido — e a rotina que encerra ciclos o fecharia na primeira varredura,
+    // devolvendo o armario e deixando o aluno sem nada. Recusar aqui e melhor
+    // do que registrar algo que o banco desfaz sozinho.
+    if (modalidade === 'semestral' && validoAte.getTime() < Date.now()) {
+        throw new ErroDeNegocio(
+            'O período semestral desta instituição já encerrou. Registre como anual ou ajuste a data em Configurações.'
+        );
+    }
+
+    return {
+        modalidade,
+        valor,
+        anoLetivo,
+        validoAte: validoAte.toISOString().slice(0, 10)
+    };
+};
+
+// Registra no extrato a locação paga na secretaria.
+//
+// Quando o aluno paga presencialmente — em dinheiro, ou porque o pagamento
+// online falhou — a secretaria vincula o armário pela tela de gerenciamento.
+// Até 2026-08-10 esse vínculo não gerava registro nenhum: o armário sumia do
+// extrato e o relatório anual saía MENOR que o faturamento real da escola.
+//
+// O `plano` chega pronto de quem chamou, já validado: assim um pedido
+// impossível é recusado ANTES de o armário mudar de dono.
+const registrarLocacaoPresencial = async (armario, usuarioId, plano) => {
     // Locação aprovada e ainda aberta para este armário e aluno? Então o
     // vínculo já está no extrato. Sem esta checagem, cada PATCH repetido
     // (trocar status, corrigir nome) criaria uma cobrança nova e inflaria o
@@ -212,20 +276,12 @@ const registrarLocacaoPresencial = async (armario, usuarioId) => {
         locker_id: armario.id,
         user_id: usuarioId,
         school_id: armario.school_id,
-        valor: escola.valor_armario,
+        valor: plano.valor,
         status_pagamento: 'aprovado',
         origem: 'presencial',
-        ano_letivo: anoLetivoDaEscola(escola),
-        // Venda no balcão entra como ANUAL: é o padrão do contrato, e a
-        // secretaria não informa modalidade no vínculo manual. Se a escola
-        // vender um semestre presencialmente, o admin ajusta depois — melhor
-        // registrar o prazo mais longo e corrigir do que deixar sem prazo.
-        modalidade: 'anual',
-        valido_ate: new Date(Date.UTC(
-            anoLetivoDaEscola(escola),
-            (escola.encerramento_mes ?? 12) - 1,
-            escola.encerramento_dia ?? 20
-        )).toISOString().slice(0, 10),
+        ano_letivo: plano.anoLetivo,
+        modalidade: plano.modalidade,
+        valido_ate: plano.validoAte,
         data_aluguel: new Date().toISOString()
     }]);
 
@@ -239,11 +295,47 @@ const registrarLocacaoPresencial = async (armario, usuarioId) => {
 
 export const atualizarArmario = async (req, res) => {
     const { id } = req.params;
-    const { status, usuarioId, usuarioNome } = req.body;
+    const { status, usuarioId, usuarioNome, modalidade } = req.body;
 
     try {
         const idParaBanco = usuarioId ? usuarioId : null;
         const nomeParaBanco = usuarioNome && usuarioNome.trim() !== '' ? usuarioNome : null;
+
+        // A modalidade e resolvida ANTES de mexer no armario.
+        //
+        // Se a secretaria pedir semestral numa escola que so vende anual, o
+        // pedido precisa ser recusado com o armario ainda livre. Validando
+        // depois do UPDATE, o aluno ficaria com o armario vinculado e sem
+        // cobranca no extrato — e ninguem perceberia ate o relatorio nao fechar.
+        let plano = null;
+        if (idParaBanco && status === 'alugado') {
+            let consultaArmario = supabase
+                .from('lockers')
+                .select('school_id')
+                .eq('id', id);
+
+            // Mesma trava multi-tenant do UPDATE abaixo: sem ela, um admin
+            // descobriria o school_id de outra escola por tentativa.
+            if (req.user.role !== 'superadmin') {
+                consultaArmario = consultaArmario.eq('school_id', req.user.school_id);
+            }
+
+            const { data: armarioAtual } = await consultaArmario.maybeSingle();
+            if (!armarioAtual) {
+                return res.status(404).json({ error: 'Armário não encontrado ou restrito a outra instituição.' });
+            }
+
+            const { data: escola } = await supabase
+                .from('schools')
+                .select(CAMPOS_PLANO_ESCOLA)
+                .eq('id', armarioAtual.school_id)
+                .maybeSingle();
+
+            // Escola sumida e caso impossivel na pratica, mas se acontecer o
+            // vinculo segue sem cobranca: entregar o armario e melhor do que
+            // travar o atendimento no balcao por um problema de cadastro.
+            if (escola) plano = resolverPlanoPresencial(escola, modalidade);
+        }
 
         let query = supabase
             .from('lockers')
@@ -270,7 +362,7 @@ export const atualizarArmario = async (req, res) => {
         // funcionário não: ele não é vendido, é cedido, e cobrá-lo no relatório
         // inflaria o faturamento da escola com dinheiro que nunca entrou.
         if (idParaBanco && data[0].status === 'alugado') {
-            await registrarLocacaoPresencial(data[0], idParaBanco);
+            if (plano) await registrarLocacaoPresencial(data[0], idParaBanco, plano);
         }
 
         const armarioAtualizado = {

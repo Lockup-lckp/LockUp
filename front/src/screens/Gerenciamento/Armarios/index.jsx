@@ -39,6 +39,9 @@ export default function GerenciamentoArmarios() {
   // Estados para o Modal de Vínculo
   const [modalAberto, setModalAberto] = useState(false);
   const [armarioSelecionado, setArmarioSelecionado] = useState(null);
+  // Modalidade da venda no balcão. Começa em 'anual' porque é o que a escola
+  // vende para a maioria; o semestral só aparece se a instituição o oferecer.
+  const [modalidadeVinculo, setModalidadeVinculo] = useState('anual');
 
   // Estados para o Modal de Atribuição a Funcionário (sem conta de usuário)
   const [modalFuncionarioAberto, setModalFuncionarioAberto] = useState(false);
@@ -201,7 +204,8 @@ export default function GerenciamentoArmarios() {
       await armariosService.atualizar(armarioSelecionado.id, {
         status: 'alugado',
         usuarioId,
-        usuarioNome
+        usuarioNome,
+        modalidade: modalidadeVinculo
       });
 
       setArmarios(prev => prev.map(a => 
@@ -212,8 +216,9 @@ export default function GerenciamentoArmarios() {
 
       setModalAberto(false);
       setArmarioSelecionado(null);
-    } catch {
-      alert('Erro ao vincular o usuário ao armário.');
+      setModalidadeVinculo('anual');
+    } catch (err) {
+      alert(err?.message || 'Erro ao vincular o usuário ao armário.');
     }
   };
 
@@ -607,7 +612,7 @@ export default function GerenciamentoArmarios() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => { setModalAberto(false); setArmarioSelecionado(null); }}
+                  onClick={() => { setModalAberto(false); setArmarioSelecionado(null); setModalidadeVinculo('anual'); }}
                   className="text-gray-400 hover:text-white transition-colors text-sm font-medium bg-transparent border-none cursor-pointer shrink-0"
                 >
                   ✕ Fechar
@@ -623,6 +628,60 @@ export default function GerenciamentoArmarios() {
                   className="w-full px-4 py-2.5 bg-[var(--bg-color)] border border-[#1f2635] rounded-xl text-sm text-white outline-none focus:border-[var(--primary-color)] transition-colors placeholder:text-gray-500"
                 />
               </div>
+
+              {/* Só aparece se a instituição oferecer as duas modalidades.
+                  Escola que vende só anual não precisa de uma escolha com uma
+                  opção — e o backend recusaria o semestral de qualquer forma. */}
+              {escola?.permite_semestral && (
+                <div className="mt-4">
+                  <p className="text-xs font-semibold text-gray-400 mb-2">Modalidade desta locação</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      {
+                        id: 'anual',
+                        titulo: 'Anual',
+                        valor: escola.valor_armario,
+                        dia: escola.encerramento_dia ?? 20,
+                        mes: escola.encerramento_mes ?? 12
+                      },
+                      {
+                        id: 'semestral',
+                        titulo: 'Semestral',
+                        valor: escola.valor_armario_semestral,
+                        dia: escola.encerramento_semestral_dia ?? 6,
+                        mes: escola.encerramento_semestral_mes ?? 7
+                      }
+                    ].map((opcao) => {
+                      const ativa = modalidadeVinculo === opcao.id;
+                      return (
+                        <button
+                          key={opcao.id}
+                          type="button"
+                          onClick={() => setModalidadeVinculo(opcao.id)}
+                          aria-pressed={ativa}
+                          className={`flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-xl border text-left transition-colors ${
+                            ativa
+                              ? 'bg-[var(--primary-color)]/15 border-[var(--primary-color)] text-white'
+                              : 'bg-[var(--bg-color)] border-[#1f2635] text-gray-300 hover:border-[#2b3550]'
+                          }`}
+                        >
+                          <span className="text-sm font-bold">{opcao.titulo}</span>
+                          {/* Valor e prazo na tela: quem está no balcão precisa
+                              saber o que está registrando sem abrir Configurações. */}
+                          <span className="text-xs text-[var(--primary-color)] font-semibold">
+                            {Number(opcao.valor) > 0
+                              ? Number(opcao.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                              : 'valor não configurado'}
+                          </span>
+                          <span className="text-[11px] text-gray-500">
+                            até {String(opcao.dia).padStart(2, '0')}/{String(opcao.mes).padStart(2, '0')}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="p-3 sm:p-4 overflow-y-auto flex-1 divide-y divide-[#1f2635]/60">
@@ -658,7 +717,7 @@ export default function GerenciamentoArmarios() {
                 Alunos elegíveis listados: {usuariosFiltradosModal.length}
               </span>
               <button
-                onClick={() => { setModalAberto(false); setArmarioSelecionado(null); }}
+                onClick={() => { setModalAberto(false); setArmarioSelecionado(null); setModalidadeVinculo('anual'); }}
                 className="w-full sm:w-auto px-5 py-2 bg-[#1a2333] hover:bg-[#253247] border border-[#1f2635] rounded-xl text-xs font-semibold text-gray-300 transition-colors"
               >
                 Cancelar
