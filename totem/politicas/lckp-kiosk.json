@@ -1,0 +1,23 @@
+{
+  "_comentario": "Política gerenciada do navegador para o totem LCKP. O endurecer-totem.sh instala isto nos caminhos de cada navegador (/etc/chromium/policies/managed/ etc.). Troque lckp.com.br pelo domínio da sua escola se for outro.",
+
+  "URLBlocklist": ["*"],
+  "URLAllowlist": ["lckp.com.br", "https://lckp.com.br"],
+
+  "PasswordManagerEnabled": false,
+  "AutofillAddressEnabled": false,
+  "AutofillCreditCardEnabled": false,
+
+  "DeveloperToolsAvailability": 2,
+  "IncognitoModeAvailability": 1,
+  "BrowserGuestModeEnabled": false,
+
+  "DownloadRestrictions": 3,
+  "PrintingEnabled": false,
+  "TranslateEnabled": false,
+  "BookmarkBarEnabled": false,
+
+  "DefaultPopupsSetting": 2,
+  "DefaultNotificationsSetting": 2,
+  "FullscreenAllowed": true
+}
