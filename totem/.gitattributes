@@ -1,0 +1,6 @@
+# Estes arquivos vão para um Linux. Forçar LF garante que o shebang e os
+# heredocs não quebrem por causa de CRLF, mesmo se alguém clonar no Windows.
+*.sh       text eol=lf
+*.desktop  text eol=lf
+*.json     text eol=lf
+*.md       text eol=lf
