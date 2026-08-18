@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { armariosService } from '../../services/armariosServices';
 import { useEscola } from '../../theme/contextoEscola.js';
+import Carregando from '../../components/Carregando.jsx';
 import ModalArmario from '../../components/ModalArmario.jsx';
 import { nomearCorredor, rotuloCorredor } from '../../utils/rotuloCorredor';
 import '../HomeAdmin/HomeAdmin.css';
@@ -137,7 +138,7 @@ export default function Home() {
     return `status-${item.status}`;
   };
 
-  if (loading) return <div className="loading-state">Carregando armários...</div>;
+  if (loading) return <Carregando tela rotulo="Carregando armários" />;
   if (erro) return <div className="error-state">{erro}</div>;
 
   return (

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { escolaService } from '../../services/escolaService';
 import { useEscola } from '../../theme/contextoEscola.js';
+import Carregando from '../../components/Carregando.jsx';
 import './Personalizacao.css';
 
 // A estilização do sistema é FIXA na marca LCKP — a escola não escolhe cores.
@@ -172,7 +173,7 @@ export default function Personalizacao() {
   }, [podeEditar, navigate, schoolCode]);
 
   if (!podeEditar) return null;
-  if (carregando) return <div className="perso-container">Carregando configurações...</div>;
+  if (carregando) return <Carregando tela rotulo="Carregando configurações" />;
 
   // O upload grava direto na escola: a imagem já está no servidor, e deixá-la
   // pendente de "Salvar" faria a prévia mostrar algo que ainda não vale.

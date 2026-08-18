@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { checkoutService } from '../../../services/checkoutServices';
 import { useEscola } from '../../../theme/contextoEscola.js';
+import Carregando from '../../../components/Carregando.jsx';
 import RelatorioAnual from '../../../components/RelatorioAnual.jsx';
 import { nomearCorredor } from '../../../utils/rotuloCorredor';
 
@@ -89,11 +90,7 @@ export default function HistoricoPagamentos() {
   };
 
   if (carregando) {
-    return (
-      <div className="p-6 text-center text-[var(--primary-color)] font-medium bg-[var(--bg-color)] min-h-screen flex items-center justify-center">
-        Carregando histórico de pagamentos...
-      </div>
-    );
+    return <Carregando tela rotulo="Carregando histórico" />;
   }
 
   return (

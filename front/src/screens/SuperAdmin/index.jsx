@@ -3,6 +3,7 @@ import { useTravarScroll } from '../../utils/travarScroll';
 import { authService } from '../../services/authService';
 import { usuarioService } from '../../services/usuariosServices';
 import { escolaService } from '../../services/escolaService';
+import Carregando from '../../components/Carregando.jsx';
 import { leadsService } from '../../services/leadsService';
 
 const ITENS_POR_PAGINA = 20;
@@ -537,7 +538,7 @@ function Painel({ usuario, onSair }) {
 
         <div className="bg-[var(--surface-color)]/60 border border-white/10 rounded-xl overflow-hidden mb-8">
           {carregandoEscolas ? (
-            <p className="p-4 text-gray-400 text-sm">Carregando instituições...</p>
+            <Carregando linha rotulo="Carregando instituições" />
           ) : escolasFiltradas.length === 0 ? (
             <p className="p-4 text-gray-400 text-sm">
               {termoBuscaEscola ? 'Nenhuma instituição encontrada para essa busca.' : 'Nenhuma instituição cadastrada ainda.'}
@@ -637,7 +638,7 @@ function Painel({ usuario, onSair }) {
 
         <div className="bg-[var(--surface-color)]/60 border border-white/10 rounded-xl overflow-hidden mb-12">
           {carregandoLeads ? (
-            <p className="p-4 text-gray-400 text-sm">Carregando pedidos de contato...</p>
+            <Carregando linha rotulo="Carregando pedidos de contato" />
           ) : leads.length === 0 ? (
             <p className="p-4 text-gray-400 text-sm">Nenhum pedido de contato recebido ainda.</p>
           ) : (
@@ -986,7 +987,7 @@ function Painel({ usuario, onSair }) {
 
         <div className="bg-[var(--surface-color)]/60 border border-white/10 rounded-xl divide-y divide-white/10 mb-8">
           {carregando ? (
-            <p className="p-4 text-gray-400 text-sm">Carregando...</p>
+            <Carregando linha />
           ) : superadmins.length === 0 ? (
             <p className="p-4 text-gray-400 text-sm">Nenhum superadmin encontrado.</p>
           ) : (

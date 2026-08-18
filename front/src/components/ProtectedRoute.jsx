@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { useEscola } from '../theme/contextoEscola.js';
+import Carregando from './Carregando.jsx';
 
 // Guarda de rota das telas internas.
 //
@@ -36,20 +37,7 @@ export default function ProtectedRoute({ children }) {
   }
 
   if (carregando) {
-    return (
-      <div
-        style={{
-          minHeight: '100vh',
-          backgroundColor: 'var(--bg-color)',
-          color: 'var(--primary-color)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}
-      >
-        <h3>Validando acesso institucional...</h3>
-      </div>
-    );
+    return <Carregando tela rotulo="Validando acesso" />;
   }
 
   if (erro || !escola || escolaDivergente) {

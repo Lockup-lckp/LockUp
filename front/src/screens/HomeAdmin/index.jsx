@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { armariosService } from '../../services/armariosServices';
 import './HomeAdmin.css'; // Importando o CSS isolado
+import Carregando from '../../components/Carregando.jsx';
 
 export default function HomeAdmin() {
   const { schoolCode } = useParams(); // Captura o schoolCode da URL da rota
@@ -90,7 +91,7 @@ export default function HomeAdmin() {
     return `status-${item.status}`;
   };
 
-  if (loading) return <div className="loading-state">Carregando armários...</div>;
+  if (loading) return <Carregando tela rotulo="Carregando armários" />;
   if (erro) return <div className="error-state">{erro}</div>;
 
   return (

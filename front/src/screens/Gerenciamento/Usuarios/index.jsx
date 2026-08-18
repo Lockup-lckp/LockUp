@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { usuarioService } from '../../../services/usuariosServices';
 import { useEscola } from '../../../theme/contextoEscola.js';
+import Carregando from '../../../components/Carregando.jsx';
 import './Gerenciamento.css';
 
 export default function Gerenciamento() {
@@ -247,9 +248,7 @@ export default function Gerenciamento() {
 
   if (carregando) {
     return (
-      <div className="loading-state">
-        <p>Carregando usuários e identificando a instituição...</p>
-      </div>
+      <Carregando tela rotulo="Carregando usuários" />
     );
   }
 

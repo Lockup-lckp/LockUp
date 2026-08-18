@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTravarScroll } from '../../../utils/travarScroll';
+import Carregando from '../../../components/Carregando.jsx';
 import { useParams } from 'react-router-dom';
 import { armariosService } from '../../../services/armariosServices';
 import { usuarioService } from '../../../services/usuariosServices';
@@ -387,11 +388,7 @@ export default function GerenciamentoArmarios() {
   }
 
   if (carregando) {
-    return (
-      <div className="p-6 text-center text-[var(--primary-color)] font-medium bg-[var(--bg-color)] min-h-screen flex items-center justify-center">
-        Carregando painel de gerenciamento de armários...
-      </div>
-    );
+    return <Carregando tela rotulo="Carregando armários" />;
   }
 
   return (

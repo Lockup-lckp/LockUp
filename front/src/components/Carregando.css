@@ -1,0 +1,60 @@
+/* Estado de carregamento do sistema: um anel girando, sem texto.
+ *
+ * Tres tamanhos, escolhidos pelo contexto:
+ *   --tela   troca de tela inteira (login, validacao de acesso, telas internas)
+ *   --linha  dentro de painel ou tabela, onde a caixa alta empurraria o resto
+ *            do conteudo para fora da tela enquanto carrega
+ *   (padrao) bloco solto no meio de uma pagina
+ */
+
+.carregando-caixa {
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.carregando-caixa--tela {
+    min-height: 100vh;
+    background-color: var(--bg-color, #0A1F44);
+}
+
+.carregando-caixa--linha {
+    min-height: 0;
+    padding: 18px;
+}
+
+.carregando-caixa--linha .carregando-anel {
+    width: 24px;
+    height: 24px;
+}
+
+.carregando-anel {
+    width: 34px;
+    height: 34px;
+    display: block;
+}
+
+.carregando-anel__trilha {
+    stroke: color-mix(in srgb, var(--primary-color, #E8B44A) 22%, transparent);
+}
+
+.carregando-anel__arco {
+    stroke: var(--primary-color, #E8B44A);
+    stroke-linecap: round;
+    transform-origin: 50% 50%;
+    animation: carregando-gira 0.75s linear infinite;
+}
+
+@keyframes carregando-gira {
+    to { transform: rotate(360deg); }
+}
+
+/* Quem pediu menos movimento recebe o anel parado: o indicador continua
+ * existindo, so nao gira. */
+@media (prefers-reduced-motion: reduce) {
+    .carregando-anel__arco {
+        animation: none;
+    }
+}

@@ -94,16 +94,15 @@ import NavBar from './components/NavBar';
 import SideBar from './components/SideBar';
 import SideBarAdmin from './components/SideBarAdmin';
 import ProtectedRoute from './components/ProtectedRoute';
+import Carregando from './components/Carregando.jsx';
 import { EscolaLayout } from './theme/EscolaContext.jsx';
 
 // Placeholder simples enquanto o pedaço da rota é baixado (só aparece na
 // primeira visita a cada tela; fica em cache do navegador depois).
 function CarregandoRota() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-color,#0A1F44)]">
-      <span className="w-8 h-8 border-2 border-white/20 border-t-[var(--primary-color,#E8B44A)] rounded-full animate-spin" />
-    </div>
-  );
+  // Anel, não a marca: troca de tela é espera curta — e com o aquecimento de
+  // rotas acima, quase sempre nem chega a aparecer.
+  return <Carregando tela rotulo="Carregando" />;
 }
 
 // 🔒 Guarda exclusiva do checkout: só entra vindo do mapa de armários (com a flag de origem).

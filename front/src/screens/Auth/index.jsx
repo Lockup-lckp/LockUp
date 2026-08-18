@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { authService } from '../../services/authService';
 import { useEscola } from '../../theme/contextoEscola.js';
+import Carregando from '../../components/Carregando.jsx';
 import './Login.css';
 
 export default function Login() {
@@ -44,13 +45,7 @@ export default function Login() {
   };
 
   if (carregandoEscola) {
-    return (
-      <div className="page-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <p style={{ color: 'var(--primary-color)', fontWeight: '700' }}>
-          Validando URL da instituição de ensino...
-        </p>
-      </div>
-    );
+    return <Carregando tela rotulo="Carregando instituição" />;
   }
 
   if (escolaInvalida || !dadosEscola) {
