@@ -555,7 +555,7 @@ function ModalAcessoEscola({ aberto, aoFechar }) {
                 onChange={(e) => setCodigo(e.target.value)}
                 autoFocus
                 className="w-full bg-black/20 border border-white/10 rounded-lg px-3.5 py-2.5 text-white outline-none transition-colors focus:border-[#E8B44A] uppercase placeholder:normal-case"
-                placeholder="Ex: bentoquirino"
+                placeholder="Ex: etec-xxx"
               />
             </div>
 
