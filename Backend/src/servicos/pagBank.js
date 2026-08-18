@@ -75,6 +75,18 @@ const chamarApi = async (escola, caminho, corpo) => {
     const dados = await resposta.json().catch(() => null);
 
     if (!resposta.ok) {
+        // 401 no PagBank quase sempre significa token do ambiente ERRADO: o
+        // token de sandbox responde 401 em produção e vice-versa. O erro cru
+        // ("PagBank respondeu 401") não diz isso, e o caminho de descoberta é
+        // demorado — daí a mensagem apontar a causa provável.
+        if (resposta.status === 401) {
+            const ambiente = escola.gateway_ambiente || escola.pagbank_ambiente || 'sandbox';
+            throw new ErroDeNegocio(
+                `O PagBank recusou a credencial desta instituição (401). A causa mais comum é o token ser de outro ambiente: esta instituição está configurada como '${ambiente}', então o token cadastrado precisa ser de ${ambiente}.`,
+                502
+            );
+        }
+
         // O PagBank devolve error_messages[] com description/parameter_name.
         const detalhe = dados?.error_messages?.map((e) => e.description).join('; ');
         throw new ErroDeNegocio(detalhe || `PagBank respondeu ${resposta.status}.`, 502);
