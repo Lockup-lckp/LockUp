@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Totem LCKP
+Comment=Abre o portal de armários da escola em modo quiosque
+# Troque /home/totem pelo caminho real onde você colocou o totem-lckp.sh.
+Exec=/home/totem/totem-lckp.sh
+Terminal=false
+X-GNOME-Autostart-enabled=true
+NoDisplay=true
