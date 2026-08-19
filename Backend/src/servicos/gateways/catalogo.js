@@ -6,14 +6,16 @@
 // resto do sistema lê daqui em vez de saber nomes de banco.
 //
 // ---------------------------------------------------------------------
-// DECISÃO (2026-08-14): Banco do Brasil é o gateway do sistema
+// ONDE CADA ESCOLA RECEBE (atualizado em 2026-08-18)
 // ---------------------------------------------------------------------
-// As escolas em negociação usam BB. Outro banco entra quando existir escola que
-// precise dele — e o custo disso é uma entrada aqui mais um adaptador.
+// - ETEC Bento Quirino .... PagBank (conta da própria instituição)
+// - demais escolas ........ Mercado Pago (padrão)
+// - Banco do Brasil ....... PAUSADO, ver a entrada abaixo
 //
-// Mercado Pago e PagBank continuam declarados como LEGADO: o Mercado Pago é o
-// único caminho com credencial de produção testada ponta a ponta, e desligá-lo
-// antes de o BB estar validado deixaria o sistema sem forma nenhuma de cobrar.
+// A decisão de 2026-08-14, que colocava o Banco do Brasil como gateway do
+// sistema, não se sustentou: o termo de produção do BB exige representante
+// legal da APM com poderes para assinar, e as pessoas vinculadas ao CNPJ não
+// os têm. O código do BB continua aqui, dormente, para retomada futura.
 //
 // ---------------------------------------------------------------------
 // DECISÃO (2026-08-14): não há comissão
@@ -95,9 +97,12 @@ export const GATEWAYS = Object.freeze({
         // sem intermediário nem comissão.
         // ---------------------------------------------------------------
         implementado: true,
-        // O adaptador autentica e gera cobrança (Pix e cartão), mas ainda
-        // não houve um pagamento REAL de ponta a ponta em produção — trata
-        // como não provado até o primeiro aluno pagar de verdade.
+        // PROVADO EM SANDBOX (2026-08-18): o adaptador foi exercitado contra a
+        // API real do PagBank — autenticou, obteve a chave pública de cartão e
+        // criou uma cobrança Pix com QR válido (ver teste-pagbank.mjs). O que
+        // ainda NÃO aconteceu é um pagamento real em PRODUÇÃO, com dinheiro de
+        // verdade; por isso segue `provado: false`, que é o que o painel usa
+        // para avisar quem configura.
         provado: false,
         // Aceita Pix e cartão. O Pix é o caminho natural no totem; o cartão
         // é digitado na tela (cifrado no navegador pelo SDK do PagBank).
@@ -105,7 +110,7 @@ export const GATEWAYS = Object.freeze({
         identificaWebhook:
             'O código da escola vai na própria URL (/pagamentos/webhook/pagbank/:schoolCode), porque é preciso saber QUAL credencial usar antes de confiar no corpo. A notificação é autenticada por SHA-256 do corpo com o token da conta.',
         observacao:
-            'Conta da própria instituição — o dinheiro cai direto nela. Ativo para a ETEC Bento Quirino. O token é gerado no painel do PagBank (sandbox para testes, produção para valer).'
+            'Conta da própria instituição — o dinheiro cai direto nela. Ativo para a ETEC Bento Quirino. ATENÇÃO: o token de sandbox NÃO funciona em produção e vice-versa (o outro ambiente responde 401) — o token cadastrado precisa ser do mesmo ambiente escolhido aqui.'
     }
 });
 
