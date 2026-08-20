@@ -21,7 +21,8 @@ const {
     criarCobrancaPagBank,
     obterChavePublicaPagBank,
     validarWebhookPagBank,
-    lerEventoWebhookPagBank
+    lerEventoWebhookPagBank,
+    consultarPedidoPagBank
 } = await import('./src/servicos/pagBank.js');
 
 const TOKEN = process.env.PAGBANK_TOKEN || '';
@@ -135,6 +136,42 @@ if (!TOKEN) {
             String(cobranca.qrCodeImagemUrl || '').startsWith('https://'), cobranca.qrCodeImagemUrl);
     } catch (err) {
         ok('cria a cobrança Pix', false, err.message);
+    }
+}
+
+// =====================================================================
+// consultarPedidoPagBank — a correção do bug encontrado em produção
+// =====================================================================
+// O sandbox do PagBank manda a notificação REAL de pagamento sem
+// x-authenticity-token — problema relatado na comunidade deles. A versão
+// antiga do webhook descartava essa notificação por "faltar assinatura", e o
+// aluno pagava sem o armário nunca abrir. A correção trata o webhook sem
+// assinatura como um sinal e confirma o status aqui, direto na API.
+console.log('\n== consultarPedidoPagBank (a correção do webhook sem assinatura) ==');
+if (!TOKEN) {
+    pular('confirma pedido pendente direto na API');
+} else {
+    const escola = montarEscola(TOKEN);
+    try {
+        // Valor acima de R$ 400: a tabela de simulação do sandbox mantém a
+        // cobrança em WAITING indefinidamente, então o teste não corre contra
+        // o relógio do próprio simulador aprovando sozinho.
+        const cobranca = await criarCobrancaPagBank({
+            escola,
+            armario: { id: 'arm-99', nome: 'B-99' },
+            valorTotal: 450.0,
+            transactionId: 'TX-CONFIRMA-' + Date.now(),
+            cliente: { nome: 'Aluno Teste', cpf: '39053344705', telefone: '19999999999', email: 'aluno@teste.com' },
+            dadosPagamento: { formaPagamento: 'pix' },
+            notificationUrl: 'https://exemplo.com/pagamentos/webhook/pagbank/etec-043',
+            expiraEm: new Date(Date.now() + 30 * 60 * 1000).toISOString()
+        });
+
+        const confirmacao = await consultarPedidoPagBank(escola, cobranca.gatewayId);
+        ok('confirma pedido pendente direto na API',
+            confirmacao.statusTraduzido === 'pendente', confirmacao.statusTraduzido);
+    } catch (err) {
+        ok('confirma pedido pendente direto na API', false, err.message);
     }
 }
 
