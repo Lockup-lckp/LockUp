@@ -1,0 +1,62 @@
+Windows Registry Editor Version 5.00
+
+; Politicas de navegador do totem LCKP.
+;
+; O Endurecer-Totem.ps1 ja aplica tudo isto. Este arquivo existe para dois
+; casos: quem prefere dar dois cliques em vez de rodar script, e quem vai
+; distribuir por GPO no dominio da escola.
+;
+; TROQUE lckp.com.br pelo dominio da sua escola se for outro (aparece nas
+; duas ultimas secoes, uma para o Edge e uma para o Chrome).
+;
+; Para desfazer, use o Remover-Totem.ps1.
+
+; ---------------------------------------------------------------------------
+; Microsoft Edge
+; ---------------------------------------------------------------------------
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge]
+"PasswordManagerEnabled"=dword:00000000
+"AutofillAddressEnabled"=dword:00000000
+"AutofillCreditCardEnabled"=dword:00000000
+"DeveloperToolsAvailability"=dword:00000002
+"IncognitoModeAvailability"=dword:00000001
+"BrowserGuestModeEnabled"=dword:00000000
+"DownloadRestrictions"=dword:00000003
+"PrintingEnabled"=dword:00000000
+"TranslateEnabled"=dword:00000000
+"BookmarkBarEnabled"=dword:00000000
+"DefaultPopupsSetting"=dword:00000002
+"DefaultNotificationsSetting"=dword:00000002
+"ClearBrowsingDataOnExit"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge\URLBlocklist]
+"1"="*"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge\URLAllowlist]
+"1"="lckp.com.br"
+"2"="https://lckp.com.br"
+
+; ---------------------------------------------------------------------------
+; Google Chrome
+; ---------------------------------------------------------------------------
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Google\Chrome]
+"PasswordManagerEnabled"=dword:00000000
+"AutofillAddressEnabled"=dword:00000000
+"AutofillCreditCardEnabled"=dword:00000000
+"DeveloperToolsAvailability"=dword:00000002
+"IncognitoModeAvailability"=dword:00000001
+"BrowserGuestModeEnabled"=dword:00000000
+"DownloadRestrictions"=dword:00000003
+"PrintingEnabled"=dword:00000000
+"TranslateEnabled"=dword:00000000
+"BookmarkBarEnabled"=dword:00000000
+"DefaultPopupsSetting"=dword:00000002
+"DefaultNotificationsSetting"=dword:00000002
+"ClearBrowsingDataOnExit"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Google\Chrome\URLBlocklist]
+"1"="*"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Google\Chrome\URLAllowlist]
+"1"="lckp.com.br"
+"2"="https://lckp.com.br"

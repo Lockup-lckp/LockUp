@@ -1,0 +1,552 @@
+/* Mapa de armários do aluno.
+ *
+ * A tela imita a parede do corredor: o aluno escolhe o corredor, e então anda
+ * de módulo em módulo com as setas, como se estivesse passando na frente das
+ * seções de armários.
+ *
+ * ------------------------------------------------------------------
+ * Como o tamanho do armário é decidido
+ * ------------------------------------------------------------------
+ * `--lado` NÃO está escrito aqui: quem calcula é o JS, porque o limite pode vir
+ * tanto da largura quanto da ALTURA disponível, e CSS não compara as duas.
+ * Um módulo de 4 colunas cabe folgado na largura de um celular, mas as 4
+ * linhas não cabem na altura — foi assim que armário saía para fora da tela.
+ * O JS pega o menor dos dois limites e escreve `--lado` na raiz do componente.
+ *
+ * Todo o resto (rótulos, vãos, grade) é derivado de `--lado`, então a cena
+ * inteira escala junto em totem, notebook, tablet e celular.
+ */
+
+.mapa {
+    --lado: 72px;                  /* recalculado pelo JS; este é só o ponto de partida */
+    --vao: 8px;
+    --manutencao: #F1C40F;         /* mesmo tom que HomeAdmin.css usa em .status-manutencao */
+    --parede-clara: #1e4270;
+    --parede-escura: #14304f;
+
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: clamp(12px, 2.5vw, 24px);
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+    /* Ocupar a altura toda importa no totem: numa tela de 1920 em pé, uma cena
+       de altura fixa deixava mais de mil pixels vazios embaixo. `dvh` porque no
+       celular a barra do navegador entra e sai e `vh` não acompanha. */
+    min-height: calc(100vh - 80px);
+    min-height: calc(100dvh - 80px);
+}
+
+/* ---------------------------------------------------------------- */
+/* Cabeçalho e corredores                                            */
+/* ---------------------------------------------------------------- */
+
+.mapa-titulo {
+    margin: 0;
+    font-size: clamp(18px, 2.4vw, 24px);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--on-bg);
+}
+
+.mapa-subtitulo {
+    margin: 4px 0 0;
+    font-size: clamp(12px, 1.4vw, 14px);
+    color: var(--on-bg-muted);
+}
+
+.mapa-corredores {
+    display: grid;
+    /* auto-fit + minmax é o que faz virar 1 coluna no celular e 4 no totem
+       sem nenhuma media query. */
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+.mapa-corredor {
+    min-height: 76px;
+    padding: 12px 16px;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+    color: var(--on-bg);
+    background: var(--surface-raised);
+    border: 2px solid transparent;
+    border-radius: var(--radius-control);
+    transition: background 0.16s, transform 0.12s;
+}
+
+.mapa-corredor:hover { background: #17407a; }
+.mapa-corredor:active { transform: scale(0.98); }
+
+.mapa-corredor-nome { font-size: 15px; font-weight: 800; }
+
+.mapa-corredor-livres {
+    margin-top: 6px;
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--success);
+}
+
+.mapa-corredor.ativo {
+    background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
+    border-color: #f6d590;
+    color: var(--on-primary);
+    box-shadow: 0 8px 24px rgba(232, 180, 74, 0.32);
+}
+
+.mapa-corredor.ativo .mapa-corredor-livres { color: #0b2246; }
+
+/* No celular cada pixel do topo sai do tamanho do armário: com o cabeçalho
+   folgado sobrava tão pouca altura que o armário caía no mínimo de 34px. */
+@media (max-width: 620px) {
+    .mapa { gap: 10px; }
+    .mapa-subtitulo { display: none; }
+    .mapa-corredor { min-height: 58px; padding: 9px 12px; }
+    .mapa-corredor-livres { margin-top: 3px; }
+}
+
+/* ---------------------------------------------------------------- */
+/* A cena da parede                                                  */
+/* ---------------------------------------------------------------- */
+
+.mapa-cena {
+    position: relative;
+    /* Cresce para tomar a sobra da coluna em vez de ter altura fixa. O mínimo
+       garante as 4 linhas de armário; o máximo evita que numa TV a parede
+       vire um paredão. Quem lê essa altura em tempo real e redimensiona os
+       armários é o `ajustarEscala` do componente. */
+    flex: 1 1 auto;
+    min-height: 330px;
+    max-height: 900px;
+    overflow: hidden;
+    border-radius: var(--radius-card);
+    border: 1px solid var(--border-color);
+    background:
+        radial-gradient(130% 78% at 50% 4%, rgba(120, 180, 235, 0.20), transparent 58%),
+        linear-gradient(180deg, var(--parede-clara) 0%, #1a3a62 60%, var(--parede-escura) 100%);
+    box-shadow: var(--shadow-panel);
+}
+
+/* Faixa de vidros no alto — existe em todos os corredores da escola e é o que
+   faz a imagem ser lida como "parede de corredor" e não como uma grade. */
+.mapa-vidro {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: clamp(28px, 7vh, 54px);
+    z-index: 1;
+    background: linear-gradient(180deg, #31628f, #204770);
+    border-bottom: 2px solid rgba(0, 0, 0, 0.34);
+}
+
+.mapa-vidro::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(90deg, transparent 0 86px, rgba(9, 24, 44, 0.8) 86px 90px);
+}
+
+.mapa-piso {
+    position: absolute;
+    inset: auto 0 0 0;
+    height: clamp(44px, 11vh, 84px);
+    z-index: 1;
+    background: linear-gradient(180deg, #17334f, #101f36);
+    box-shadow: inset 0 14px 28px rgba(0, 0, 0, 0.5);
+}
+
+.mapa-piso::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.22;
+    background: repeating-linear-gradient(90deg, transparent 0 64px, rgba(255, 255, 255, 0.2) 64px 66px);
+}
+
+/* Escurece as beiradas para o módulo vizinho "sair" do quadro em vez de ser
+   cortado com uma linha reta. */
+.mapa-borda {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    pointer-events: none;
+    background: linear-gradient(90deg,
+        var(--bg-color) 0%, transparent 12%, transparent 88%, var(--bg-color) 100%);
+}
+
+/* A fita nasce no MEIO da cena (left:50%) e é deslocada para a esquerda até
+   centralizar o módulo alvo. Centralizar com padding em vw quebrava sempre que
+   a cena não ocupava a largura inteira da janela. */
+.mapa-fita {
+    position: absolute;
+    left: 50%;
+    bottom: clamp(44px, 11vh, 84px);
+    z-index: 2;
+    display: flex;
+    align-items: flex-end;
+    transition: transform 0.55s cubic-bezier(0.28, 0.9, 0.32, 1);
+    will-change: transform;
+}
+
+.mapa-item {
+    flex: 0 0 auto;
+    margin: 0 calc(var(--lado) * 0.22);
+    transition: opacity 0.4s;
+}
+
+/* O que está longe some aos poucos: dá profundidade e tira a atenção do que
+   não é a parada atual. */
+.mapa-item.longe { opacity: 0.24; }
+
+@media (prefers-reduced-motion: reduce) {
+    .mapa-fita { transition: none; }
+    .mapa-item { transition: none; }
+}
+
+/* ---------------------------------------------------------------- */
+/* Módulo de armários                                                */
+/* ---------------------------------------------------------------- */
+
+.mapa-modulo { position: relative; }
+
+.mapa-modulo-rotulo {
+    position: absolute;
+    top: calc(var(--lado) * -0.52);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 5px 14px;
+    white-space: nowrap;
+    background: var(--surface-raised);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    font-size: clamp(11px, 1.3vw, 13px);
+    font-weight: 800;
+    color: var(--on-bg);
+}
+
+.mapa-caixa {
+    padding: calc(var(--vao) + 2px);
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--border-color);
+    box-shadow: 0 16px 38px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.mapa-grade {
+    display: grid;
+    grid-template-columns: repeat(var(--colunas), var(--lado));
+    gap: var(--vao);
+}
+
+/* Marcação de altura física.
+ *
+ * Duas linhas finas dizendo onde é o alto e onde é o pé do móvel. Sem isso o
+ * aluno não tem como saber que a grade representa armários EMPILHADOS — e
+ * pegar um de cima ou um de baixo muda a vida de quem é baixinho ou carrega
+ * mochila pesada. */
+.mapa-altura {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: clamp(8px, 1vw, 10px);
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: var(--on-bg-muted);
+    white-space: nowrap;
+}
+
+.mapa-altura::before,
+.mapa-altura::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+}
+
+.mapa-altura.topo { margin-bottom: 6px; }
+.mapa-altura.base { margin-top: 6px; }
+
+/* ---------------------------------------------------------------- */
+/* O armário                                                         */
+/* ---------------------------------------------------------------- */
+
+.mapa-armario {
+    width: var(--lado);
+    height: calc(var(--lado) * 1.06);
+    padding: 0;
+    border-radius: 10px;
+    border: 2px solid;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    transition: transform 0.13s, box-shadow 0.13s, background 0.13s;
+}
+
+.mapa-armario-numero {
+    font-size: clamp(12px, calc(var(--lado) * 0.26), 19px);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.02em;
+}
+
+/* Abaixo de um certo tamanho a palavra não cabe e vira borrão — a cor e a
+   legenda continuam dando a informação. */
+.mapa-armario-estado {
+    font-size: clamp(7px, calc(var(--lado) * 0.115), 9px);
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    opacity: 0.9;
+}
+
+@media (max-width: 380px) {
+    .mapa-armario-estado { display: none; }
+}
+
+/* Verde = livre. É a mesma convenção do mapa do admin (.status-disponivel),
+   então quem cuida da escola e quem aluga veem a mesma cor para a mesma coisa. */
+.mapa-armario.livre {
+    background: linear-gradient(180deg, rgba(61, 220, 151, 0.26), rgba(61, 220, 151, 0.11));
+    border-color: rgba(61, 220, 151, 0.75);
+    color: var(--success);
+}
+
+.mapa-armario.livre:hover {
+    transform: translateY(-3px);
+    background: linear-gradient(180deg, rgba(61, 220, 151, 0.44), rgba(61, 220, 151, 0.22));
+    box-shadow: 0 10px 26px rgba(61, 220, 151, 0.32);
+}
+
+.mapa-armario.ocupado {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.45);
+    color: #f79a9a;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.mapa-armario.manutencao {
+    background: repeating-linear-gradient(135deg,
+        rgba(241, 196, 15, 0.20) 0 8px, rgba(241, 196, 15, 0.06) 8px 16px);
+    border-color: rgba(241, 196, 15, 0.45);
+    color: #f4d35e;
+    cursor: not-allowed;
+}
+
+/* Dourado da marca só para O QUE O ALUNO ESCOLHEU. No site o dourado é a cor
+   de ação (botões), então usá-lo aqui para "disponível" competiria com ele. */
+.mapa-armario.escolhido {
+    background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
+    border-color: #f6d590;
+    color: var(--on-primary);
+    transform: translateY(-3px);
+    box-shadow: 0 0 0 3px rgba(232, 180, 74, 0.35), 0 12px 28px rgba(232, 180, 74, 0.4);
+}
+
+.mapa-armario:focus-visible {
+    outline: 3px solid var(--primary-color);
+    outline-offset: 3px;
+}
+
+/* ---------------------------------------------------------------- */
+/* Setas                                                             */
+/* ---------------------------------------------------------------- */
+
+.mapa-setas {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 clamp(8px, 1.5vw, 16px);
+}
+
+.mapa-seta {
+    pointer-events: auto;
+    width: clamp(52px, 7vw, 76px);
+    height: clamp(52px, 7vw, 76px);
+    border-radius: 50%;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: clamp(22px, 3vw, 31px);
+    font-weight: 700;
+    line-height: 1;
+    color: var(--on-primary);
+    background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
+    border: 2px solid #f6d590;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+    transition: transform 0.15s, opacity 0.2s;
+}
+
+.mapa-seta:hover:not(:disabled) { transform: scale(1.07); }
+.mapa-seta:active:not(:disabled) { transform: scale(0.95); }
+.mapa-seta:disabled { opacity: 0.16; cursor: default; box-shadow: none; }
+
+/* ---------------------------------------------------------------- */
+/* Legenda                                                           */
+/* ---------------------------------------------------------------- */
+
+.mapa-legenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(10px, 2vw, 22px);
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-control);
+    font-size: clamp(11px, 1.3vw, 13px);
+    color: var(--on-bg-muted);
+}
+
+.mapa-legenda span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+}
+
+.mapa-legenda i {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+    border-radius: 5px;
+    border: 2px solid;
+}
+
+.mapa-legenda .cor-livre { background: rgba(61, 220, 151, 0.26); border-color: rgba(61, 220, 151, 0.8); }
+.mapa-legenda .cor-ocupado { background: rgba(239, 68, 68, 0.14); border-color: rgba(239, 68, 68, 0.5); }
+.mapa-legenda .cor-manutencao {
+    background: repeating-linear-gradient(135deg, rgba(241, 196, 15, 0.3) 0 4px, transparent 4px 8px);
+    border-color: rgba(241, 196, 15, 0.5);
+}
+.mapa-legenda .cor-escolhido {
+    background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
+    border-color: #f6d590;
+}
+
+.mapa-pontos { display: flex; gap: 6px; margin-left: auto; }
+
+.mapa-pontos b {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transition: width 0.3s, background 0.3s;
+}
+
+.mapa-pontos b.ativo { width: 26px; border-radius: 4px; background: var(--primary-color); }
+
+/* No celular a fileira de pontos empurra a legenda para uma terceira linha. */
+@media (max-width: 620px) {
+    .mapa-pontos { margin-left: 0; width: 100%; justify-content: center; }
+}
+
+/* ---------------------------------------------------------------- */
+/* Barra de confirmação                                              */
+/* ---------------------------------------------------------------- */
+
+.mapa-barra {
+    position: absolute;
+    inset: auto 0 0 0;
+    z-index: 7;
+    padding: clamp(12px, 2vw, 16px);
+    display: flex;
+    align-items: center;
+    gap: clamp(10px, 1.6vw, 16px);
+    flex-wrap: wrap;
+    background: linear-gradient(180deg, rgba(13, 42, 82, 0.98), var(--bg-color));
+    border-top: 2px solid var(--primary-color);
+    box-shadow: 0 -16px 38px rgba(0, 0, 0, 0.55);
+    transform: translateY(110%);
+    transition: transform 0.36s cubic-bezier(0.25, 1, 0.35, 1);
+}
+
+.mapa-barra.aberta { transform: translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+    .mapa-barra { transition: none; }
+}
+
+.mapa-barra-quem { flex: 1 1 190px; min-width: 0; }
+
+.mapa-barra-rotulo {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: var(--on-bg-muted);
+}
+
+.mapa-barra-armario {
+    font-size: clamp(17px, 2.2vw, 22px);
+    font-weight: 800;
+    color: var(--on-bg);
+    margin-top: 2px;
+}
+
+.mapa-barra-onde {
+    font-size: clamp(11px, 1.3vw, 13px);
+    color: var(--on-bg-muted);
+    margin-top: 2px;
+}
+
+.mapa-barra-preco { text-align: right; }
+
+.mapa-barra-valor {
+    font-size: clamp(18px, 2.4vw, 24px);
+    font-weight: 800;
+    color: var(--primary-color);
+}
+
+.mapa-barra-seguir {
+    flex: 1 1 auto;
+    min-height: 58px;
+    padding: 0 clamp(18px, 3vw, 32px);
+    border-radius: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: clamp(14px, 1.6vw, 16px);
+    font-weight: 800;
+    color: var(--on-primary);
+    background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
+    border: 2px solid #f6d590;
+    box-shadow: 0 10px 26px rgba(232, 180, 74, 0.36);
+    transition: filter 0.15s;
+}
+
+.mapa-barra-seguir:hover { filter: brightness(1.08); }
+.mapa-barra-seguir:disabled { filter: grayscale(0.6); cursor: not-allowed; }
+
+.mapa-barra-erro {
+    flex: 1 1 100%;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--danger);
+}
+
+/* Num celular o botão ocupa a linha inteira, senão fica um alvo espremido. */
+@media (max-width: 620px) {
+    .mapa-barra-preco { text-align: left; }
+    .mapa-barra-seguir { flex: 1 1 100%; }
+}
+
+/* ---------------------------------------------------------------- */
+/* Estados vazios                                                    */
+/* ---------------------------------------------------------------- */
+
+.mapa-vazio {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 24px;
+    text-align: center;
+    color: var(--on-bg-muted);
+    font-size: 14px;
+}

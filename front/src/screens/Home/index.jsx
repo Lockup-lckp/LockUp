@@ -1,244 +1,435 @@
-import { useCodigoEscola } from '../../utils/useCodigoEscola.js';
-import { rotaEscola } from '../../utils/tenant.js';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { armariosService } from '../../services/armariosServices';
 import { useEscola } from '../../theme/contextoEscola.js';
 import Carregando from '../../components/Carregando.jsx';
-import ModalArmario from '../../components/ModalArmario.jsx';
 import { nomearCorredor, rotuloCorredor } from '../../utils/rotuloCorredor';
-import '../HomeAdmin/HomeAdmin.css';
+import { agruparEmModulos, rotuloDoModulo } from '../../utils/agruparArmarios';
+import { rotaEscola } from '../../utils/tenant.js';
+import { useCodigoEscola } from '../../utils/useCodigoEscola.js';
+import './Home.css';
+
+// Tela onde o aluno escolhe o armário.
+//
+// Em vez de uma tabela paginada de números, a tela mostra a PAREDE do corredor:
+// os armários aparecem nos mesmos blocos em que estão instalados, e o aluno
+// anda de bloco em bloco com as setas. Quem chega no totem reconhece o lugar
+// físico antes de pensar em número.
+//
+// A divisão em blocos é derivada da numeração (ver utils/agruparArmarios.js) —
+// o banco não guarda essa informação.
+
+// Limites do tamanho do armário na tela. O mínimo não é estético: abaixo disso
+// o alvo fica menor que um dedo no vidro do totem.
+const LADO_MIN = 34;
+const LADO_MAX = 110;
+const LINHAS_MAX = 4;
+
+const ESTADOS = {
+    disponivel: { classe: 'livre', texto: 'LIVRE' },
+    alugado: { classe: 'ocupado', texto: 'OCUPADO' },
+    manutencao: { classe: 'manutencao', texto: 'MANUT.' }
+};
+
+const dinheiro = (valor) =>
+    Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 export default function Home() {
-  const navigate = useNavigate();
-  const schoolCode = useCodigoEscola();
-  const { escola: escolaDados } = useEscola(); // Escola (valor, cores, logo) já carregada pelo EscolaProvider
-  const [armarios, setArmarios] = useState([]);
-  const [corredores, setCorredores] = useState([]);
-  const [corredorAtivo, setCorredorAtivo] = useState(null);
-  const [armarioSelecionado, setArmarioSelecionado] = useState(null);
-  const [erro, setErro] = useState(null);
-  const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
+    // No subdomínio a rota não tem :schoolCode, e ler pelos parâmetros
+    // devolvia vazio. O hook resolve pelos dois caminhos.
+    const schoolCode = useCodigoEscola();
+    const { escola: escolaDados } = useEscola();
 
-  // Quantos armários o aluno já tem nesta escola. Deixou de ser um booleano
-  // quando o limite virou configurável (`schools.max_armarios_por_aluno`).
-  const [armariosDoAluno, setArmariosDoAluno] = useState(0);
-  const limiteArmarios = Number(escolaDados?.max_armarios_por_aluno) || 1;
-  const atingiuLimite = armariosDoAluno >= limiteArmarios;
+    const [armarios, setArmarios] = useState([]);
+    const [corredorEscolhido, setCorredorEscolhido] = useState(null);
+    const [armarioSelecionado, setArmarioSelecionado] = useState(null);
+    const [parada, setParada] = useState(0);
+    const [erro, setErro] = useState(null);
+    const [erroDeLimite, setErroDeLimite] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [armariosDoAluno, setArmariosDoAluno] = useState(0);
 
-  // Filtro Selecionável
-  const [apenasDisponiveis, setApenasDisponiveis] = useState(false);
+    const cenaRef = useRef(null);
+    const fitaRef = useRef(null);
+    const raizRef = useRef(null);
 
-  // Paginação para matriz 5x6 (30 itens por página)
-  const [paginaAtual, setPaginaAtual] = useState(1);
-  const armariosPorPagina = 30;
+    const limiteArmarios = Number(escolaDados?.max_armarios_por_aluno) || 1;
+    const atingiuLimite = armariosDoAluno >= limiteArmarios;
 
-  useEffect(() => {
-    const carregarDados = async () => {
-      // A guarda vive DENTRO da funcao assincrona: no corpo do efeito ela
-      // atualizaria estado de forma sincrona na montagem, provocando uma
-      // renderizacao em cascata.
-      if (!schoolCode) {
-        setErro("Código da instituição não identificado na URL.");
-        setLoading(false);
-        return;
-      }
+    useEffect(() => {
+        const carregarDados = async () => {
+            // A guarda vive DENTRO da função assíncrona: no corpo do efeito ela
+            // atualizaria estado de forma síncrona na montagem, provocando uma
+            // renderização em cascata.
+            if (!schoolCode) {
+                setErro('Código da instituição não identificado na URL.');
+                setLoading(false);
+                return;
+            }
 
-      try {
-        setLoading(true);
-        setErro(null);
+            try {
+                setLoading(true);
+                setErro(null);
 
-        // Carrega todos os armários para o mapa, filtrando pela escola da URL
-        const dados = await armariosService.buscarTodos(schoolCode);
-        setArmarios(dados);
+                const dados = await armariosService.buscarTodos(schoolCode);
+                setArmarios(dados);
 
-        // Alinhado para capturar a propriedade 'corredor' exata do banco
-        const listaCorredores = [...new Set(dados.map(item => item.corredor))].filter(Boolean);
-        setCorredores(listaCorredores);
+                const usuarioLogado = JSON.parse(sessionStorage.getItem('usuario') || '{}');
+                setArmariosDoAluno(dados.filter((item) => item.usuario_id === usuarioLogado.id).length);
+            } catch {
+                setErro('Não foi possível carregar os armários.');
+            } finally {
+                setLoading(false);
+            }
+        };
+        carregarDados();
+    }, [schoolCode]);
 
-        if (listaCorredores.length > 0) {
-          setCorredorAtivo(listaCorredores[0]);
+    // ----------------------------------------------------------------
+    // Corredores e módulos
+    // ----------------------------------------------------------------
+
+    const corredores = useMemo(() => {
+        const nomes = [...new Set(armarios.map((item) => item.corredor))].filter(Boolean);
+        return nomes.sort((a, b) =>
+            String(a).localeCompare(String(b), 'pt-BR', { numeric: true, sensitivity: 'base' }));
+    }, [armarios]);
+
+    const livresPorCorredor = useMemo(() => {
+        const contagem = {};
+        armarios.forEach((item) => {
+            if (item.status !== 'disponivel') return;
+            contagem[item.corredor] = (contagem[item.corredor] || 0) + 1;
+        });
+        return contagem;
+    }, [armarios]);
+
+    // O corredor inicial é DERIVADO, não guardado em estado: um efeito só para
+    // chamar setCorredorAtivo(corredores[0]) provoca uma renderização em cascata
+    // e é justamente o que a regra `react-hooks/set-state-in-effect` proíbe.
+    // O estado guarda apenas a escolha explícita do aluno.
+    const corredorAtivo = corredorEscolhido ?? corredores[0] ?? null;
+
+    const modulos = useMemo(() => {
+        if (!corredorAtivo) return [];
+        return agruparEmModulos(armarios.filter((item) => item.corredor === corredorAtivo));
+    }, [armarios, corredorAtivo]);
+
+    const paradaSegura = Math.min(parada, Math.max(0, modulos.length - 1));
+
+    // ----------------------------------------------------------------
+    // Tamanho do armário
+    // ----------------------------------------------------------------
+    //
+    // O armário é dimensionado pelo MENOR entre o que a largura permite e o que
+    // a altura permite. Só a largura não basta: num celular em pé, quatro
+    // linhas de armário estouram a altura da cena muito antes de a largura
+    // acabar — era esse o motivo de armário aparecer cortado.
+
+    const ajustarEscala = useCallback(() => {
+        const cena = cenaRef.current;
+        const raiz = raizRef.current;
+        if (!cena || !raiz || modulos.length === 0) return;
+
+        const colunasMax = Math.max(...modulos.map((m) => m.colunas));
+        const linhasMax = Math.min(
+            LINHAS_MAX,
+            Math.max(...modulos.map((m) => Math.ceil(m.armarios.length / m.colunas)))
+        );
+
+        const estilo = getComputedStyle(raiz);
+        const vao = parseFloat(estilo.getPropertyValue('--vao')) || 8;
+
+        // Reservas verticais: piso, faixa de vidro, rótulo do módulo e as duas
+        // linhas de "parte de cima / parte de baixo".
+        //
+        // 92 e não o mínimo justo: num notebook 1366x768 a conta apertada
+        // deixava 1px de sobra no topo, e 1px some com qualquer diferença de
+        // métrica de fonte entre máquinas. Custa alguns pixels de armário e
+        // compra a garantia de nunca cortar.
+        const piso = cena.clientHeight * 0.11;
+        const vidro = cena.clientHeight * 0.07;
+        const rotulos = 92;
+        const alturaUtil = cena.clientHeight - piso - vidro - rotulos;
+        // A margem lateral de cada item é proporcional a --lado, então sobra
+        // menos largura do que a cena inteira; 0.82 cobre isso com folga.
+        const larguraUtil = cena.clientWidth * 0.82;
+
+        const porLargura = (larguraUtil - (colunasMax - 1) * vao - 2 * vao) / colunasMax;
+        const porAltura = (alturaUtil - (linhasMax - 1) * vao - 2 * vao) / (linhasMax * 1.06);
+
+        const lado = Math.max(LADO_MIN, Math.min(LADO_MAX, Math.floor(Math.min(porLargura, porAltura))));
+        raiz.style.setProperty('--lado', `${lado}px`);
+    }, [modulos]);
+
+    // ----------------------------------------------------------------
+    // Posicionamento da fita
+    // ----------------------------------------------------------------
+
+    const posicionar = useCallback((instantaneo) => {
+        const fita = fitaRef.current;
+        if (!fita || !fita.children.length) return;
+
+        const alvo = fita.children[Math.min(paradaSegura, fita.children.length - 1)];
+        if (!alvo) return;
+
+        // Ao trocar de corredor a fita ainda guarda o deslocamento do corredor
+        // anterior. Sem desligar a transição ela DESLIZA por dentro do conteúdo
+        // novo, como se o aluno estivesse andando sem ter pedido.
+        if (instantaneo) fita.style.transition = 'none';
+
+        // offsetLeft já contabiliza as margens. Somar larguras à mão errava a
+        // margem esquerda do primeiro item e deixava tudo fora de centro.
+        fita.style.transform = `translateX(${-(alvo.offsetLeft + alvo.offsetWidth / 2)}px)`;
+
+        if (instantaneo) {
+            void fita.offsetWidth; // força o reflow antes de religar a transição
+            fita.style.transition = '';
         }
+    }, [paradaSegura]);
 
-        // Verifica se o aluno logado já tem um armário associado nesta escola.
-        // (Antes fazia uma segunda busca completa dos armários só pra isso —
-        // os dados já vieram na chamada acima, então basta olhar localmente.)
-        const usuarioLogado = JSON.parse(sessionStorage.getItem('usuario') || '{}');
-        const alunoId = usuarioLogado.id;
-        // lockers.usuario_id é a coluna real do vínculo aluno-armário.
-        setArmariosDoAluno(dados.filter((item) => item.usuario_id === alunoId).length);
-      } catch {
-        setErro("Não foi possível carregar os armários.");
-      } finally {
-        setLoading(false);
-      }
+    // useLayoutEffect e não useEffect: medir antes da pintura evita o quadro em
+    // que o módulo aparece fora do lugar e só depois pula para o centro.
+    useLayoutEffect(() => {
+        ajustarEscala();
+        posicionar(true);
+    }, [ajustarEscala, posicionar, corredorAtivo]);
+
+    useEffect(() => {
+        const aoRedimensionar = () => {
+            ajustarEscala();
+            posicionar(true);
+        };
+        window.addEventListener('resize', aoRedimensionar);
+        window.addEventListener('orientationchange', aoRedimensionar);
+        return () => {
+            window.removeEventListener('resize', aoRedimensionar);
+            window.removeEventListener('orientationchange', aoRedimensionar);
+        };
+    }, [ajustarEscala, posicionar]);
+
+    // ----------------------------------------------------------------
+    // Interação
+    // ----------------------------------------------------------------
+
+    const limparSelecao = useCallback(() => {
+        setArmarioSelecionado(null);
+        setErroDeLimite(null);
+    }, []);
+
+    const trocarCorredor = (corredor) => {
+        setCorredorEscolhido(corredor);
+        setParada(0);
+        limparSelecao();
     };
-    carregarDados();
-  }, [schoolCode]);
 
-  const mudarCorredor = (corredor) => {
-    setCorredorAtivo(corredor);
-    setArmarioSelecionado(null);
-    setPaginaAtual(1);
-  };
+    const andar = (passo) => {
+        setParada((atual) => Math.min(modulos.length - 1, Math.max(0, atual + passo)));
+    };
 
-  const alternarFiltro = (e) => {
-    setApenasDisponiveis(e.target.checked);
-    setArmarioSelecionado(null);
-    setPaginaAtual(1);
-  };
-
-  // Filtragem usando a propriedade 'corredor' real do Supabase
-  let armariosFiltrados = corredorAtivo 
-    ? armarios.filter(item => item.corredor === corredorAtivo)
-    : [];
-
-  if (apenasDisponiveis) {
-    armariosFiltrados = armariosFiltrados.filter(item => item.status === 'disponivel');
-  }
-
-  // Paginação (Matriz 5x6)
-  const totalPaginas = Math.ceil(armariosFiltrados.length / armariosPorPagina) || 1;
-  const indiceUltimo = paginaAtual * armariosPorPagina;
-  const indicePrimeiro = indiceUltimo - armariosPorPagina;
-  const armariosExibidos = armariosFiltrados.slice(indicePrimeiro, indiceUltimo);
-
-  const handleSelecionarArmario = (armario) => {
-    if (armario.status !== 'disponivel') return;
-    
-    if (armarioSelecionado?.id === armario.id) {
-      setArmarioSelecionado(null);
-    } else {
-      setArmarioSelecionado(armario);
-    }
-  };
-
-  const handleIrParaCheckout = () => {
-    if (atingiuLimite) {
-      setErro(limiteArmarios === 1
-        ? 'Você já possui um armário reservado e não pode alugar outro.'
-        : `Você já atingiu o limite de ${limiteArmarios} armários por aluno.`);
-      return;
-    }
-
-    if (armarioSelecionado) {
-      // Sem concatenar: no subdomínio rotaEscola devolve '/', e juntar à mão
-      // produziria '//checkout'.
-      navigate(rotaEscola(schoolCode, 'checkout'), {
-        state: {
-          origemValida: true, // 🔒 Libera o acesso no CheckoutProtectedRoute do router
-          armario: armarioSelecionado,
-          valorArmario: escolaDados?.valor_armario || 0
+    const escolherArmario = (armario) => {
+        if (armario.status !== 'disponivel') return;
+        // Clicar de novo no mesmo armário desfaz a escolha e limpa a tela.
+        if (armarioSelecionado?.id === armario.id) limparSelecao();
+        else {
+            setArmarioSelecionado(armario);
+            setErroDeLimite(null);
         }
-      });
-    }
-  };
+    };
 
-  const obterClasseStatus = (item) => {
-    if (armarioSelecionado?.id === item.id) return 'status-selecionado';
-    return `status-${item.status}`;
-  };
+    const irParaCheckout = () => {
+        if (!armarioSelecionado) return;
 
-  if (loading) return <Carregando tela rotulo="Carregando armários" />;
-  if (erro) return <div className="error-state">{erro}</div>;
+        if (atingiuLimite) {
+            setErroDeLimite(limiteArmarios === 1
+                ? 'Você já possui um armário reservado e não pode alugar outro.'
+                : `Você já atingiu o limite de ${limiteArmarios} armários por aluno.`);
+            return;
+        }
 
-  return (
-    <div className="home-admin-container">
-      
-      {/* Cabeçalho e Seleção de Corredores */}
-      <header className="home-admin-header">
-        <div>
-          <h2 className="header-title">Mapa de Ocupação</h2>
-          <p className="header-subtitle">{`Selecione o ${rotuloCorredor(escolaDados).toLowerCase()} para escolher seu armário`}</p>
-        </div>
+        // Sem concatenar: no subdomínio rotaEscola devolve '/', e juntar à mão
+        // produziria '//checkout'.
+        navigate(rotaEscola(schoolCode, 'checkout'), {
+            state: {
+                origemValida: true, // 🔒 Libera o acesso no CheckoutProtectedRoute do router
+                armario: armarioSelecionado,
+                valorArmario: escolaDados?.valor_armario || 0
+            }
+        });
+    };
 
-        <div className="tabs-container">
-          {corredores.map((corredor) => (
-            <button
-              key={corredor}
-              onClick={() => mudarCorredor(corredor)}
-              className={`tab-button ${corredorAtivo === corredor ? 'active' : ''}`}
-            >
-              {nomearCorredor(escolaDados, corredor)}
-            </button>
-          ))}
-        </div>
-      </header>
+    // Arrastar de lado anda de módulo — no totem o dedo é mais natural que a seta.
+    const inicioDoArraste = useRef(null);
 
-      {/* Barra de Filtros */}
-      <div className="filter-bar">
-        <input 
-          type="checkbox" 
-          id="disponiveis"
-          checked={apenasDisponiveis}
-          onChange={alternarFiltro}
-          className="filter-checkbox"
-        />
-        <label htmlFor="disponiveis" className="filter-label">
-          Exibir apenas armários disponíveis
-        </label>
-      </div>
+    const aoSoltar = (evento) => {
+        if (inicioDoArraste.current === null) return;
+        const deslocamento = evento.clientX - inicioDoArraste.current;
+        if (Math.abs(deslocamento) > 50) andar(deslocamento < 0 ? 1 : -1);
+        inicioDoArraste.current = null;
+    };
 
-      {/* Matriz em largura inteira: os detalhes do armário passaram para o ModalArmario. */}
-      <div className="main-layout-full">
-        
-        {/* Painel da Matriz de Armários */}
-        <div className="matrix-panel">
-          <div className="matrix-grid">
-            {armariosExibidos.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleSelecionarArmario(item)}
-                disabled={item.status !== 'disponivel'}
-                className={`locker-button ${obterClasseStatus(item)}`}
-              >
-                <span className="locker-prefix">Nº</span>
-                {item.nome ? item.nome.replace('Armário ', '') : item.id}
-              </button>
-            ))}
-          </div>
+    // ----------------------------------------------------------------
 
-          {/* Controle de Paginação */}
-          <footer className="pagination-container">
-            <span className="pagination-text">
-              Página <strong>{paginaAtual}</strong> de <strong>{totalPaginas}</strong>
-            </span>
+    if (loading) return <Carregando tela rotulo="Carregando armários" />;
+    if (erro) return <div className="error-state">{erro}</div>;
 
-            <div className="pagination-actions">
-              <button
-                onClick={() => setPaginaAtual(p => Math.max(p - 1, 1))}
-                disabled={paginaAtual === 1}
-                className="pagination-arrow prev"
-              >
-                ←
-              </button>
-              <button
-                onClick={() => setPaginaAtual(p => Math.min(p + 1, totalPaginas))}
-                disabled={paginaAtual === totalPaginas}
-                className="pagination-arrow next"
-              >
-                →
-              </button>
+    const nomeDoCorredor = rotuloCorredor(escolaDados).toLowerCase();
+
+    return (
+        <div className="mapa" ref={raizRef}>
+            <div>
+                <h2 className="mapa-titulo">Escolha seu armário</h2>
+                <p className="mapa-subtitulo">
+                    {`Toque no ${nomeDoCorredor} e depois no armário que você quer`}
+                </p>
             </div>
-          </footer>
 
-          <div className="locker-legend">
-            <span><i className="legend-livre" /> Disponível</span>
-            <span><i className="legend-ocupado" /> Ocupado</span>
-            <span><i className="legend-selecionado" /> Selecionado</span>
-          </div>
+            <div className="mapa-corredores">
+                {corredores.map((corredor) => (
+                    <button
+                        key={corredor}
+                        type="button"
+                        onClick={() => trocarCorredor(corredor)}
+                        className={`mapa-corredor ${corredorAtivo === corredor ? 'ativo' : ''}`}
+                    >
+                        <div className="mapa-corredor-nome">{nomearCorredor(escolaDados, corredor)}</div>
+                        <div className="mapa-corredor-livres">
+                            {livresPorCorredor[corredor] || 0} livres
+                        </div>
+                    </button>
+                ))}
+            </div>
+
+            <div
+                className="mapa-cena"
+                ref={cenaRef}
+                onPointerDown={(e) => { inicioDoArraste.current = e.clientX; }}
+                onPointerUp={aoSoltar}
+                onPointerLeave={() => { inicioDoArraste.current = null; }}
+            >
+                <div className="mapa-vidro" />
+
+                {modulos.length === 0 ? (
+                    <div className="mapa-vazio">Nenhum armário cadastrado neste {nomeDoCorredor}.</div>
+                ) : (
+                    <div className="mapa-fita" ref={fitaRef}>
+                        {modulos.map((modulo, indice) => (
+                            <div
+                                key={modulo.id}
+                                className={`mapa-item ${Math.abs(indice - paradaSegura) > 2 ? 'longe' : ''}`}
+                            >
+                                <div className="mapa-modulo">
+                                    {rotuloDoModulo(modulo) && (
+                                        <div className="mapa-modulo-rotulo">{rotuloDoModulo(modulo)}</div>
+                                    )}
+                                    <div className="mapa-caixa">
+                                        <div className="mapa-altura topo">▲ parte de cima</div>
+                                        <div
+                                            className="mapa-grade"
+                                            style={{ '--colunas': modulo.colunas }}
+                                        >
+                                            {modulo.armarios.map((item) => {
+                                                const estado = ESTADOS[item.status] || ESTADOS.manutencao;
+                                                const escolhido = armarioSelecionado?.id === item.id;
+                                                return (
+                                                    <button
+                                                        key={item.id}
+                                                        type="button"
+                                                        onClick={() => escolherArmario(item)}
+                                                        disabled={item.status !== 'disponivel'}
+                                                        aria-pressed={escolhido}
+                                                        className={`mapa-armario ${escolhido ? 'escolhido' : estado.classe}`}
+                                                    >
+                                                        <span className="mapa-armario-numero">
+                                                            {item.nome ? item.nome.replace('Armário ', '') : item.id}
+                                                        </span>
+                                                        <span className="mapa-armario-estado">
+                                                            {escolhido ? 'O SEU' : estado.texto}
+                                                        </span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                        <div className="mapa-altura base">▼ parte de baixo</div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                <div className="mapa-piso" />
+                <div className="mapa-borda" />
+
+                {modulos.length > 1 && (
+                    <div className="mapa-setas">
+                        <button
+                            type="button"
+                            className="mapa-seta"
+                            onClick={() => andar(-1)}
+                            disabled={paradaSegura === 0}
+                            aria-label="Módulo anterior"
+                        >
+                            ‹
+                        </button>
+                        <button
+                            type="button"
+                            className="mapa-seta"
+                            onClick={() => andar(1)}
+                            disabled={paradaSegura >= modulos.length - 1}
+                            aria-label="Próximo módulo"
+                        >
+                            ›
+                        </button>
+                    </div>
+                )}
+
+                <div className={`mapa-barra ${armarioSelecionado ? 'aberta' : ''}`}>
+                    <div className="mapa-barra-quem">
+                        <div className="mapa-barra-rotulo">SEU ARMÁRIO</div>
+                        <div className="mapa-barra-armario">
+                            {armarioSelecionado?.nome || '—'}
+                        </div>
+                        <div className="mapa-barra-onde">
+                            {armarioSelecionado
+                                ? nomearCorredor(escolaDados, armarioSelecionado.corredor)
+                                : ''}
+                        </div>
+                    </div>
+
+                    <div className="mapa-barra-preco">
+                        <div className="mapa-barra-rotulo">VALOR</div>
+                        <div className="mapa-barra-valor">{dinheiro(escolaDados?.valor_armario)}</div>
+                    </div>
+
+                    <button
+                        type="button"
+                        className="mapa-barra-seguir"
+                        onClick={irParaCheckout}
+                        disabled={!armarioSelecionado}
+                    >
+                        Continuar para o pagamento →
+                    </button>
+
+                    {erroDeLimite && <div className="mapa-barra-erro">{erroDeLimite}</div>}
+                </div>
+            </div>
+
+            <div className="mapa-legenda">
+                <span><i className="cor-livre" /> Verde: pode escolher</span>
+                <span><i className="cor-ocupado" /> Vermelho: já alugado</span>
+                <span><i className="cor-manutencao" /> Listrado: em conserto</span>
+                <span><i className="cor-escolhido" /> Dourado: o seu</span>
+
+                {modulos.length > 1 && (
+                    <div className="mapa-pontos">
+                        {modulos.map((modulo, indice) => (
+                            <b key={modulo.id} className={indice === paradaSegura ? 'ativo' : ''} />
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
-      </div>
-
-      <ModalArmario
-        armario={armarioSelecionado}
-        escola={escolaDados}
-        valorArmario={escolaDados?.valor_armario}
-        atingiuLimite={atingiuLimite}
-        limiteArmarios={limiteArmarios}
-        aoFechar={() => setArmarioSelecionado(null)}
-        aoConfirmar={handleIrParaCheckout}
-      />
-    </div>
-  );
+    );
 }
