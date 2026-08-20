@@ -7,7 +7,8 @@ import {
     criarCobrancaPagBank,
     validarWebhookPagBank,
     lerEventoWebhookPagBank,
-    obterChavePublicaPagBank
+    obterChavePublicaPagBank,
+    consultarPedidoPagBank
 } from '../servicos/pagBank.js';
 import {
     criarCobrancaBB,
@@ -729,34 +730,55 @@ export const webhookPagBank = async (req, res) => {
             return res.status(404).send('Instituição não encontrada.');
         }
 
-        // Mesma lógica do Mercado Pago: ping de validação sem assinatura recebe
-        // 200 sem ser processado; assinatura presente e inválida falha alto.
-        if (!req.headers['x-authenticity-token']) {
-            console.log('[LCKP PAGBANK] Requisição sem assinatura (validação de URL) - respondendo OK sem processar.');
-            return res.status(200).send('OK');
-        }
-
-        if (!validarWebhookPagBank(req, escola)) {
-            console.warn('[LCKP PAGBANK] Assinatura inválida - requisição rejeitada.');
-            return res.status(401).send('Assinatura inválida.');
-        }
-
         const evento = lerEventoWebhookPagBank(req.body);
+
+        // Corpo sem cobrança: é o ping de validação que o PagBank faz ao
+        // cadastrar notification_urls (bate uma vez, sem dados). Nada a
+        // processar — e isso vale independente de ter assinatura ou não.
         if (!evento) {
             return res.status(200).send('OK - Evento sem cobrança associada.');
         }
 
-        // Casamos pelo reference_id (nosso transaction_id) quando disponível;
-        // o id do pedido serve de reserva.
+        const temAssinatura = Boolean(req.headers['x-authenticity-token']);
+
+        if (temAssinatura && !validarWebhookPagBank(req, escola)) {
+            console.warn('[LCKP PAGBANK] Assinatura inválida - requisição rejeitada.');
+            return res.status(401).send('Assinatura inválida.');
+        }
+
+        // SEM assinatura: bug conhecido do sandbox do PagBank — a notificação
+        // REAL de pagamento chega sem x-authenticity-token (não é o ping de
+        // validação, que não tem corpo; isto tem `evento` preenchido). Achado
+        // ao vivo: o PagBank pagou, avisou, e a versão anterior deste código
+        // descartava a notificação por "faltar assinatura" — o aluno pagava e
+        // o armário nunca abria.
+        //
+        // Em vez de descartar (perde o pagamento) ou confiar cegamente no
+        // corpo (abriria brecha para notificação forjada por quem descobrisse
+        // a URL), tratamos como um SINAL e confirmamos o status de verdade
+        // consultando a API do PagBank com a credencial da própria escola —
+        // mesmo padrão já usado no adaptador do Banco do Brasil.
+        let statusConfirmado = evento.statusTraduzido;
+        if (!temAssinatura) {
+            try {
+                statusConfirmado = (await consultarPedidoPagBank(escola, evento.gatewayId)).statusTraduzido;
+            } catch (err) {
+                console.error('[LCKP PAGBANK] Falha ao confirmar pedido sem assinatura:', err.message);
+                // Não atualiza com um status não confirmado. O PagBank reenvia
+                // a notificação, e a tentativa seguinte tenta de novo.
+                return res.status(200).send('OK - Não foi possível confirmar; aguardando reenvio.');
+            }
+        }
+
+        // Casa pelo transaction_id quando ele veio; o id do pedido é reserva.
         let consulta = naoMexerNoExpirado(
             supabase
                 .from('rentals')
-                .update({ status_pagamento: evento.statusTraduzido })
-                .neq('status_pagamento', evento.statusTraduzido)
+                .update({ status_pagamento: statusConfirmado })
+                .neq('status_pagamento', statusConfirmado)
                 .eq('school_id', escola.id) // trava multi-tenant
         );
 
-        // Casa pelo transaction_id quando ele veio; o id do pedido é reserva.
         const porReferencia = (q) => evento.referenciaInterna
             ? q.eq('transaction_id', evento.referenciaInterna)
             : q.eq('gateway_id', evento.gatewayId);
@@ -766,7 +788,7 @@ export const webhookPagBank = async (req, res) => {
         const { data: aluguelAtualizado, error } = await consulta.select().maybeSingle();
         if (error) throw error;
 
-        if (!aluguelAtualizado && evento.statusTraduzido === 'aprovado') {
+        if (!aluguelAtualizado && statusConfirmado === 'aprovado') {
             await alertarPagamentoDeExpirada(
                 porReferencia(
                     supabase.from('rentals')
@@ -777,7 +799,7 @@ export const webhookPagBank = async (req, res) => {
             );
         }
 
-        if (aluguelAtualizado && evento.statusTraduzido === 'aprovado') {
+        if (aluguelAtualizado && statusConfirmado === 'aprovado') {
             console.log(`[LCKP PAGBANK] Armário ${aluguelAtualizado.locker_id} liberado para uso.`);
             // Sem await: a resposta ao gateway nao espera o e-mail. Webhook
             // que demora demais e reenviado, e o reenvio duplicaria a mensagem.

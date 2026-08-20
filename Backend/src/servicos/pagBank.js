@@ -61,15 +61,15 @@ const obterToken = obterTokenPagBank;
 const obterBaseUrl = (escola) =>
     URLS[escola.gateway_ambiente || escola.pagbank_ambiente] || URLS.sandbox;
 
-const chamarApi = async (escola, caminho, corpo) => {
+const chamarApi = async (escola, caminho, { metodo = 'POST', corpo } = {}) => {
     const resposta = await fetch(`${obterBaseUrl(escola)}${caminho}`, {
-        method: 'POST',
+        method: metodo,
         headers: {
             'Authorization': `Bearer ${obterToken(escola)}`,
             'Content-Type': 'application/json',
             'accept': 'application/json'
         },
-        body: JSON.stringify(corpo)
+        ...(corpo !== undefined ? { body: JSON.stringify(corpo) } : {})
     });
 
     const dados = await resposta.json().catch(() => null);
@@ -104,7 +104,7 @@ const chamarApi = async (escola, caminho, corpo) => {
  * para obtê-la.
  */
 export const obterChavePublicaPagBank = async (escola) => {
-    const resposta = await chamarApi(escola, '/public-keys', { type: 'card' });
+    const resposta = await chamarApi(escola, '/public-keys', { corpo: { type: 'card' } });
     return resposta?.public_key || null;
 };
 
@@ -167,7 +167,7 @@ export const criarCobrancaPagBank = async ({
         }];
     }
 
-    const pedido = await chamarApi(escola, '/orders', corpo);
+    const pedido = await chamarApi(escola, '/orders', { corpo });
 
     const qrCode = pedido?.qr_codes?.[0];
     // O PagBank entrega o QR como LINK para PNG, não como base64 embutido —
@@ -185,6 +185,43 @@ export const criarCobrancaPagBank = async ({
         qrCode: qrCode?.text || null,
         qrCodeBase64: null,
         qrCodeImagemUrl: imagemPng
+    };
+};
+
+/**
+ * Consulta o pedido diretamente no PagBank, com a credencial da própria escola.
+ *
+ * Existe para o caso em que a notificação chega SEM x-authenticity-token — o
+ * que de fato acontece no sandbox do PagBank: é um problema relatado na
+ * comunidade deles (developer.pagbank.com.br/discuss/66292a9a63bbc700590e3efb),
+ * sem confirmação oficial se também ocorre em produção.
+ *
+ * Em vez de descartar a notificação (perde o pagamento — foi o bug real
+ * observado: o PagBank pagou, avisou, e a notificação foi jogada fora por
+ * "faltar assinatura") ou confiar cegamente no corpo (abriria brecha para uma
+ * notificação forjada por quem descobrisse a URL), o webhook sem assinatura é
+ * tratado como um SINAL — "olhe o pedido X" — e o status vem desta consulta,
+ * autenticada com a credencial da escola. Mesmo padrão do adaptador do Banco
+ * do Brasil (ver bancoDoBrasil.js).
+ */
+export const consultarPedidoPagBank = async (escola, gatewayId) => {
+    const pedido = await chamarApi(escola, `/orders/${encodeURIComponent(gatewayId)}`, { metodo: 'GET' });
+    const cobranca = pedido?.charges?.[0];
+
+    // Um pedido Pix (via qr_codes) só ganha `charges` depois que ALGUÉM paga o
+    // QR — antes disso o campo nem existe no corpo, não é um array vazio.
+    // traduzirStatusPagBank(undefined) cairia no default 'recusado', o que
+    // marcaria toda cobrança ainda não paga como recusada. Sem charges, o
+    // pedido só pode estar pendente: foi criado e ninguém pagou ainda.
+    const statusTraduzido = cobranca ? traduzirStatusPagBank(cobranca.status) : 'pendente';
+
+    return {
+        statusTraduzido,
+        // O total efetivamente pago, em reais. Serve para o mesmo alerta de
+        // "pago a menor" que o Mercado Pago e o Banco do Brasil já têm.
+        valorPago: cobranca?.amount?.summary?.paid != null
+            ? cobranca.amount.summary.paid / 100
+            : null
     };
 };
 
