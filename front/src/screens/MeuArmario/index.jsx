@@ -1,3 +1,4 @@
+import { rotaEscola } from '../../utils/tenant.js';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { armariosService } from '../../services/armariosServices';
@@ -90,7 +91,7 @@ export default function MeuArmario() {
 
           <button
             type="button"
-            onClick={() => navigate(`/${schoolCode}/home`)}
+            onClick={() => navigate(rotaEscola(schoolCode, 'home'))}
             className="lckp-btn lckp-btn--ghost armario-voltar"
           >
             ← Voltar ao Mapa
@@ -105,7 +106,7 @@ export default function MeuArmario() {
               <p>Você ainda não possui nenhum armário alocado.</p>
               <button
                 type="button"
-                onClick={() => navigate(`/${schoolCode}/home`)}
+                onClick={() => navigate(rotaEscola(schoolCode, 'home'))}
                 className="lckp-btn"
               >
                 Escolher um Armário no Mapa
@@ -170,7 +171,7 @@ export default function MeuArmario() {
         {armarios.length > 0 && podeAlugarMais && (
           <button
             type="button"
-            onClick={() => navigate(`/${schoolCode}/home`)}
+            onClick={() => navigate(rotaEscola(schoolCode, 'home'))}
             className="lckp-btn lckp-btn--ghost"
           >
             Alugar outro armário

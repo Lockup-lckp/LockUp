@@ -1,3 +1,4 @@
+import { rotaEscola } from '../../utils/tenant.js';
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { authService } from '../../services/authService';
@@ -31,11 +32,11 @@ export default function Login() {
       sessionStorage.setItem('usuario', JSON.stringify(usuarioLogado));
 
       if (usuarioLogado.precisa_alterar_senha) {
-        navigate(`/${schoolCode}/alterar-senha`);
+        navigate(rotaEscola(schoolCode, 'alterar-senha'));
       } else if (usuarioLogado.role === 'admin' || usuarioLogado.role === 'superadmin') {
-        navigate(`/${schoolCode}/HomeAdmin`);
+        navigate(rotaEscola(schoolCode, 'HomeAdmin'));
       } else {
-        navigate(`/${schoolCode}/home`);
+        navigate(rotaEscola(schoolCode, 'home'));
       }
     } catch (err) {
       setErro(err.message || 'E-mail ou senha inválidos.');

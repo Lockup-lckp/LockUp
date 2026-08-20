@@ -1,3 +1,4 @@
+import { rotaEscola } from '../../utils/tenant.js';
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { escolaService } from '../../services/escolaService';
@@ -168,7 +169,7 @@ export default function Personalizacao() {
   // Redireciona quem não é admin (a API também bloqueia, mas evitamos exibir a tela).
   useEffect(() => {
     if (!podeEditar) {
-      navigate(`/${schoolCode}/home`, { replace: true });
+      navigate(rotaEscola(schoolCode, 'home'), { replace: true });
     }
   }, [podeEditar, navigate, schoolCode]);
 

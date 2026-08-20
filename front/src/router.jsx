@@ -1,3 +1,4 @@
+import { ehSubdominioDeEscola, rotaEscola } from './utils/tenant.js';
 import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Outlet, Navigate, useLocation, useParams } from 'react-router-dom';
 
@@ -114,7 +115,7 @@ function CheckoutProtectedRoute({ children }) {
 
   if (!veioDaHome) {
     console.warn('Acesso bloqueado: a tela de checkout só pode ser acessada através do mapa de armários.');
-    return <Navigate to={`/${schoolCode}/home`} replace />;
+    return <Navigate to={rotaEscola(schoolCode, 'home')} replace />;
   }
 
   return children;
@@ -145,18 +146,22 @@ function LayoutComComponentes() {
 export default function AppRoutes() {
   useAquecerRotas();
 
+  // Resolvido uma vez: o hostname não muda durante a sessão.
+  const emSubdominio = ehSubdominioDeEscola();
+
   return (
     <BrowserRouter>
       <Suspense fallback={<CarregandoRota />}>
         <Routes>
-          {/* Landing pública do projeto: apresenta o LCKP e recebe contato de escolas interessadas. */}
-          <Route path="/" element={<Landing />} />
+          {/* Landing e painel da plataforma existem SÓ no domínio principal.
+              No subdomínio de uma escola a raiz é o portal dela, e o painel do
+              superadmin nem chega a ser montado. */}
+          {!emSubdominio && <Route path="/" element={<Landing />} />}
+          {!emSubdominio && <Route path="/gerenciamento" element={<SuperAdmin />} />}
 
-          {/* Painel do superadmin da plataforma: login próprio, sem depender de nenhuma escola. */}
-          <Route path="/gerenciamento" element={<SuperAdmin />} />
-
-          {/* Todas as rotas da escola compartilham o contexto/tema via EscolaLayout */}
-          <Route path="/:schoolCode" element={<EscolaLayout />}>
+          {/* Todas as rotas da escola compartilham o contexto/tema via EscolaLayout.
+              No subdomínio elas nascem na raiz; no domínio principal, sob o código. */}
+          <Route path={emSubdominio ? '/' : '/:schoolCode'} element={<EscolaLayout />}>
             {/* Públicas */}
             <Route index element={<Login />} />
             <Route path="alterar-senha" element={<AlterarSenha />} />

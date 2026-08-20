@@ -1,3 +1,4 @@
+import { rotaEscola } from '../utils/tenant.js';
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import {
@@ -17,31 +18,31 @@ export default function SideBarAdmin({ isOpen, onClose }) {
   return (
     <PainelLateral isOpen={isOpen} onClose={onClose} titulo="Administração">
       <ItemNav
-        para={`/${schoolCode}/HomeAdmin`}
+        para={rotaEscola(schoolCode, 'HomeAdmin')}
         rotulo="Mapa de armários"
         Icone={IconeMapa}
         onNavegar={onClose}
       />
       <ItemNav
-        para={`/${schoolCode}/gerenciar-usuarios`}
+        para={rotaEscola(schoolCode, 'gerenciar-usuarios')}
         rotulo="Usuários"
         Icone={IconeUsuarios}
         onNavegar={onClose}
       />
       <ItemNav
-        para={`/${schoolCode}/gerenciar-armarios`}
+        para={rotaEscola(schoolCode, 'gerenciar-armarios')}
         rotulo="Configurar armários"
         Icone={IconeConfigurarArmarios}
         onNavegar={onClose}
       />
       <ItemNav
-        para={`/${schoolCode}/gerenciar-pagamentos`}
+        para={rotaEscola(schoolCode, 'gerenciar-pagamentos')}
         rotulo="Pagamentos"
         Icone={IconePagamentos}
         onNavegar={onClose}
       />
       <ItemNav
-        para={`/${schoolCode}/personalizacao`}
+        para={rotaEscola(schoolCode, 'personalizacao')}
         rotulo="Configurações"
         Icone={IconePersonalizacao}
         onNavegar={onClose}

@@ -1,3 +1,4 @@
+import { rotaEscola } from '../../utils/tenant.js';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { checkoutService } from '../../services/checkoutServices';
@@ -407,7 +408,7 @@ export default function Checkout() {
           setPasso(2);
           // 1200ms em vez de 2500: dá para ler "pagamento aprovado" sem deixar
           // o aluno parado diante de uma tela que já cumpriu o seu papel.
-          setTimeout(() => navigate(`/${schoolCode}/home`), 1200);
+          setTimeout(() => navigate(rotaEscola(schoolCode, 'home')), 1200);
         } else if (resultado.status_pagamento === 'pendente') {
           setTransactionId(resultado.transaction_id || '');
           setStatusMensagem('Pagamento em análise...');
@@ -818,7 +819,7 @@ export default function Checkout() {
             <button
               type="button"
               className="lckp-btn lckp-aprovado__acao"
-              onClick={() => navigate(`/${schoolCode}/meu-armario`)}
+              onClick={() => navigate(rotaEscola(schoolCode, 'meu-armario'))}
             >
               Ver meu armário
             </button>

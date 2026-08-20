@@ -1,3 +1,4 @@
+import { rotaEscola } from '../../utils/tenant.js';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { armariosService } from '../../services/armariosServices';
@@ -120,10 +121,9 @@ export default function Home() {
     }
 
     if (armarioSelecionado) {
-      const prefixoUrl = schoolCode ? `/${schoolCode}` : '';
-      
-      // Repassa o armário, o valor configurado da escola e a flag de origem.
-      navigate(`${prefixoUrl}/checkout`, {
+      // Sem concatenar: no subdomínio rotaEscola devolve '/', e juntar à mão
+      // produziria '//checkout'.
+      navigate(rotaEscola(schoolCode, 'checkout'), {
         state: {
           origemValida: true, // 🔒 Libera o acesso no CheckoutProtectedRoute do router
           armario: armarioSelecionado,

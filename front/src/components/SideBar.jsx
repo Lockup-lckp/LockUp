@@ -1,3 +1,4 @@
+import { rotaEscola } from '../utils/tenant.js';
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { PainelLateral, ItemNav, IconeMapa, IconeMeuArmario } from './NavLateral.jsx';
@@ -13,7 +14,7 @@ export default function SideBar({ isOpen, onClose }) {
     <PainelLateral isOpen={isOpen} onClose={onClose} titulo={isAdmin ? 'Administração' : 'Menu'}>
       {isAdmin ? (
         <ItemNav
-          para={`/${schoolCode}/HomeAdmin`}
+          para={rotaEscola(schoolCode, 'HomeAdmin')}
           rotulo="Painel administrativo"
           Icone={IconeMapa}
           onNavegar={onClose}
@@ -21,13 +22,13 @@ export default function SideBar({ isOpen, onClose }) {
       ) : (
         <>
           <ItemNav
-            para={`/${schoolCode}/home`}
+            para={rotaEscola(schoolCode, 'home')}
             rotulo="Mapa de armários"
             Icone={IconeMapa}
             onNavegar={onClose}
           />
           <ItemNav
-            para={`/${schoolCode}/meu-armario`}
+            para={rotaEscola(schoolCode, 'meu-armario')}
             rotulo="Meu armário"
             Icone={IconeMeuArmario}
             onNavegar={onClose}

@@ -1,3 +1,4 @@
+import { rotaEscola } from '../utils/tenant.js';
 import React, { useEffect } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { useEscola } from '../theme/contextoEscola.js';
@@ -33,7 +34,7 @@ export default function ProtectedRoute({ children }) {
   }, [escolaDivergente]);
 
   if (semSessao) {
-    return <Navigate to={`/${schoolCode}`} replace />;
+    return <Navigate to={rotaEscola(schoolCode)} replace />;
   }
 
   if (carregando) {
@@ -41,7 +42,7 @@ export default function ProtectedRoute({ children }) {
   }
 
   if (erro || !escola || escolaDivergente) {
-    return <Navigate to={`/${schoolCode}`} replace />;
+    return <Navigate to={rotaEscola(schoolCode)} replace />;
   }
 
   return children;

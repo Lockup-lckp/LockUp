@@ -1,3 +1,4 @@
+import { rotaEscola } from '../../utils/tenant.js';
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { authService } from '../../services/authService';
@@ -53,7 +54,7 @@ export default function AlterarSenha() {
       // olhando uma tela que já terminou o que tinha para fazer.
       setTimeout(() => {
         if (schoolCode) {
-          navigate(`/${schoolCode}/home`);
+          navigate(rotaEscola(schoolCode, 'home'));
         } else {
           navigate('/home');
         }

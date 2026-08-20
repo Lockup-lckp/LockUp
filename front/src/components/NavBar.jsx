@@ -1,3 +1,4 @@
+import { rotaEscola } from '../utils/tenant.js';
 import React from "react";
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useEscola } from '../theme/contextoEscola.js';
@@ -10,7 +11,7 @@ export default function NavBar({ onMenuClick }) {
   const usuario = JSON.parse(sessionStorage.getItem('usuario') || '{}');
   const isAdmin = usuario.role === 'admin' || usuario.role === 'superadmin';
 
-  const homePath = isAdmin ? `/${schoolCode}/HomeAdmin` : `/${schoolCode}/home`;
+  const homePath = isAdmin ? rotaEscola(schoolCode, 'HomeAdmin') : rotaEscola(schoolCode, 'home');
 
   // Até duas logos, cada uma com posição própria na barra (esquerda/direita).
   // Não há rodapé nas telas autenticadas: as duas vivem aqui.
@@ -31,7 +32,7 @@ export default function NavBar({ onMenuClick }) {
 
   const handleLogout = () => {
     sessionStorage.clear();
-    navigate(`/${schoolCode}`);
+    navigate(rotaEscola(schoolCode));
   };
 
   return (
