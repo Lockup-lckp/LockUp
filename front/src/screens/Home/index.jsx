@@ -272,7 +272,7 @@ export default function Home() {
     // ----------------------------------------------------------------
 
     if (loading) return <Carregando tela rotulo="Carregando armários" />;
-    if (erro) return <div className="error-state">{erro}</div>;
+    if (erro) return <div className="mapa-erro">{erro}</div>;
 
     const nomeDoCorredor = rotuloCorredor(escolaDados).toLowerCase();
 

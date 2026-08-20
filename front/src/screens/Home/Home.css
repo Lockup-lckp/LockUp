@@ -15,14 +15,36 @@
  *
  * Todo o resto (rótulos, vãos, grade) é derivado de `--lado`, então a cena
  * inteira escala junto em totem, notebook, tablet e celular.
+ *
+ * ------------------------------------------------------------------
+ * Por que não há cor literal aqui
+ * ------------------------------------------------------------------
+ * A identidade visual é por escola (theme/aplicarTema.js) e pode ser CLARA.
+ * Uma parede azul-marinho fixa ficaria ilegível num portal de fundo branco.
+ * Então parede, vidro e piso são calculados a partir dos tokens da escola.
+ *
+ * O tema não expõe uma classe "claro"/"escuro", mas `--on-bg` faz esse papel:
+ * ele é #111 em tema claro e #fff em tema escuro. Misturar uma cor com
+ * `--on-bg` escurece no tema claro e clareia no escuro — que é exatamente a
+ * direção necessária para o texto continuar legível nos dois.
  */
 
 .mapa {
     --lado: 72px;                  /* recalculado pelo JS; este é só o ponto de partida */
     --vao: 8px;
     --manutencao: #F1C40F;         /* mesmo tom que HomeAdmin.css usa em .status-manutencao */
-    --parede-clara: #1e4270;
-    --parede-escura: #14304f;
+
+    /* A parede recebe um toque da cor da escola para não ser um cinza morto. */
+    --parede-alta: color-mix(in srgb, var(--surface-raised) 86%, var(--primary-color) 14%);
+    --parede-baixa: var(--surface-color);
+    --vidro-alto: color-mix(in srgb, var(--parede-alta) 82%, var(--on-bg) 18%);
+    --vidro-baixo: var(--parede-alta);
+    /* O piso é sempre mais escuro que a parede, em tema claro ou escuro —
+       é o que faz o olho ler "chão" e não "outra parede". */
+    --piso-alto: color-mix(in srgb, var(--surface-color) 58%, #000 42%);
+    --piso-baixo: color-mix(in srgb, var(--surface-color) 34%, #000 66%);
+    /* Realce claro da cor da escola, para a borda do que está em destaque. */
+    --realce: color-mix(in srgb, var(--primary-color) 62%, #fff 38%);
 
     display: flex;
     flex-direction: column;
@@ -77,7 +99,7 @@
     transition: background 0.16s, transform 0.12s;
 }
 
-.mapa-corredor:hover { background: #17407a; }
+.mapa-corredor:hover { background: color-mix(in srgb, var(--surface-raised) 84%, var(--primary-color) 16%); }
 .mapa-corredor:active { transform: scale(0.98); }
 
 .mapa-corredor-nome { font-size: 15px; font-weight: 800; }
@@ -91,12 +113,12 @@
 
 .mapa-corredor.ativo {
     background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
-    border-color: #f6d590;
+    border-color: var(--realce);
     color: var(--on-primary);
-    box-shadow: 0 8px 24px rgba(232, 180, 74, 0.32);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--primary-color) 32%, transparent);
 }
 
-.mapa-corredor.ativo .mapa-corredor-livres { color: #0b2246; }
+.mapa-corredor.ativo .mapa-corredor-livres { color: var(--on-primary); }
 
 /* No celular cada pixel do topo sai do tamanho do armário: com o cabeçalho
    folgado sobrava tão pouca altura que o armário caía no mínimo de 34px. */
@@ -124,8 +146,9 @@
     border-radius: var(--radius-card);
     border: 1px solid var(--border-color);
     background:
-        radial-gradient(130% 78% at 50% 4%, rgba(120, 180, 235, 0.20), transparent 58%),
-        linear-gradient(180deg, var(--parede-clara) 0%, #1a3a62 60%, var(--parede-escura) 100%);
+        radial-gradient(130% 78% at 50% 4%,
+            color-mix(in srgb, var(--on-bg) 14%, transparent), transparent 58%),
+        linear-gradient(180deg, var(--parede-alta) 0%, var(--parede-baixa) 100%);
     box-shadow: var(--shadow-panel);
 }
 
@@ -136,7 +159,7 @@
     inset: 0 0 auto 0;
     height: clamp(28px, 7vh, 54px);
     z-index: 1;
-    background: linear-gradient(180deg, #31628f, #204770);
+    background: linear-gradient(180deg, var(--vidro-alto), var(--vidro-baixo));
     border-bottom: 2px solid rgba(0, 0, 0, 0.34);
 }
 
@@ -144,7 +167,7 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: repeating-linear-gradient(90deg, transparent 0 86px, rgba(9, 24, 44, 0.8) 86px 90px);
+    background: repeating-linear-gradient(90deg, transparent 0 86px, rgba(0, 0, 0, 0.45) 86px 90px);
 }
 
 .mapa-piso {
@@ -152,7 +175,10 @@
     inset: auto 0 0 0;
     height: clamp(44px, 11vh, 84px);
     z-index: 1;
-    background: linear-gradient(180deg, #17334f, #101f36);
+    background: linear-gradient(180deg, var(--piso-alto), var(--piso-baixo));
+    /* A quina parede/piso precisa aparecer mesmo quando as duas cores ficam
+       proximas — em tema escuro elas chegavam a 1,2:1. */
+    border-top: 1px solid color-mix(in srgb, var(--on-bg) 20%, transparent);
     box-shadow: inset 0 14px 28px rgba(0, 0, 0, 0.5);
 }
 
@@ -228,9 +254,12 @@
 .mapa-caixa {
     padding: calc(var(--vao) + 2px);
     border-radius: 12px;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.03));
+    background: linear-gradient(180deg,
+        color-mix(in srgb, var(--on-bg) 10%, transparent),
+        color-mix(in srgb, var(--on-bg) 3%, transparent));
     border: 1px solid var(--border-color);
-    box-shadow: 0 16px 38px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    box-shadow: 0 16px 38px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 color-mix(in srgb, var(--on-bg) 14%, transparent);
 }
 
 .mapa-grade {
@@ -261,7 +290,8 @@
     content: '';
     flex: 1;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+    background: linear-gradient(90deg, transparent,
+        color-mix(in srgb, var(--on-bg) 38%, transparent), transparent);
 }
 
 .mapa-altura.topo { margin-bottom: 6px; }
@@ -285,6 +315,15 @@
     justify-content: center;
     gap: 2px;
     transition: transform 0.13s, box-shadow 0.13s, background 0.13s;
+
+    /* O número usa a cor de texto do tema, não a cor do estado.
+     *
+     * Medido: com o texto tingido de verde, "livre" dava 3,0:1 sobre a parede
+     * de uma escola de tema claro — abaixo dos 4,5:1 da WCAG AA. E não existe
+     * uma proporção de mistura que sirva aos dois temas, porque o verde já é
+     * claro por natureza. Então o estado fica na BORDA e no PREENCHIMENTO, que
+     * é como ele é lido de longe, e o número fica sempre legível. */
+    color: var(--on-bg);
 }
 
 .mapa-armario-numero {
@@ -310,30 +349,29 @@
 /* Verde = livre. É a mesma convenção do mapa do admin (.status-disponivel),
    então quem cuida da escola e quem aluga veem a mesma cor para a mesma coisa. */
 .mapa-armario.livre {
-    background: linear-gradient(180deg, rgba(61, 220, 151, 0.26), rgba(61, 220, 151, 0.11));
-    border-color: rgba(61, 220, 151, 0.75);
-    color: var(--success);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--success) 26%, transparent), color-mix(in srgb, var(--success) 11%, transparent));
+    border-color: color-mix(in srgb, var(--success) 75%, transparent);
 }
 
 .mapa-armario.livre:hover {
     transform: translateY(-3px);
-    background: linear-gradient(180deg, rgba(61, 220, 151, 0.44), rgba(61, 220, 151, 0.22));
-    box-shadow: 0 10px 26px rgba(61, 220, 151, 0.32);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--success) 44%, transparent), color-mix(in srgb, var(--success) 22%, transparent));
+    box-shadow: 0 10px 26px color-mix(in srgb, var(--success) 32%, transparent);
 }
 
 .mapa-armario.ocupado {
-    background: rgba(239, 68, 68, 0.12);
-    border-color: rgba(239, 68, 68, 0.45);
-    color: #f79a9a;
+    background: color-mix(in srgb, var(--danger) 12%, transparent);
+    border-color: color-mix(in srgb, var(--danger) 45%, transparent);
     cursor: not-allowed;
-    opacity: 0.6;
+    /* 0.72 e nao 0.6: abaixo disso o numero do armario ocupado fica ilegivel
+       num tema claro, e o aluno precisa conseguir ler qual armario e. */
+    opacity: 0.72;
 }
 
 .mapa-armario.manutencao {
     background: repeating-linear-gradient(135deg,
-        rgba(241, 196, 15, 0.20) 0 8px, rgba(241, 196, 15, 0.06) 8px 16px);
-    border-color: rgba(241, 196, 15, 0.45);
-    color: #f4d35e;
+        color-mix(in srgb, var(--manutencao) 20%, transparent) 0 8px, color-mix(in srgb, var(--manutencao) 6%, transparent) 8px 16px);
+    border-color: color-mix(in srgb, var(--manutencao) 50%, transparent);
     cursor: not-allowed;
 }
 
@@ -341,10 +379,10 @@
    de ação (botões), então usá-lo aqui para "disponível" competiria com ele. */
 .mapa-armario.escolhido {
     background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
-    border-color: #f6d590;
+    border-color: var(--realce);
     color: var(--on-primary);
     transform: translateY(-3px);
-    box-shadow: 0 0 0 3px rgba(232, 180, 74, 0.35), 0 12px 28px rgba(232, 180, 74, 0.4);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 35%, transparent), 0 12px 28px color-mix(in srgb, var(--primary-color) 40%, transparent);
 }
 
 .mapa-armario:focus-visible {
@@ -379,7 +417,7 @@
     line-height: 1;
     color: var(--on-primary);
     background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
-    border: 2px solid #f6d590;
+    border: 2px solid var(--realce);
     box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
     transition: transform 0.15s, opacity 0.2s;
 }
@@ -420,15 +458,17 @@
     border: 2px solid;
 }
 
-.mapa-legenda .cor-livre { background: rgba(61, 220, 151, 0.26); border-color: rgba(61, 220, 151, 0.8); }
-.mapa-legenda .cor-ocupado { background: rgba(239, 68, 68, 0.14); border-color: rgba(239, 68, 68, 0.5); }
+.mapa-legenda .cor-livre { background: color-mix(in srgb, var(--success) 26%, transparent);
+    border-color: color-mix(in srgb, var(--success) 80%, transparent); }
+.mapa-legenda .cor-ocupado { background: color-mix(in srgb, var(--danger) 14%, transparent);
+    border-color: color-mix(in srgb, var(--danger) 50%, transparent); }
 .mapa-legenda .cor-manutencao {
-    background: repeating-linear-gradient(135deg, rgba(241, 196, 15, 0.3) 0 4px, transparent 4px 8px);
-    border-color: rgba(241, 196, 15, 0.5);
+    background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--manutencao) 30%, transparent) 0 4px, transparent 4px 8px);
+    border-color: color-mix(in srgb, var(--manutencao) 50%, transparent);
 }
 .mapa-legenda .cor-escolhido {
     background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
-    border-color: #f6d590;
+    border-color: var(--realce);
 }
 
 .mapa-pontos { display: flex; gap: 6px; margin-left: auto; }
@@ -437,7 +477,7 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.2);
+    background: color-mix(in srgb, var(--on-bg) 22%, transparent);
     transition: width 0.3s, background 0.3s;
 }
 
@@ -461,7 +501,8 @@
     align-items: center;
     gap: clamp(10px, 1.6vw, 16px);
     flex-wrap: wrap;
-    background: linear-gradient(180deg, rgba(13, 42, 82, 0.98), var(--bg-color));
+    background: linear-gradient(180deg,
+        color-mix(in srgb, var(--surface-color) 96%, transparent), var(--bg-color));
     border-top: 2px solid var(--primary-color);
     box-shadow: 0 -16px 38px rgba(0, 0, 0, 0.55);
     transform: translateY(110%);
@@ -515,8 +556,8 @@
     font-weight: 800;
     color: var(--on-primary);
     background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
-    border: 2px solid #f6d590;
-    box-shadow: 0 10px 26px rgba(232, 180, 74, 0.36);
+    border: 2px solid var(--realce);
+    box-shadow: 0 10px 26px color-mix(in srgb, var(--primary-color) 36%, transparent);
     transition: filter 0.15s;
 }
 
@@ -549,4 +590,22 @@
     text-align: center;
     color: var(--on-bg-muted);
     font-size: 14px;
+}
+
+/* ---------------------------------------------------------------- */
+/* Falha ao carregar                                                 */
+/* ---------------------------------------------------------------- */
+/* A classe .error-state vivia no HomeAdmin.css, que esta tela nao importa
+   mais. Sem isto, a mensagem de erro apareceria como texto solto. */
+
+.mapa-erro {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40vh;
+    padding: 24px;
+    text-align: center;
+    font-size: clamp(14px, 1.6vw, 16px);
+    font-weight: 700;
+    color: var(--danger);
 }
