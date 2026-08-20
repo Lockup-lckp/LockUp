@@ -94,7 +94,7 @@ export default function HistoricoPagamentos() {
   }
 
   return (
-    <div className="p-4 sm:p-6 bg-[var(--bg-color)] min-h-screen text-white font-sans">
+    <div className="p-4 sm:p-6 bg-[var(--bg-color)] min-h-screen text-[var(--on-bg)] font-sans">
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-[var(--primary-color)] font-display">Histórico de Pagamentos</h1>
@@ -107,7 +107,7 @@ export default function HistoricoPagamentos() {
             id="ano-relatorio"
             value={anoSelecionado}
             onChange={(e) => handleMudarAno(Number(e.target.value))}
-            className="px-3 py-2 bg-[var(--surface-color)] border border-[var(--border-color)] rounded-xl text-sm text-white outline-none focus:border-[var(--primary-color)] transition-colors"
+            className="px-3 py-2 bg-[var(--surface-color)] border border-[var(--border-color)] rounded-xl text-sm text-[var(--on-bg)] outline-none focus:border-[var(--primary-color)] transition-colors"
           >
             {anosDisponiveis.map((ano) => (
               <option key={ano} value={ano}>{ano}</option>
@@ -153,17 +153,17 @@ export default function HistoricoPagamentos() {
         </p>
       </div>
 
-      <div className="overflow-x-auto w-full border border-[#1f2635] bg-[var(--surface-color)]/60 rounded-xl backdrop-blur-md">
+      <div className="overflow-x-auto w-full border border-[var(--border-color)] bg-[var(--surface-color)]/60 rounded-xl backdrop-blur-md">
         <table className="w-full text-left border-collapse min-w-150 lckp-tabela-cartao">
           <thead>
-            <tr className="border-b border-[#1f2635] bg-[#161b26] text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            <tr className="border-b border-[var(--border-color)] bg-[var(--surface-raised)] text-xs font-semibold text-gray-400 uppercase tracking-wider">
               <th className="p-4">Data</th>
               <th className="p-4">Armário</th>
               <th className="p-4">Aluno</th>
               <th className="p-4 text-right">Valor</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#1f2635] text-sm text-gray-300">
+          <tbody className="divide-y divide-[var(--border-color)] text-sm text-gray-300">
             {historicoPaginado.length === 0 ? (
               <tr>
                 <td colSpan="4" className="p-8 text-center text-gray-500">
@@ -172,7 +172,7 @@ export default function HistoricoPagamentos() {
               </tr>
             ) : (
               historicoPaginado.map((item) => (
-                <tr key={item.id} className="hover:bg-[#161b26]/40 transition-colors">
+                <tr key={item.id} className="hover:bg-[var(--surface-raised)]/40 transition-colors">
                   <td data-label="Data" className="p-4 whitespace-nowrap">{formatarData(item.created_at)}</td>
                   <td data-label="Armário" className="p-4 whitespace-nowrap">
                     {item.locker_nome ? `${item.locker_nome} (${nomearCorredor(escola, item.locker_corredor)})` : '—'}
@@ -193,7 +193,7 @@ export default function HistoricoPagamentos() {
                       </span>
                     )}
                   </td>
-                  <td data-label="Valor" className={`p-4 text-right font-semibold whitespace-nowrap ${item.estorno ? 'text-amber-400' : 'text-white'}`}>{formatarMoeda(item.valor)}</td>
+                  <td data-label="Valor" className={`p-4 text-right font-semibold whitespace-nowrap ${item.estorno ? 'text-amber-400' : 'text-[var(--on-bg)]'}`}>{formatarMoeda(item.valor)}</td>
                 </tr>
               ))
             )}
@@ -201,7 +201,7 @@ export default function HistoricoPagamentos() {
         </table>
 
         {historicoDoAno.length > 0 && (
-          <div className="p-4 bg-[#161b26] border-t border-[#1f2635] flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="p-4 bg-[var(--surface-raised)] border-t border-[var(--border-color)] flex flex-col sm:flex-row justify-between items-center gap-4">
             <span className="text-xs text-gray-400 text-center sm:text-left">
               Página <span className="text-[var(--primary-color)] font-bold">{paginaAtual}</span> de {totalPaginas}
             </span>
@@ -210,14 +210,14 @@ export default function HistoricoPagamentos() {
               <button
                 onClick={() => setPaginaAtual((p) => Math.max(p - 1, 1))}
                 disabled={paginaAtual === 1}
-                className="px-3 py-1.5 bg-[var(--surface-color)] border border-[#1f2635] rounded-lg text-xs font-semibold text-gray-300 hover:bg-[#1a2333] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-3 py-1.5 bg-[var(--surface-color)] border border-[var(--border-color)] rounded-lg text-xs font-semibold text-gray-300 hover:bg-[var(--surface-raised)] hover:text-[var(--on-bg)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 ← Anterior
               </button>
               <button
                 onClick={() => setPaginaAtual((p) => Math.min(p + 1, totalPaginas))}
                 disabled={paginaAtual === totalPaginas}
-                className="px-3 py-1.5 bg-[var(--surface-color)] border border-[#1f2635] rounded-lg text-xs font-semibold text-gray-300 hover:bg-[#1a2333] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-3 py-1.5 bg-[var(--surface-color)] border border-[var(--border-color)] rounded-lg text-xs font-semibold text-gray-300 hover:bg-[var(--surface-raised)] hover:text-[var(--on-bg)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Próxima →
               </button>

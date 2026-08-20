@@ -117,11 +117,15 @@ export const aplicarTema = (escola) => {
 
     // Superfícies derivadas do fundo, não fixas: um cartão cinza sobre fundo
     // bordô denuncia que o tema foi só "trocar a cor do botão".
-    raiz.setProperty('--surface-color', clarear(fundo, 0.07));
-    raiz.setProperty('--surface-raised', clarear(fundo, 0.14));
-    raiz.setProperty('--on-primary', textoSobre(primaria));
-
+    //
+    // A direção depende do fundo. Num tema escuro o cartão é mais CLARO que a
+    // página; num tema claro, mais ESCURO. Clarear sempre deixaria o cartão
+    // branco sobre página branca — invisível.
     const claro = luminancia(hexParaRgb(fundo)) > 0.45;
+
+    raiz.setProperty('--surface-color', claro ? escurecer(fundo, 0.03) : clarear(fundo, 0.07));
+    raiz.setProperty('--surface-raised', claro ? escurecer(fundo, 0.07) : clarear(fundo, 0.14));
+    raiz.setProperty('--on-primary', textoSobre(primaria));
     raiz.setProperty('--on-bg', claro ? '#111111' : '#ffffff');
     raiz.setProperty('--on-bg-muted', claro ? 'rgba(0,0,0,0.60)' : 'rgba(255,255,255,0.58)');
     raiz.setProperty('--border-color', claro ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.10)');
@@ -148,15 +152,9 @@ export const aplicarTema = (escola) => {
 export const aplicarIdentidade = (escola, assinatura = 'powered by C.C.O Software Lab') => {
     if (!escola?.name) return;
 
+    // Só o título. O favicon continua sendo o do LCKP: é o ícone que identifica
+    // o produto na aba, e trocá-lo por escola faria duas abas de instituições
+    // diferentes ficarem indistinguíveis.
     document.title = `${escola.name} · Sistema LockUp · ${assinatura}`;
 
-    if (escola.logo_url) {
-        let icone = document.querySelector("link[rel~='icon']");
-        if (!icone) {
-            icone = document.createElement('link');
-            icone.rel = 'icon';
-            document.head.appendChild(icone);
-        }
-        icone.href = escola.logo_url;
-    }
 };

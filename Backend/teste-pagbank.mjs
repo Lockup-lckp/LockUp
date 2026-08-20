@@ -39,7 +39,7 @@ const pular = (nome) => { pulou++; console.log(`  --   ${nome} (sem PAGBANK_TOKE
 const montarEscola = (token, ambiente = 'sandbox') => ({
     id: 'escola-teste',
     name: 'Etec Bento Quirino',
-    codigo: 'etec-043',
+    codigo: 'etec-bentoquirino',
     gateway: 'pagbank',
     gateway_ambiente: ambiente,
     credenciais_gateway_cifrado: cifrarCredenciais({ token })
@@ -122,7 +122,7 @@ if (!TOKEN) {
             transactionId: 'TX-TESTE-' + Date.now(),
             cliente: { nome: 'Aluno Teste', cpf: '39053344705', telefone: '19999999999', email: 'aluno@teste.com' },
             dadosPagamento: { formaPagamento: 'pix' },
-            notificationUrl: 'https://exemplo.com/pagamentos/webhook/pagbank/etec-043',
+            notificationUrl: 'https://exemplo.com/pagamentos/webhook/pagbank/etec-bentoquirino',
             expiraEm: new Date(Date.now() + 30 * 60 * 1000).toISOString()
         });
 
@@ -163,7 +163,7 @@ if (!TOKEN) {
             transactionId: 'TX-CONFIRMA-' + Date.now(),
             cliente: { nome: 'Aluno Teste', cpf: '39053344705', telefone: '19999999999', email: 'aluno@teste.com' },
             dadosPagamento: { formaPagamento: 'pix' },
-            notificationUrl: 'https://exemplo.com/pagamentos/webhook/pagbank/etec-043',
+            notificationUrl: 'https://exemplo.com/pagamentos/webhook/pagbank/etec-bentoquirino',
             expiraEm: new Date(Date.now() + 30 * 60 * 1000).toISOString()
         });
 
