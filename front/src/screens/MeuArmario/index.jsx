@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router-dom';
 import { armariosService } from '../../services/armariosServices';
 import { useEscola } from '../../theme/contextoEscola.js';
 import { nomearCorredor, rotuloCorredor } from '../../utils/rotuloCorredor';
-import ModalTermos from '../../components/TermosDeUso.jsx';
 import './MeuArmario.css';
 
 export default function MeuArmario() {
@@ -25,8 +24,11 @@ export default function MeuArmario() {
   // O contrato continua acessível DEPOIS da compra: o aluno aceitou no
   // checkout e precisa poder reler as regras durante o ano — prazo de
   // desocupação, itens proibidos, quem responde pelo cadeado.
-  const [contratoAberto, setContratoAberto] = useState(false);
-  const temContrato = Boolean(escola?.contrato_texto);
+  //
+  // Deixou de abrir em modal aqui. Agora é tela própria, em /contrato, também
+  // alcançável pela barra lateral: modal não tem endereço, e o aluno não
+  // conseguia guardar o link nem voltar direto ao contrato depois.
+  const temContrato = Boolean(String(escola?.contrato_texto || '').trim());
 
   useEffect(() => {
     const buscarDadosArmario = async () => {
@@ -153,7 +155,7 @@ export default function MeuArmario() {
               {temContrato && armario.id === armarios[0].id && (
                 <button
                   type="button"
-                  onClick={() => setContratoAberto(true)}
+                  onClick={() => navigate(rotaEscola(schoolCode, 'contrato'))}
                   className="lckp-btn lckp-btn--ghost armario-contrato"
                 >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -180,7 +182,6 @@ export default function MeuArmario() {
         )}
       </div>
 
-      {contratoAberto && <ModalTermos escola={escola} aoFechar={() => setContratoAberto(false)} />}
     </div>
   );
 }

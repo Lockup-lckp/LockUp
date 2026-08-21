@@ -39,6 +39,15 @@ export const IconeMeuArmario = (props) => (
   </svg>
 );
 
+// Folha com a dobra do canto: o contrato de locação.
+export const IconeContrato = (props) => (
+  <svg viewBox="0 0 24 24" {...traco} {...props}>
+    <path d="M14 3H7a1.6 1.6 0 0 0-1.6 1.6v14.8A1.6 1.6 0 0 0 7 21h10a1.6 1.6 0 0 0 1.6-1.6V7.6z" />
+    <path d="M14 3v4.6h4.6" />
+    <path d="M8.6 12h6.8M8.6 15.2h6.8M8.6 18h4" />
+  </svg>
+);
+
 export const IconeUsuarios = (props) => (
   <svg viewBox="0 0 24 24" {...traco} {...props}>
     <circle cx="9" cy="8" r="3.2" />

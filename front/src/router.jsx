@@ -23,6 +23,7 @@ const telas = {
     armarios: () => import('./screens/Gerenciamento/Armarios/index.jsx'),
     historico: () => import('./screens/Gerenciamento/Historico/index.jsx'),
     meuArmario: () => import('./screens/MeuArmario/index.jsx'),
+    contrato: () => import('./screens/Contrato/index.jsx'),
     personalizacao: () => import('./screens/Personalizacao/index.jsx')
 };
 
@@ -38,12 +39,13 @@ const AlterarSenha = lazy(telas.alterarSenha);
 const GerenciamentoArmarios = lazy(telas.armarios);
 const HistoricoPagamentos = lazy(telas.historico);
 const MeuArmario = lazy(telas.meuArmario);
+const Contrato = lazy(telas.contrato);
 const Personalizacao = lazy(telas.personalizacao);
 
 // Quais telas cada papel visita de verdade. Aquecer só estas mantém a promessa
 // do code splitting: o aluno continua sem baixar o código de admin.
 const ROTAS_POR_PAPEL = {
-    aluno: ['home', 'meuArmario', 'checkout'],
+    aluno: ['home', 'meuArmario', 'checkout', 'contrato'],
     admin: ['homeAdmin', 'armarios', 'usuarios', 'historico', 'personalizacao'],
     superadmin: ['superAdmin', 'homeAdmin', 'armarios', 'usuarios', 'historico', 'personalizacao'],
     // O visitante chega pelo portal da escola e o próximo clique é sempre
@@ -187,6 +189,7 @@ export default function AppRoutes() {
               <Route path="gerenciar-pagamentos" element={<HistoricoPagamentos />} />
               <Route path="personalizacao" element={<Personalizacao />} />
               <Route path="meu-armario" element={<MeuArmario />} />
+              <Route path="contrato" element={<Contrato />} />
 
               <Route
                 path="checkout"
