@@ -1,18 +1,21 @@
 import React, { useEffect, useRef } from 'react';
 import { useTravarScroll } from '../utils/travarScroll';
+import DocumentoContrato from './DocumentoContrato.jsx';
+import { tituloDe } from '../utils/contrato.js';
 
-// Contrato de locação da instituição, exibido no checkout antes do pagamento.
+// Contrato de locação da instituição, em caixa modal.
 //
-// Mostra APENAS o contrato da escola. Antes havia também um termo de uso
-// genérico que eu tinha escrito para a plataforma, e os dois juntos diziam a
-// mesma coisa de formas diferentes — cadeado, itens proibidos, prazo. Onde dois
-// textos tratam do mesmo assunto, um acaba contradizendo o outro; e quem
+// Aberto no checkout, antes do pagamento, e no portal público da escola. Mostra
+// APENAS o contrato da instituição. Antes havia também um termo genérico da
+// plataforma, e os dois diziam a mesma coisa de formas diferentes — onde dois
+// textos tratam do mesmo assunto, um acaba contradizendo o outro. E quem
 // responde pela locação é a escola (na ETEC, a APM), não a LCKP.
 //
-// O texto vem de `schools.contrato_texto`, uma cláusula por linha.
+// O conteúdo em si vive em DocumentoContrato, compartilhado com a tela
+// /contrato: duplicar a marcação faria as duas divergirem no primeiro ajuste.
 
 export default function ModalTermos({ escola, aoFechar }) {
-  // Congela o fundo: sem isso a rolagem atravessa o dialogo.
+  // Congela o fundo: sem isso a rolagem atravessa o diálogo.
   useTravarScroll();
 
   const caixaRef = useRef(null);
@@ -26,13 +29,6 @@ export default function ModalTermos({ escola, aoFechar }) {
     return () => document.removeEventListener('keydown', aoTeclar);
   }, [aoFechar]);
 
-  const clausulas = (escola?.contrato_texto || '')
-    .split('\n')
-    .map((linha) => linha.trim())
-    .filter(Boolean);
-
-  const titulo = escola?.contrato_titulo || 'Contrato de locação de armário';
-
   return (
     <div className="lckp-modal__backdrop" onClick={aoFechar} role="presentation">
       <div
@@ -45,7 +41,7 @@ export default function ModalTermos({ escola, aoFechar }) {
       >
         <header className="lckp-contrato__topo">
           <div>
-            <h3 id="titulo-contrato" className="lckp-contrato__titulo">{titulo}</h3>
+            <h3 id="titulo-contrato" className="lckp-contrato__titulo">{tituloDe(escola)}</h3>
             {escola?.name && <p className="lckp-contrato__escola">{escola.name}</p>}
           </div>
           <button
@@ -58,24 +54,11 @@ export default function ModalTermos({ escola, aoFechar }) {
           </button>
         </header>
 
+        {/* O cabeçalho do documento fica de fora aqui: a moldura do modal já
+            traz título e instituição, e repeti-los logo abaixo faria a folha
+            começar dizendo duas vezes a mesma coisa. */}
         <div className="lckp-contrato__corpo">
-          {clausulas.length === 0 ? (
-            // Escola sem contrato cadastrado. Dizer isso é melhor que abrir uma
-            // caixa vazia, que o aluno leria como falha de carregamento.
-            <p className="lckp-contrato__vazio">
-              Esta instituição ainda não cadastrou o contrato de locação.
-              Procure a secretaria antes de concluir a compra.
-            </p>
-          ) : (
-            // Lista numerada: as cláusulas são referenciadas em conversa com a
-            // secretaria ("a cláusula 7 diz..."), e sem número não há como
-            // apontar qual.
-            <ol className="lckp-contrato__lista">
-              {clausulas.map((clausula, i) => (
-                <li key={i}>{clausula}</li>
-              ))}
-            </ol>
-          )}
+          <DocumentoContrato escola={escola} comCabecalho={false} />
         </div>
 
         <footer className="lckp-contrato__rodape">

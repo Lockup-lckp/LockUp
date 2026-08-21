@@ -465,11 +465,74 @@ body {
 
 .lckp-contrato__corpo {
   overflow-y: auto;
-  padding: 1.5rem 1.75rem;
-  /* Medida de leitura: linha muito longa faz o olho perder a próxima. */
+  /* A folha, não a moldura. O corpo recebe o fundo da PÁGINA, mais recuado que
+     a superfície do modal: é isso que dá a leitura de "documento dentro de uma
+     janela" em vez de "texto solto numa caixa". Funciona nos dois temas — no
+     claro vira papel branco sobre cinza; no escuro, um vão sobre a superfície. */
+  background: var(--bg-color);
+  padding: 2rem 1.75rem 2.25rem;
   font-size: 0.875rem;
-  line-height: 1.7;
+  line-height: 1.75;
   color: var(--on-bg);
+}
+
+/* Medida de leitura. Acima de ~70 caracteres o olho perde a próxima linha, e
+   contrato é lido inteiro, de cima a baixo. */
+.lckp-documento {
+  max-width: 62ch;
+  margin-inline: auto;
+}
+
+.lckp-documento__cabecalho {
+  margin-bottom: 1.75rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 2px solid color-mix(in srgb, var(--primary-color) 45%, transparent);
+}
+
+.lckp-documento__selo {
+  margin: 0 0 0.5rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--on-bg-muted);
+}
+
+.lckp-documento__titulo {
+  margin: 0;
+  font-family: var(--font-display, 'Space Grotesk', sans-serif);
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+  color: var(--on-bg);
+  text-wrap: balance;
+}
+
+.lckp-documento__parte {
+  margin: 0.4rem 0 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* Pé do documento: contagem de cláusulas e a parte que o emitiu. Existe para o
+   aluno saber que chegou ao fim -- num modal com rolagem, sem marca de fim,
+   não dá para distinguir "acabou" de "não carregou o resto". */
+.lckp-documento__fecho {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--on-bg-muted);
 }
 
 .lckp-contrato__lista {
@@ -479,36 +542,42 @@ body {
   counter-reset: clausula;
   display: flex;
   flex-direction: column;
-  gap: 1.15rem;
+  gap: 1.5rem;
 }
 
 .lckp-contrato__lista li {
   counter-increment: clausula;
   position: relative;
-  padding-left: 2.5rem;
+  padding-left: 2.75rem;
   text-align: justify;
   hyphens: auto;
 }
 
-/* O número fica fora do fluxo do texto, alinhado à esquerda: assim as
-   cláusulas formam uma coluna limpa em vez de recuos irregulares. */
+/* Numeral pendurado na margem, "1." -- é assim que contrato impresso numera
+   cláusula. O badge redondo que estava aqui era vocabulário de aplicativo:
+   correto num painel, deslocado num documento que se lê de cima a baixo.
+   Sem largura fixa o texto de 1 a 9 e de 10 em diante desalinharia. */
 .lckp-contrato__lista li::before {
-  content: counter(clausula);
+  content: counter(clausula) ".";
   position: absolute;
   left: 0;
   top: 0;
-  width: 1.6rem;
-  height: 1.6rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--primary-color) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--primary-color) 32%, transparent);
-  color: var(--primary-color);
-  font-size: 0.6875rem;
+  width: 2rem;
+  text-align: right;
+  font-family: var(--font-display, 'Space Grotesk', sans-serif);
+  font-size: 0.8125rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  color: var(--primary-color);
+  line-height: 1.75;
+}
+
+/* A regra da cláusula em uma frase, antes do detalhamento. É o que permite
+   varrer o contrato com o olho em vez de ler os vinte parágrafos. */
+.lckp-clausula__abertura {
+  color: var(--on-bg);
+  font-weight: 700;
+  margin-right: 0.3em;
 }
 
 .lckp-contrato__vazio {
@@ -531,14 +600,15 @@ body {
   .lckp-contrato__topo,
   .lckp-contrato__corpo,
   .lckp-contrato__rodape { padding-inline: 1.1rem; }
-  .lckp-contrato__corpo { padding-block: 1.15rem; font-size: 0.8125rem; }
+  .lckp-contrato__corpo { padding-block: 1.5rem; font-size: 0.8125rem; }
   .lckp-contrato__lista { gap: 1rem; }
   .lckp-contrato__lista li {
-    padding-left: 2.1rem;
+    padding-left: 2.2rem;
     /* Justificado numa coluna estreita abre "rios" de espaço entre palavras. */
     text-align: left;
   }
-  .lckp-contrato__lista li::before { width: 1.4rem; height: 1.4rem; font-size: 0.625rem; }
+  .lckp-contrato__lista li::before { width: 1.6rem; font-size: 0.75rem; }
+  .lckp-documento__titulo { font-size: 1.05rem; }
   .lckp-contrato__rodape .lckp-btn { width: 100%; justify-content: center; }
 }
 
