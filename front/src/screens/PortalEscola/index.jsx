@@ -287,9 +287,16 @@ export default function PortalEscola() {
                     <div className="pe-secao pe-rodape__interno">
                         <div>
                             <p className="pe-rodape__escola">{escola.name}</p>
+                            {/* As duas marcas linkam para o seu próprio site: o produto
+                                para o LCKP, o estúdio para o C.C.O. A escola vem antes
+                                das duas, na linha de cima. */}
                             <p className="pe-rodape__assinatura">
-                                Sistema LockUp · powered by{' '}
+                                Sistema{' '}
                                 <a href="https://lckp.com.br" target="_blank" rel="noreferrer noopener">
+                                    LockUp
+                                </a>
+                                {' '}· powered by{' '}
+                                <a href="https://cco-software-lab.vercel.app/" target="_blank" rel="noreferrer noopener">
                                     C.C.O Software Lab
                                 </a>
                             </p>
