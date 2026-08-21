@@ -597,10 +597,14 @@ export const removerOcupante = async (req, res) => {
             return res.status(400).json({ error: 'Este armário não tem ocupante.' });
         }
 
+        // Lida uma vez só: serve para calcular a devolução E para encerrar a
+        // locação no fim, inclusive quando não há devolução nenhuma.
+        const locacao = armario.usuario_id
+            ? await buscarLocacaoAtiva(id, armario.usuario_id)
+            : null;
+
         let estorno = null;
         if (registrarEstorno && armario.usuario_id) {
-            const locacao = await buscarLocacaoAtiva(id, armario.usuario_id);
-
             if (!locacao) {
                 return res.status(400).json({
                     error: 'Não há locação paga em aberto para este aluno neste armário — não existe o que estornar.'
@@ -653,6 +657,38 @@ export const removerOcupante = async (req, res) => {
             .eq('id', id);
 
         if (erroArmario) throw erroArmario;
+
+        // A locação deixa de vigorar quando o ocupante sai — com devolução ou
+        // sem. Até aqui ela ficava ABERTA para sempre, e isso produzia dois
+        // defeitos encadeados, os dois silenciosos:
+        //
+        //   1. Revincular o mesmo aluno ao mesmo armário não gerava cobrança.
+        //      registrarLocacaoPresencial encontrava a locação velha ainda
+        //      aberta e desistia, achando que já existia registro. O armário
+        //      era entregue de graça sem ninguém perceber.
+        //
+        //   2. O estorno seguinte devolvia 409 "Esta locação já foi estornada".
+        //      buscarLocacaoAtiva continuava achando a locação antiga — que de
+        //      fato já tinha estorno — em vez da locação nova.
+        //
+        // A coluna encerrado_em já existia (migração 2026-08-07), mas só a
+        // rotina de encerramento do ciclo letivo a preenchia.
+        //
+        // O extrato NÃO filtra por este campo, então cobrança e devolução
+        // continuam as duas visíveis no relatório: encerrar não apaga
+        // histórico, só diz que acabou.
+        if (locacao) {
+            const { error: erroEncerrar } = await supabase
+                .from('rentals')
+                .update({ encerrado_em: new Date().toISOString() })
+                .eq('id', locacao.id);
+
+            // Não derruba a resposta: o armário já foi liberado e o aluno já
+            // saiu. Registrar em log deixa o problema visível em vez de mudo.
+            if (erroEncerrar) {
+                console.error('[LCKP] Ocupante removido, mas a locação não foi encerrada:', erroEncerrar.message);
+            }
+        }
 
         return res.json({
             mensagem: estorno
