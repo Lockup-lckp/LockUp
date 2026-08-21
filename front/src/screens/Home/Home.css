@@ -51,11 +51,6 @@
     max-width: 1400px;
     margin: 0 auto;
     width: 100%;
-    /* Ocupar a altura toda importa no totem: numa tela de 1920 em pé, uma cena
-       de altura fixa deixava mais de mil pixels vazios embaixo. `dvh` porque no
-       celular a barra do navegador entra e sai e `vh` não acompanha. */
-    min-height: calc(100vh - 80px);
-    min-height: calc(100dvh - 80px);
 }
 
 /* ---------------------------------------------------------------- */
@@ -133,13 +128,11 @@
 
 .mapa-cena {
     position: relative;
-    /* Cresce para tomar a sobra da coluna em vez de ter altura fixa. O mínimo
-       garante as 4 linhas de armário; o máximo evita que numa TV a parede
-       vire um paredão. Quem lê essa altura em tempo real e redimensiona os
-       armários é o `ajustarEscala` do componente. */
-    flex: 1 1 auto;
-    min-height: 330px;
-    max-height: 900px;
+    /* A altura é escrita pelo `ajustarEscala`: ele mede quanto sobra da janela
+       abaixo do cabeçalho e acima da legenda. Fazer isso em CSS exigiria saber
+       a altura da navbar, que não é assunto desta tela. O valor aqui é só o
+       piso, para o primeiro quadro não nascer achatado. */
+    height: 330px;
     overflow: hidden;
     border-radius: var(--radius-card);
     border: 1px solid var(--border-color);

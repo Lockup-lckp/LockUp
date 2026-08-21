@@ -22,6 +22,8 @@ import './Home.css';
 // Limites do tamanho do armário na tela. O mínimo não é estético: abaixo disso
 // o alvo fica menor que um dedo no vidro do totem.
 const LADO_MIN = 34;
+const ALTURA_CENA_MIN = 330;
+const ALTURA_CENA_MAX = 900;
 const LADO_MAX = 110;
 const LINHAS_MAX = 4;
 
@@ -53,6 +55,7 @@ export default function Home() {
     const cenaRef = useRef(null);
     const fitaRef = useRef(null);
     const raizRef = useRef(null);
+    const legendaRef = useRef(null);
 
     const limiteArmarios = Number(escolaDados?.max_armarios_por_aluno) || 1;
     const atingiuLimite = armariosDoAluno >= limiteArmarios;
@@ -132,6 +135,34 @@ export default function Home() {
         const raiz = raizRef.current;
         if (!cena || !raiz || modulos.length === 0) return;
 
+        // A cena ocupa o que sobra da janela, MEDIDO dos dois lados.
+        //
+        // Nada de constante de altura de navbar: esta tela vive dentro de um
+        // layout com barra superior e menu lateral que ela não controla. O que
+        // fica ACIMA sai do próprio topo da cena; o que fica ABAIXO (vão,
+        // legenda e os paddings do container e da página) sai da diferença
+        // entre o fim da cena e o fim do documento. Somados à mão davam 108px
+        // aqui, e eu tinha chutado 74 — a página passou a rolar 34px.
+        const caixa = cena.getBoundingClientRect();
+
+        // O que fica abaixo da cena: o vão, a legenda e o padding de baixo do
+        // próprio componente cabem todos na diferença até o fim da raiz; falta
+        // só o padding do container que a envolve.
+        //
+        // Tentei antes tirar isso de `scrollHeight`, e estava errado: o
+        // scrollHeight nunca é menor que a janela, então num totem de 1920 de
+        // altura ele contava o espaço VAZIO como conteúdo e a cena nunca
+        // crescia. A diferença entre dois elementos não tem esse problema.
+        const paiEstilo = raiz.parentElement ? getComputedStyle(raiz.parentElement) : null;
+        const abaixoDaCena = (raiz.getBoundingClientRect().bottom - caixa.bottom)
+            + (paiEstilo ? parseFloat(paiEstilo.paddingBottom) || 0 : 0);
+
+        const disponivel = window.innerHeight - caixa.top - abaixoDaCena;
+        const alturaCena = Math.max(ALTURA_CENA_MIN, Math.min(ALTURA_CENA_MAX, disponivel));
+        if (Math.abs(cena.clientHeight - alturaCena) > 1) {
+            cena.style.height = `${alturaCena}px`;
+        }
+
         const colunasMax = Math.max(...modulos.map((m) => m.colunas));
         const linhasMax = Math.min(
             LINHAS_MAX,
@@ -197,15 +228,32 @@ export default function Home() {
     }, [ajustarEscala, posicionar, corredorAtivo]);
 
     useEffect(() => {
-        const aoRedimensionar = () => {
+        const recalcular = () => {
             ajustarEscala();
             posicionar(true);
         };
-        window.addEventListener('resize', aoRedimensionar);
-        window.addEventListener('orientationchange', aoRedimensionar);
+
+        window.addEventListener('resize', recalcular);
+        window.addEventListener('orientationchange', recalcular);
+
+        // O evento de resize da janela não cobre tudo: a barra lateral abre e
+        // fecha, a fonte carrega, e o flex assenta um quadro depois da
+        // montagem. Sem observar a CAIXA da cena, o tamanho do armário ficava
+        // preso ao valor calculado antes de a cena crescer — foi assim que ele
+        // travou no mínimo de 34px numa tela onde cabiam 50px.
+        const observador = new ResizeObserver(recalcular);
+        if (raizRef.current) observador.observe(raizRef.current);
+        // Observar TAMBÉM a raiz do documento: quando só a ALTURA da janela
+        // muda — a barra do navegador do celular sumindo, a janela puxada pela
+        // borda de baixo — a caixa do componente não muda de tamanho e o
+        // observador não dispara. Aí a cena ficava com a altura da medição
+        // anterior.
+        observador.observe(document.documentElement);
+
         return () => {
-            window.removeEventListener('resize', aoRedimensionar);
-            window.removeEventListener('orientationchange', aoRedimensionar);
+            window.removeEventListener('resize', recalcular);
+            window.removeEventListener('orientationchange', recalcular);
+            observador.disconnect();
         };
     }, [ajustarEscala, posicionar]);
 
@@ -416,7 +464,7 @@ export default function Home() {
                 </div>
             </div>
 
-            <div className="mapa-legenda">
+            <div className="mapa-legenda" ref={legendaRef}>
                 <span><i className="cor-livre" /> Verde: pode escolher</span>
                 <span><i className="cor-ocupado" /> Vermelho: já alugado</span>
                 <span><i className="cor-manutencao" /> Listrado: em conserto</span>
