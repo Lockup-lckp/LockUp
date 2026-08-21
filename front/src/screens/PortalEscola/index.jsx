@@ -97,7 +97,6 @@ export default function PortalEscola() {
         escola.encerramento_semestral_mes ?? 7
     );
 
-    const limite = Number(escola.max_armarios_por_aluno) || 1;
     const matricula = String(escola.tipo_matricula || 'rm').toUpperCase();
     const divisoes = rotuloCorredorPlural(escola);
     const temContrato = Boolean(String(escola.contrato_texto || '').trim());
@@ -236,15 +235,6 @@ export default function PortalEscola() {
                         </p>
 
                         <div className="pe-fatos" data-reveal-group>
-                            <div className="pe-fato" data-reveal-item>
-                                <p className="pe-fato__dado">
-                                    {limite} {limite === 1 ? 'armário' : 'armários'}
-                                </p>
-                                <p className="pe-fato__texto">
-                                    O máximo que um mesmo aluno pode manter alugado ao mesmo tempo.
-                                </p>
-                            </div>
-
                             <div className="pe-fato" data-reveal-item>
                                 <p className="pe-fato__dado">{abertura} — {encerramento}</p>
                                 <p className="pe-fato__texto">
