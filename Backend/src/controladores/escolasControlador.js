@@ -10,8 +10,11 @@ import { responderErro } from '../utils/erros.js';
 // superadmin — o admin de escola não pode mexer na própria comissão contratual
 // nem trocar o gateway de pagamento.
 //
-// As cores saíram: a estilização do sistema é fixa na marca LCKP. A escola
-// personaliza a(s) logo(s) e onde cada uma aparece.
+// As cores NÃO estão nesta lista de propósito. Desde a virada white-label o
+// tema por instituição existe (primary_color, secondary_color, bg_color), mas
+// quem define é o superadmin: um administrador escolhendo o próprio par de
+// cores pode deixar o botão de comprar ilegível na escola inteira, e o motor
+// de tema apenas avisa no console — ele não bloqueia.
 const CAMPOS_EDITAVEIS_ADMIN = [
   'logo_url',
   'logo_2_url',
@@ -40,7 +43,7 @@ const CAMPOS_EDITAVEIS_ADMIN = [
 // trafega para o navegador é uma credencial vazada.
 const CAMPOS_SECRETOS = ['pagbank_token_cifrado', 'credenciais_gateway_cifrado'];
 
-// Contrato público da escola (login, tema, checkout). É montado em JS a partir
+// Contrato público da escola (portal, login, tema, checkout). É montado em JS a partir
 // de select('*') em vez de nomear as colunas na consulta: nomear coluna que
 // ainda não existe faz o PostgREST devolver 400 (42703) e derruba a busca
 // inteira, tirando o login do ar até alguém rodar a migração. Assim, uma coluna
@@ -55,6 +58,18 @@ const projetarEscolaPublica = (escola) => {
     logo_2_url: escola.logo_2_url ?? null,
     logo_1_posicao: escola.logo_1_posicao ?? 'esquerda',
     logo_2_posicao: escola.logo_2_posicao ?? 'nenhum',
+    // Identidade visual da instituição. NÃO é segredo: é a marca da escola,
+    // vista por qualquer visitante do portal dela.
+    //
+    // Sem estes três campos aqui, o tema por escola não existe. O motor do
+    // front (front/src/theme/aplicarTema.js) desiste na primeira linha quando
+    // a cor principal ou o fundo não chegam, e cai no navy da LCKP — em
+    // silêncio, porque desistir é o comportamento certo para uma escola que
+    // realmente não configurou cor. Foi assim que o portal branco da Bento
+    // Quirino continuou saindo escuro com as cores gravadas no banco.
+    primary_color: escola.primary_color ?? null,
+    secondary_color: escola.secondary_color ?? null,
+    bg_color: escola.bg_color ?? null,
     valor_armario: escola.valor_armario ?? null,
     tipo_matricula: escola.tipo_matricula ?? 'rm',
     // Regra de locação, não segredo: o aluno precisa saber quantos armários

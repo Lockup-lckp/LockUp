@@ -1,9 +1,10 @@
 import { rotaEscola } from '../../utils/tenant.js';
 import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { authService } from '../../services/authService';
 import { useEscola } from '../../theme/contextoEscola.js';
 import Carregando from '../../components/Carregando.jsx';
+import EscolaNaoEncontrada from '../../components/EscolaNaoEncontrada.jsx';
 import './Login.css';
 
 export default function Login() {
@@ -50,15 +51,9 @@ export default function Login() {
   }
 
   if (escolaInvalida || !dadosEscola) {
-    return (
-      <div className="page-container" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#fff', textAlign: 'center', padding: '20px' }}>
-        <h1 style={{ fontSize: '4rem', color: '#ef4444', marginBottom: '10px' }}>404</h1>
-        <h2 style={{ fontSize: '1.5rem', marginBottom: '15px' }}>Instituição de Ensino Não Encontrada</h2>
-        <p style={{ color: '#9ca3af', maxWidth: '400px', lineHeight: '1.5' }}>
-          A URL ou o código da instituição informado (<strong>{schoolCode || 'nenhum'}</strong>) não corresponde a nenhuma escola ativa no sistema. Por favor, verifique o endereço digitado.
-        </p>
-      </div>
-    );
+    // Mesma tela que o portal usa. Estava escrita aqui com branco e cinza
+    // fixos, o que sumia num tema de fundo claro.
+    return <EscolaNaoEncontrada codigo={schoolCode} />;
   }
 
   // No login não há navbar, então as duas logos aparecem juntas — a posição
@@ -128,6 +123,13 @@ export default function Login() {
         <button type="submit" className="button-submit" disabled={carregando}>
           {carregando ? 'Entrando...' : 'Entrar na Conta'}
         </button>
+
+        <Link
+          to={rotaEscola(schoolCode)}
+          style={{ textAlign: 'center', fontSize: '0.8125rem', color: 'var(--on-bg-muted)', textDecoration: 'none' }}
+        >
+          ← Voltar para o portal da {dadosEscola?.name || 'instituição'}
+        </Link>
       </form>
     </div>
   );

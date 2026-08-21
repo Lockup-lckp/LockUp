@@ -23,7 +23,7 @@
   background: var(--surface-color);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--border-color);
   border-radius: 16px;
   padding: 32px;
   display: flex;
@@ -33,7 +33,7 @@
 }
 
 .login-title {
-  color: #ffffff;
+  color: var(--on-bg);
   font-family: var(--font-display, 'Space Grotesk', sans-serif);
   font-size: 1.55rem;
   font-weight: 700;
@@ -42,7 +42,7 @@
 }
 
 .login-subtitle {
-  color: #e2e8f0;
+  color: var(--on-bg-muted);
   font-size: 0.875rem;
   margin-top: 6px;
   margin-bottom: 0;
@@ -68,7 +68,7 @@
 }
 
 .label {
-  color: #f1f5f9;
+  color: var(--on-bg-muted);
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -79,10 +79,10 @@
 .input {
   width: 100%;
   padding: 14px 16px;
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: color-mix(in srgb, var(--on-bg) 5%, transparent);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
-  color: #ffffff;
+  color: var(--on-bg);
   font-size: 0.875rem;
   outline: none;
   box-sizing: border-box;
@@ -90,7 +90,7 @@
 }
 
 .input::placeholder {
-  color: #94a3b8;
+  color: var(--on-bg-muted);
 }
 
 .input:focus {

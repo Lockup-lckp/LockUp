@@ -1,0 +1,470 @@
+/* ==================================================================
+   Portal público da instituição
+   A porta de entrada do subdomínio da escola (etec-bentoquirino.lckp.com.br).
+
+   NENHUMA cor literal aqui — nem uma. Este mesmo arquivo precisa desenhar o
+   portal bordô sobre branco da Bento Quirino e o dourado sobre navy de uma
+   escola que não configurou tema nenhum. Cor escrita à mão funcionaria em uma
+   e quebraria na outra, e o erro só apareceria na escola do outro lado.
+
+   Duas regras que valem para o arquivo inteiro:
+
+   1. Texto NUNCA vai sobre --secondary-color. A secundária é escolhida por
+      afinidade com a marca da escola, não por contraste: o laranja #F48220 da
+      Bento Quirino dá 2,4:1 sobre branco, reprovado na WCAG AA. Ela serve para
+      filete, brilho e moldura — superfícies que não carregam palavra.
+   2. Texto sobre --primary-color usa --on-primary, que o motor de tema calcula
+      por luminância (ver theme/aplicarTema.js).
+   ================================================================== */
+
+.pe-raiz {
+  min-height: 100vh;
+  background: var(--bg-color);
+  color: var(--on-bg);
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  overflow-x: hidden;
+}
+
+/* Lavagem da identidade da escola no alto da página.
+   Em percentual da cor, não em cor fixa: sobre fundo claro vira um véu suave;
+   sobre fundo escuro, um brilho. A mesma regra serve aos dois. */
+.pe-brilho {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 46rem;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(58rem 34rem at 10% -12%, color-mix(in srgb, var(--primary-color) 13%, transparent), transparent 62%),
+    radial-gradient(42rem 28rem at 94% 2%, color-mix(in srgb, var(--secondary-color) 12%, transparent), transparent 64%);
+}
+
+.pe-conteudo {
+  position: relative;
+  z-index: 1;
+}
+
+.pe-secao {
+  max-width: 68rem;
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .pe-secao { padding-inline: 3rem; }
+}
+
+/* ── Cabeçalho ──────────────────────────────────────────────────── */
+
+.pe-topo {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  /* Translúcido sobre a cor da escola, não sobre branco/preto fixo: assim a
+     barra continua sendo "a página desfocada" em qualquer tema. */
+  background: color-mix(in srgb, var(--bg-color) 84%, transparent);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.pe-topo__interno {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 4.25rem;
+}
+
+.pe-topo__marca {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 0;
+}
+
+.pe-topo__nome {
+  font-family: var(--font-display, 'Space Grotesk', sans-serif);
+  font-weight: 700;
+  font-size: 1.0625rem;
+  letter-spacing: -0.015em;
+  color: var(--on-bg);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pe-topo__links {
+  display: flex;
+  align-items: center;
+  gap: 1.75rem;
+}
+
+.pe-link {
+  font-size: 0.875rem;
+  color: var(--on-bg-muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.pe-link:hover { color: var(--on-bg); }
+
+@media (max-width: 767px) {
+  .pe-link--some { display: none; }
+}
+
+/* ── Chamada principal ──────────────────────────────────────────── */
+
+.pe-hero {
+  display: grid;
+  gap: 3rem;
+  padding-block: 3.5rem 4rem;
+  align-items: center;
+}
+
+@media (min-width: 900px) {
+  .pe-hero {
+    grid-template-columns: 1fr minmax(20rem, 24rem);
+    gap: 4rem;
+    padding-block: 5rem 6rem;
+  }
+}
+
+.pe-selo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--primary-color);
+  background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary-color) 28%, transparent);
+  border-radius: 999px;
+  padding: 0.375rem 0.875rem;
+  margin-bottom: 1.5rem;
+}
+
+.pe-titulo {
+  font-family: var(--font-display, 'Space Grotesk', sans-serif);
+  font-size: clamp(2.25rem, 6vw, 3.75rem);
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+  font-weight: 800;
+  text-wrap: balance;
+  margin: 0 0 1.25rem;
+  color: var(--on-bg);
+}
+
+.pe-titulo em {
+  font-style: normal;
+  color: var(--primary-color);
+}
+
+.pe-texto {
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: var(--on-bg-muted);
+  max-width: 34rem;
+  text-wrap: pretty;
+  margin: 0 0 2rem;
+}
+
+.pe-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.875rem;
+}
+
+/* ── Cartão da locação ──────────────────────────────────────────── */
+
+/* Desenhado como a porta de um armário: o filete vertical à esquerda é a
+   dobradiça e o ponto arredondado é a fechadura. É o único lugar em que a cor
+   secundária aparece com força — e não há texto sobre ela. */
+.pe-cartao {
+  position: relative;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  padding: 1.75rem 1.75rem 1.5rem 2.25rem;
+  box-shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.pe-cartao::before {
+  content: '';
+  position: absolute;
+  left: 0.875rem;
+  top: 1.75rem;
+  bottom: 1.75rem;
+  width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(to bottom, var(--primary-color), var(--secondary-color));
+  opacity: 0.85;
+}
+
+.pe-cartao__fechadura {
+  position: absolute;
+  right: 1.75rem;
+  top: 1.9rem;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 999px;
+  border: 2px solid color-mix(in srgb, var(--primary-color) 55%, transparent);
+}
+
+.pe-cartao__rotulo {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--on-bg-muted);
+  margin: 0 0 1.25rem;
+}
+
+.pe-plano + .pe-plano {
+  margin-top: 1.125rem;
+  padding-top: 1.125rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.pe-plano__nome {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--on-bg);
+  margin: 0 0 0.25rem;
+}
+
+.pe-plano__valor {
+  font-family: var(--font-display, 'Space Grotesk', sans-serif);
+  font-size: 2.125rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--primary-color);
+  /* Os dois preços ficam empilhados: sem largura fixa de dígito, "R$ 100,00" e
+     "R$ 50,00" desalinham a vírgula e a coluna fica torta. */
+  font-variant-numeric: tabular-nums;
+}
+
+.pe-plano__prazo {
+  font-size: 0.8125rem;
+  color: var(--on-bg-muted);
+  margin: 0.375rem 0 0;
+}
+
+.pe-cartao__nota {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--on-bg-muted);
+  margin: 1.5rem 0 0;
+  padding-top: 1.125rem;
+  border-top: 1px solid var(--border-color);
+}
+
+/* Estado da janela de vendas. Aberto e fechado usam a MESMA forma e mudam só a
+   intensidade — um aviso vermelho aqui daria a impressão de erro do sistema,
+   quando o que existe é um calendário. */
+.pe-estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 0.3125rem 0.75rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--border-color);
+  color: var(--on-bg-muted);
+  background: color-mix(in srgb, var(--on-bg) 5%, transparent);
+}
+
+.pe-estado--aberto {
+  color: var(--primary-color);
+  border-color: color-mix(in srgb, var(--primary-color) 30%, transparent);
+  background: color-mix(in srgb, var(--primary-color) 9%, transparent);
+}
+
+.pe-estado__ponto {
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+/* ── Seções de conteúdo ─────────────────────────────────────────── */
+
+.pe-bloco {
+  padding-block: 3.5rem;
+  border-top: 1px solid var(--border-color);
+  scroll-margin-top: 5rem;
+}
+
+@media (min-width: 768px) {
+  .pe-bloco { padding-block: 4.5rem; }
+}
+
+.pe-bloco__titulo {
+  font-family: var(--font-display, 'Space Grotesk', sans-serif);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  margin: 0 0 0.75rem;
+  color: var(--on-bg);
+}
+
+.pe-bloco__linha {
+  font-size: 1rem;
+  color: var(--on-bg-muted);
+  max-width: 42rem;
+  text-wrap: pretty;
+  margin: 0 0 2.5rem;
+}
+
+/* Passos. A numeração aqui não é enfeite: é uma sequência de verdade, e o aluno
+   precisa saber que sem entrar não há mapa, e sem pagar não há armário. */
+.pe-passos {
+  display: grid;
+  gap: 1.5rem;
+  counter-reset: passo;
+}
+
+@media (min-width: 768px) {
+  .pe-passos { grid-template-columns: repeat(3, 1fr); gap: 2rem; }
+}
+
+.pe-passo {
+  position: relative;
+  padding-top: 3.25rem;
+}
+
+.pe-passo::before {
+  counter-increment: passo;
+  content: counter(passo, decimal-leading-zero);
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.375rem;
+  height: 2.375rem;
+  border-radius: 12px;
+  background: var(--primary-color);
+  color: var(--on-primary);
+  font-family: var(--font-display, 'Space Grotesk', sans-serif);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.pe-passo__titulo {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--on-bg);
+  margin: 0 0 0.5rem;
+}
+
+.pe-passo__texto {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--on-bg-muted);
+  text-wrap: pretty;
+  margin: 0;
+}
+
+/* Fatos da instituição: dado curto em destaque, explicação embaixo. */
+.pe-fatos {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+
+.pe-fato {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 1.25rem 1.375rem;
+}
+
+.pe-fato__dado {
+  font-family: var(--font-display, 'Space Grotesk', sans-serif);
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--primary-color);
+  font-variant-numeric: tabular-nums;
+  margin: 0 0 0.375rem;
+}
+
+.pe-fato__texto {
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--on-bg-muted);
+  text-wrap: pretty;
+  margin: 0;
+}
+
+.pe-fato__acao {
+  margin-top: 0.875rem;
+}
+
+/* ── Rodapé ─────────────────────────────────────────────────────── */
+
+/* A hierarquia da marca é a mesma de toda superfície do produto:
+   ESCOLA · Sistema LockUp · powered by C.C.O Software Lab.
+   A escola vem primeiro porque o portal é dela; a plataforma assina embaixo. */
+.pe-rodape {
+  border-top: 1px solid var(--border-color);
+  background: color-mix(in srgb, var(--on-bg) 3%, transparent);
+}
+
+.pe-rodape__interno {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding-block: 2rem;
+}
+
+.pe-rodape__escola {
+  font-family: var(--font-display, 'Space Grotesk', sans-serif);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--on-bg);
+  margin: 0;
+}
+
+.pe-rodape__assinatura {
+  font-size: 0.75rem;
+  color: var(--on-bg-muted);
+  margin: 0.25rem 0 0;
+}
+
+.pe-rodape__assinatura a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.pe-rodape__assinatura a:hover { color: var(--on-bg); }
+
+/* No celular os botões compactos ficavam em 38-39px de altura. Dedo não é
+   ponteiro: abaixo de 44px o toque erra o alvo com frequência, e os dois
+   afetados são justamente "Entrar" e "Ler o contrato".
+   min-height, e não padding: os tamanhos compactos vêm de style inline no JSX,
+   e padding aqui perderia a disputa de especificidade. */
+@media (max-width: 640px) {
+  .pe-raiz .lckp-btn { min-height: 44px; }
+}
+
+/* Foco visível em qualquer tema: a cor da escola, com halo, funciona tanto
+   sobre branco quanto sobre navy. */
+.pe-raiz a:focus-visible,
+.pe-raiz button:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 3px;
+  border-radius: 6px;
+}

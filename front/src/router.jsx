@@ -12,6 +12,7 @@ import { BrowserRouter, Routes, Route, Outlet, Navigate, useLocation, useParams 
 const telas = {
     landing: () => import('./screens/Landing/index.jsx'),
     superAdmin: () => import('./screens/SuperAdmin/index.jsx'),
+    portalEscola: () => import('./screens/PortalEscola/index.jsx'),
     login: () => import('./screens/Auth/index.jsx'),
     home: () => import('./screens/Home/index.jsx'),
     checkout: () => import('./screens/Checkout/index.jsx'),
@@ -26,6 +27,7 @@ const telas = {
 
 const Landing = lazy(telas.landing);
 const SuperAdmin = lazy(telas.superAdmin);
+const PortalEscola = lazy(telas.portalEscola);
 const Login = lazy(telas.login);
 const Home = lazy(telas.home);
 const Checkout = lazy(telas.checkout);
@@ -43,7 +45,9 @@ const ROTAS_POR_PAPEL = {
     aluno: ['home', 'meuArmario', 'checkout'],
     admin: ['homeAdmin', 'armarios', 'usuarios', 'historico', 'personalizacao'],
     superadmin: ['superAdmin', 'homeAdmin', 'armarios', 'usuarios', 'historico', 'personalizacao'],
-    visitante: ['login']
+    // O visitante chega pelo portal da escola e o próximo clique é sempre
+    // "Entrar" — vale aquecer os dois.
+    visitante: ['portalEscola', 'login']
 };
 
 const agendarOcioso = (fn) =>
@@ -162,8 +166,15 @@ export default function AppRoutes() {
           {/* Todas as rotas da escola compartilham o contexto/tema via EscolaLayout.
               No subdomínio elas nascem na raiz; no domínio principal, sob o código. */}
           <Route path={emSubdominio ? '/' : '/:schoolCode'} element={<EscolaLayout />}>
-            {/* Públicas */}
-            <Route index element={<Login />} />
+            {/* Públicas.
+
+                A raiz é o PORTAL da escola, não o login. Ela era o formulário
+                de acesso, o que exigia e-mail e senha de quem talvez nunca
+                tivesse entrado — sem dizer preço, prazo nem que a senha do
+                primeiro acesso é a matrícula. O login continua existindo, agora
+                em /entrar, alcançado por um botão. */}
+            <Route index element={<PortalEscola />} />
+            <Route path="entrar" element={<Login />} />
             <Route path="alterar-senha" element={<AlterarSenha />} />
 
             {/* Protegidas (exigem sessão válida da própria instituição) */}

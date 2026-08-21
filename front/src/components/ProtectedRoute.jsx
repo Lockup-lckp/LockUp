@@ -34,7 +34,7 @@ export default function ProtectedRoute({ children }) {
   }, [escolaDivergente]);
 
   if (semSessao) {
-    return <Navigate to={rotaEscola(schoolCode)} replace />;
+    return <Navigate to={rotaEscola(schoolCode, 'entrar')} replace />;
   }
 
   if (carregando) {
@@ -42,7 +42,7 @@ export default function ProtectedRoute({ children }) {
   }
 
   if (erro || !escola || escolaDivergente) {
-    return <Navigate to={rotaEscola(schoolCode)} replace />;
+    return <Navigate to={rotaEscola(schoolCode, 'entrar')} replace />;
   }
 
   return children;
