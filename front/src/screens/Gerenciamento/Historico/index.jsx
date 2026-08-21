@@ -103,7 +103,7 @@ export default function HistoricoPagamentos() {
     <div className="p-4 sm:p-6 bg-[var(--bg-color)] min-h-screen text-[var(--on-bg)] font-sans">
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[var(--primary-color)] font-display">Histórico de Pagamentos</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-[var(--primary-text)] font-display">Histórico de Pagamentos</h1>
           <p className="text-xs text-gray-400 mt-1">Locações pagas e aprovadas da instituição, por ciclo letivo.</p>
         </div>
 
@@ -151,7 +151,7 @@ export default function HistoricoPagamentos() {
       {/* Saldo do ano selecionado */}
       <div className="bg-[var(--surface-color)]/60 border border-[var(--primary-color)]/30 rounded-xl p-6 mb-6">
         <span className="text-xs text-gray-400 uppercase tracking-wider">Saldo de {anoSelecionado}</span>
-        <p className="text-3xl font-bold text-[var(--primary-color)] font-display mt-1">{formatarMoeda(saldoAnual)}</p>
+        <p className="text-3xl font-bold text-[var(--primary-text)] font-display mt-1">{formatarMoeda(saldoAnual)}</p>
         <p className="text-xs text-gray-500 mt-2">
           {historicoDoAno.length} lançamento{historicoDoAno.length === 1 ? '' : 's'} neste ciclo
           {totalDevolvido > 0 && ` · ${formatarMoeda(totalDevolvido)} devolvido em estornos`}
@@ -212,7 +212,7 @@ export default function HistoricoPagamentos() {
         {historicoDoAno.length > 0 && (
           <div className="p-4 bg-[var(--surface-raised)] border-t border-[var(--border-color)] flex flex-col sm:flex-row justify-between items-center gap-4">
             <span className="text-xs text-gray-400 text-center sm:text-left">
-              Página <span className="text-[var(--primary-color)] font-bold">{paginaAtual}</span> de {totalPaginas}
+              Página <span className="text-[var(--primary-text)] font-bold">{paginaAtual}</span> de {totalPaginas}
             </span>
 
             <div className="flex items-center gap-2">

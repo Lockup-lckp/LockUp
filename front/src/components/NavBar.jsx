@@ -41,7 +41,7 @@ export default function NavBar({ onMenuClick }) {
       <div className="flex items-center gap-4 min-w-0 flex-1">
         <button
           onClick={onMenuClick}
-          className="bg-none border-none text-[var(--primary-color)] text-2xl cursor-pointer hover:opacity-80 transition-opacity p-1"
+          className="bg-none border-none text-[var(--primary-text)] text-2xl cursor-pointer hover:opacity-80 transition-opacity p-1"
         >
           ☰
         </button>
@@ -58,7 +58,11 @@ export default function NavBar({ onMenuClick }) {
               </span>
             ))
           ) : (
-            <h2 className={`${classeNome} text-base sm:text-xl m-0 font-extrabold font-display tracking-wide bg-gradient-to-r from-[var(--primary-color)] to-[var(--secondary-color)] bg-clip-text text-transparent truncate`}>
+            /* O gradiente termina em --secondary-text, nao em --secondary-color:
+               a secundaria e escolhida por afinidade com a marca, nao por
+               contraste, e o laranja da Bento Quirino da 2,4:1 sobre branco --
+               o fim do nome da escola sumia. */
+            <h2 className={`${classeNome} text-base sm:text-xl m-0 font-extrabold font-display tracking-wide bg-gradient-to-r from-[var(--primary-color)] to-[var(--secondary-text)] bg-clip-text text-transparent truncate`}>
               {escola?.name || 'L C K P'}
             </h2>
           )}

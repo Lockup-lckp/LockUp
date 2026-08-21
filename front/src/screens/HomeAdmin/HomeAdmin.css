@@ -2,7 +2,7 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
-  color: var(--on-bg, #ffffff);
+  color: var(--on-bg, var(--on-bg));
   box-sizing: border-box;
 }
 
@@ -12,15 +12,15 @@
   padding: 40px;
   font-size: 1rem;
 }
-.loading-state { color: #cbd5e1; }
-.error-state { color: #e74c3c; }
+.loading-state { color: var(--on-bg-muted); }
+.error-state { color: var(--danger); }
 
 /* Cabeçalho */
 .home-admin-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid color-mix(in srgb, var(--on-bg) 5%, transparent);
   padding-bottom: 15px;
   margin-bottom: 15px;
   flex-wrap: wrap;
@@ -36,7 +36,7 @@
 
 .header-subtitle {
   margin: 5px 0 0 0;
-  color: #8fa0dd;
+  color: var(--on-bg-muted);
   font-size: 13px;
 }
 
@@ -44,8 +44,8 @@
 .tabs-container {
   display: flex;
   gap: 8px;
-  background-color: #161d33;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background-color: var(--surface-raised);
+  border: 1px solid color-mix(in srgb, var(--on-bg) 5%, transparent);
   padding: 6px;
   border-radius: 10px;
   overflow-x: auto; /* Permite rolar as abas no mobile se houver muitas */
@@ -60,14 +60,14 @@
   font-size: 13px;
   font-weight: 600;
   background-color: transparent;
-  color: #94a3b8;
+  color: var(--on-bg-muted);
   transition: background-color 0.2s ease, color 0.2s ease;
   white-space: nowrap; /* Evita que o texto quebre no mobile */
 }
 
 .tab-button:hover:not(.active) {
-  background-color: rgba(255, 255, 255, 0.06);
-  color: #e2e8f0;
+  background-color: color-mix(in srgb, var(--on-bg) 6%, transparent);
+  color: var(--on-bg);
 }
 
 .tab-button.active {
@@ -78,8 +78,8 @@
 
 /* Barra de Filtros */
 .filter-bar {
-  background-color: #161d33;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background-color: var(--surface-raised);
+  border: 1px solid color-mix(in srgb, var(--on-bg) 5%, transparent);
   padding: 12px 20px;
   border-radius: 10px;
   margin-bottom: 20px;
@@ -97,7 +97,7 @@
 
 .filter-label {
   font-size: 14px;
-  color: #cbd5e1;
+  color: var(--on-bg-muted);
   cursor: pointer;
 }
 
@@ -111,8 +111,8 @@
 
 /* Painel da Matriz */
 .matrix-panel {
-  background-color: #131a2e;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background-color: var(--surface-color);
+  border: 1px solid color-mix(in srgb, var(--on-bg) 6%, transparent);
   border-radius: 14px;
   padding: 20px;
   display: flex;
@@ -142,7 +142,7 @@
   font-weight: bold;
   cursor: pointer;
   transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid color-mix(in srgb, var(--on-bg) 10%, transparent);
   background-color: transparent;
   box-sizing: border-box;
   padding: 4px; /* Garante que o texto não toque nas bordas em telas pequenas */
@@ -150,8 +150,8 @@
 
 .locker-button.status-disponivel:hover {
   transform: translateY(-2px);
-  border-color: rgba(46, 204, 113, 0.55);
-  background-color: rgba(46, 204, 113, 0.16);
+  border-color: color-mix(in srgb, var(--success) 55%, transparent);
+  background-color: color-mix(in srgb, var(--success) 16%, transparent);
 }
 
 .locker-prefix {
@@ -162,31 +162,31 @@
 
 /* Variações de Status */
 .status-disponivel {
-  background-color: rgba(46, 204, 113, 0.1);
-  color: #2ecc71;
-  border: 1px solid rgba(46, 204, 113, 0.3);
+  background-color: color-mix(in srgb, var(--success) 10%, transparent);
+  color: var(--success);
+  border: 1px solid color-mix(in srgb, var(--success) 30%, transparent);
 }
 
 .status-alugado {
-  background-color: rgba(231, 76, 60, 0.1);
-  color: #e74c3c;
-  border: 1px solid rgba(231, 76, 60, 0.2);
+  background-color: color-mix(in srgb, var(--danger) 10%, transparent);
+  color: var(--danger);
+  border: 1px solid color-mix(in srgb, var(--danger) 20%, transparent);
   opacity: 0.5;
   cursor: not-allowed;
 }
 
 .status-manutencao {
-  background-color: rgba(241, 196, 15, 0.1);
-  color: #f1c40f;
-  border: 1px solid rgba(241, 196, 15, 0.2);
+  background-color: color-mix(in srgb, var(--warning) 10%, transparent);
+  color: var(--warning);
+  border: 1px solid color-mix(in srgb, var(--warning) 20%, transparent);
   opacity: 0.4;
   cursor: not-allowed;
 }
 
 .status-funcionario {
-  background-color: rgba(167, 139, 250, 0.1);
-  color: #a78bfa;
-  border: 1px solid rgba(167, 139, 250, 0.25);
+  background-color: color-mix(in srgb, var(--info) 10%, transparent);
+  color: var(--info);
+  border: 1px solid color-mix(in srgb, var(--info) 25%, transparent);
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -203,7 +203,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid color-mix(in srgb, var(--on-bg) 5%, transparent);
   padding-top: 15px;
   flex-wrap: wrap; /* Ajuda em telas bem pequenas */
   gap: 10px;
@@ -211,11 +211,11 @@
 
 .pagination-text {
   font-size: 13px;
-  color: #8fa0dd;
+  color: var(--on-bg-muted);
 }
 
 .pagination-text strong {
-  color: #ffffff;
+  color: var(--on-bg);
 }
 
 .pagination-actions {
@@ -235,9 +235,9 @@
 }
 
 .pagination-arrow.prev {
-  background-color: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #ffffff;
+  background-color: color-mix(in srgb, var(--on-bg) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--on-bg) 10%, transparent);
+  color: var(--on-bg);
 }
 
 .pagination-arrow.next {
@@ -254,8 +254,8 @@
 
 /* Painel Lateral */
 .details-sidebar {
-  background-color: #131a2e;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background-color: var(--surface-color);
+  border: 1px solid color-mix(in srgb, var(--on-bg) 6%, transparent);
   border-radius: 14px;
   padding: 20px;
   box-sizing: border-box;
@@ -266,7 +266,7 @@
   margin: 0 0 15px 0;
   font-size: 18px;
   font-family: var(--font-display, 'Space Grotesk', sans-serif);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid color-mix(in srgb, var(--on-bg) 5%, transparent);
   padding-bottom: 10px;
 }
 
@@ -279,24 +279,24 @@
 .detail-row {
   display: flex;
   justify-content: space-between;
-  background-color: #121829;
+  background-color: var(--surface-color);
   padding: 12px;
   border-radius: 8px;
   font-size: 14px;
 }
 
 .detail-label {
-  color: #8fa0dd;
+  color: var(--on-bg-muted);
 }
 
 .detail-value {
-  color: #ffffff;
+  color: var(--on-bg);
   text-align: right; /* Garante que valores longos fiquem bonitos */
   word-break: break-word;
 }
 
 .status-badge {
-  color: #2ecc71;
+  color: var(--success);
   text-transform: capitalize;
 }
 
@@ -327,7 +327,7 @@
 .empty-sidebar-state {
   text-align: center;
   padding: 40px 10px;
-  color: #8fa0dd;
+  color: var(--on-bg-muted);
   font-size: 14px;
 }
 
@@ -445,7 +445,7 @@
   justify-content: space-between;
 }
 .modal-armario__linha > span { color: var(--on-bg-muted); font-size: 14px; }
-.modal-armario__preco { color: var(--primary-color); font-size: 18px; }
+.modal-armario__preco { color: var(--primary-text); font-size: 18px; }
 .modal-armario__acao { width: 100%; }
 .modal-armario__aviso {
   justify-content: center;

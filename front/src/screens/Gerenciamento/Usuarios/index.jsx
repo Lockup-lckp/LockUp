@@ -348,8 +348,8 @@ export default function Gerenciamento() {
                   })}
                   style={{ cursor: 'pointer' }}
                 >
-                  <option value="aluno" style={{ backgroundColor: '#121829' }}>Aluno</option>
-                  <option value="admin" style={{ backgroundColor: '#121829' }}>Administrador</option>
+                  <option value="aluno" style={{ backgroundColor: 'var(--surface-color)' }}>Aluno</option>
+                  <option value="admin" style={{ backgroundColor: 'var(--surface-color)' }}>Administrador</option>
                 </select>
               </div>
 
@@ -425,10 +425,10 @@ export default function Gerenciamento() {
                           ele o rótulo saía vazio e o `space-between` jogava
                           todos os valores contra a borda direita, sem dizer o
                           que era o quê. */}
-                      <td data-label="Nome" style={{ fontWeight: '600', color: '#ffffff' }}>
+                      <td data-label="Nome" style={{ fontWeight: '600', color: 'var(--on-bg)' }}>
                         {usuario.nome_completo || 'Sem Nome'}
                       </td>
-                      <td data-label="E-mail" style={{ color: '#8fa0dd' }}>
+                      <td data-label="E-mail" style={{ color: 'var(--on-bg-muted)' }}>
                         {usuario.email_institucional || 'Sem E-mail'}
                       </td>
                       <td data-label="Cargo">
@@ -437,8 +437,8 @@ export default function Gerenciamento() {
                           onChange={(e) => handleMudarRole(idParaRequisicao, e.target.value)}
                           className={`role-select ${usuario.role === 'admin' ? 'admin' : 'student'}`}
                         >
-                          <option value="aluno" style={{ backgroundColor: '#121829', color: '#ffffff' }}>Aluno</option>
-                          <option value="admin" style={{ backgroundColor: '#121829', color: '#ffffff' }}>Administrador</option>
+                          <option value="aluno" style={{ backgroundColor: 'var(--surface-color)', color: 'var(--on-bg)' }}>Aluno</option>
+                          <option value="admin" style={{ backgroundColor: 'var(--surface-color)', color: 'var(--on-bg)' }}>Administrador</option>
                         </select>
                       </td>
                       <td data-label="Ações" className="text-right">
@@ -459,10 +459,10 @@ export default function Gerenciamento() {
 
         {/* CONTROLES DE PAGINAÇÃO DE USUÁRIOS */}
         {usuariosFiltrados.length > 0 && (
-          <div className="pagination-container" style={{ display: 'flex', justifyContent: 'between', alignItems: 'center', padding: '16px', borderTop: '1px solid #1f2635', background: '#161b26', flexWrap: 'wrap', gap: '12px' }}>
-            <span style={{ fontSize: '12px', color: '#8fa0dd' }}>
+          <div className="pagination-container" style={{ display: 'flex', justifyContent: 'between', alignItems: 'center', padding: '16px', borderTop: '1px solid var(--surface-raised)', background: 'var(--surface-color)', flexWrap: 'wrap', gap: '12px' }}>
+            <span style={{ fontSize: '12px', color: 'var(--on-bg-muted)' }}>
               Exibindo {indiceInicial + 1} a {Math.min(indiceFinal, usuariosFiltrados.length)} de{' '}
-              <span style={{ color: '#ffffff', fontWeight: '600' }}>{usuariosFiltrados.length}</span> usuários
+              <span style={{ color: 'var(--on-bg)', fontWeight: '600' }}>{usuariosFiltrados.length}</span> usuários
             </span>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
@@ -475,8 +475,8 @@ export default function Gerenciamento() {
                 ← Anterior
               </button>
 
-              <span style={{ fontSize: '12px', color: '#ffffff' }}>
-                Página <span style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>{paginaAtual}</span> de {totalPaginas}
+              <span style={{ fontSize: '12px', color: 'var(--on-bg)' }}>
+                Página <span style={{ color: 'var(--primary-text)', fontWeight: 'bold' }}>{paginaAtual}</span> de {totalPaginas}
               </span>
 
               <button

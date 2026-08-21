@@ -7,7 +7,7 @@
 
 .checkout-page {
   /* Os tokens locais viram apelidos dos globais. Antes, este bloco definia uma
-     paleta paralela E um fundo próprio (--ink-950: #0A0D12), o que fazia o
+     paleta paralela E um fundo próprio (--ink-950: var(--bg-color)), o que fazia o
      checkout ser a única tela fora da identidade do resto do sistema.
      O efeito de plaqueta metálica é mantido — só passa a ser desenhado em ouro
      da marca, em vez do latão avulso. */
@@ -16,7 +16,7 @@
   --ink-800: var(--surface-color);
   --ink-700: var(--surface-raised);
   --ink-600: var(--border-color);
-  --brass-300: color-mix(in srgb, var(--primary-color) 70%, #ffffff);
+  --brass-300: color-mix(in srgb, var(--primary-color) 70%, var(--on-bg));
   --brass-400: var(--primary-color);
   --brass-600: var(--secondary-color);
   --mint-400: var(--success);
@@ -72,7 +72,7 @@
 
 /* Erro */
 .error-banner {
-  background: rgba(241, 104, 95, 0.08); color: var(--red-400); border: 1px solid rgba(241, 104, 95, 0.35);
+  background: color-mix(in srgb, var(--danger) 8%, transparent); color: var(--red-400); border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
   padding: 13px 16px; border-radius: 10px; margin-bottom: 20px; font-size: 14px;
   display: flex; align-items: center; gap: 10px; animation: fade-in .25s ease-out;
 }
@@ -171,18 +171,18 @@
 .locker-ticket__plate {
   padding: 26px 22px 20px; position: relative; text-align: center;
   background-image:
-    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.06) 0 2px, transparent 2px 10px),
+    repeating-linear-gradient(115deg, color-mix(in srgb, var(--on-bg) 6%, transparent) 0 2px, transparent 2px 10px),
     linear-gradient(155deg, var(--brass-300), var(--brass-600));
 }
 .locker-ticket__hole {
   width: 14px; height: 14px; border-radius: 50%; background: var(--ink-950);
   margin: 0 auto 14px; box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.5);
 }
-.plate-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: rgba(10, 13, 18, 0.6); font-weight: 700; }
+.plate-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: color-mix(in srgb, var(--bg-color) 60%, transparent); font-weight: 700; }
 .plate-number { display: block; font-family: var(--font-mono); font-size: 34px; font-weight: 600; color: var(--ink-950); letter-spacing: .02em; margin: 4px 0 2px; word-break: break-word; }
-.plate-block { display: block; font-size: 12.5px; color: rgba(10, 13, 18, 0.65); font-weight: 600; }
+.plate-block { display: block; font-size: 12.5px; color: color-mix(in srgb, var(--bg-color) 65%, transparent); font-weight: 600; }
 
-.locker-ticket__perforation { position: relative; height: 0; border-top: 1px dashed rgba(255, 255, 255, 0.15); }
+.locker-ticket__perforation { position: relative; height: 0; border-top: 1px dashed color-mix(in srgb, var(--on-bg) 15%, transparent); }
 .locker-ticket__perforation::before,
 .locker-ticket__perforation::after {
   content: ''; position: absolute; top: -9px; width: 18px; height: 18px; border-radius: 50%; background: var(--ink-950);
@@ -207,9 +207,9 @@
 .termos-aceite {
   margin: 20px 0 4px;
   padding: 14px 16px;
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
+  border: 1px solid var(--border-color, color-mix(in srgb, var(--on-bg) 12%, transparent));
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
+  background: color-mix(in srgb, var(--on-bg) 3%, transparent);
 }
 
 .termos-aceite__label {
@@ -219,7 +219,7 @@
   cursor: pointer;
   font-size: 13.5px;
   line-height: 1.55;
-  color: var(--paper-300, #cbd5e1);
+  color: var(--paper-300, var(--on-bg-muted));
 }
 
 /* `flex-shrink: 0` porque em telas estreitas o texto quebra em 3 linhas e o
@@ -229,7 +229,7 @@
   width: 18px;
   height: 18px;
   margin-top: 1px;
-  accent-color: var(--primary-color, #E8B44A);
+  accent-color: var(--primary-color, var(--primary-color));
   cursor: pointer;
 }
 
@@ -238,7 +238,7 @@
   border: 0;
   background: none;
   font: inherit;
-  color: var(--primary-color, #E8B44A);
+  color: var(--primary-color, var(--primary-color));
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 2px;

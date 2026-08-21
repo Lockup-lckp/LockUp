@@ -25,8 +25,21 @@
   --on-primary: #0A1F44;
   --on-bg: #ffffff;
   --on-bg-muted: rgba(255, 255, 255, 0.55);
+  /* Estado. Estes sao os padroes da marca LCKP (fundo navy). No portal de
+     uma escola o motor de tema os reescreve ajustados ao fundo dela --
+     ver theme/aplicarTema.js, garantirContraste. */
   --success: #3DDC97;
   --danger: #EF4444;
+  --warning: #F1C40F;
+  --info: #38BDF8;
+  --on-success: #0b0b0b;
+  --on-danger: #ffffff;
+  --on-warning: #0b0b0b;
+  --on-info: #0b0b0b;
+  /* A marca quando precisa carregar TEXTO. Sobre o navy da plataforma as
+     duas ja passam; no portal de uma escola o motor de tema as recalcula. */
+  --primary-text: #E8B44A;
+  --secondary-text: #C8912E;
 
   --radius-card: 16px;
   --radius-control: 10px;

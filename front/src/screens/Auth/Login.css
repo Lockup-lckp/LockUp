@@ -101,7 +101,10 @@
 .button-submit {
   width: 100%;
   padding: 14px;
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  /* Termina em --secondary-text, nao em --secondary-color: o gradiente
+     carrega TEXTO, e a secundaria crua da 2,4:1 sobre branco -- metade do
+     rotulo do botao sumia. */
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-text));
   border: none;
   border-radius: 12px;
   color: var(--on-primary);

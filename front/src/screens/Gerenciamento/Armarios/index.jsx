@@ -470,7 +470,7 @@ export default function GerenciamentoArmarios() {
       {/* Topbar Responsiva */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[var(--primary-color)] font-display">Gerenciamento de Armários</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-[var(--primary-text)] font-display">Gerenciamento de Armários</h1>
           <p className="text-xs text-gray-400 mt-1">Instituição ativa: <span className="text-[var(--on-bg)] font-semibold uppercase">{schoolCode}</span></p>
         </div>
 
@@ -513,7 +513,7 @@ export default function GerenciamentoArmarios() {
 
           <button
             onClick={abrirModalLote}
-            className="w-full sm:w-auto shrink-0 px-4 py-2 bg-[var(--primary-color)]/10 hover:bg-[var(--primary-color)]/20 text-[var(--primary-color)] border border-[var(--primary-color)]/30 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap text-center"
+            className="w-full sm:w-auto shrink-0 px-4 py-2 bg-[var(--primary-color)]/10 hover:bg-[var(--primary-color)]/20 text-[var(--primary-text)] border border-[var(--primary-color)]/30 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap text-center"
           >
             + Adicionar Armários
           </button>
@@ -571,7 +571,7 @@ export default function GerenciamentoArmarios() {
                             lá exige dizer o que fazer com o pagamento. */}
                         <button
                           onClick={() => setArmarioParaTrocar(armario)}
-                          className="text-xs text-[var(--primary-color)] hover:brightness-125 underline bg-transparent border-none cursor-pointer p-0 shrink-0"
+                          className="text-xs text-[var(--primary-text)] hover:brightness-125 underline bg-transparent border-none cursor-pointer p-0 shrink-0"
                         >
                           Trocar
                         </button>
@@ -585,7 +585,7 @@ export default function GerenciamentoArmarios() {
                       {armario.status === 'disponivel' && (
                         <button
                           onClick={() => abrirModalVinculo(armario)}
-                          className="px-2.5 py-1 bg-[var(--primary-color)]/10 hover:bg-[var(--primary-color)]/20 text-[var(--primary-color)] border border-[var(--primary-color)]/30 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap"
+                          className="px-2.5 py-1 bg-[var(--primary-color)]/10 hover:bg-[var(--primary-color)]/20 text-[var(--primary-text)] border border-[var(--primary-color)]/30 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap"
                         >
                           Vincular Aluno
                         </button>
@@ -650,7 +650,7 @@ export default function GerenciamentoArmarios() {
               </button>
 
               <span className="text-xs text-gray-300 px-1 whitespace-nowrap">
-                Página <span className="text-[var(--primary-color)] font-bold">{paginaAtual}</span> de{' '}
+                Página <span className="text-[var(--primary-text)] font-bold">{paginaAtual}</span> de{' '}
                 <span className="text-gray-400">{totalPaginas}</span>
               </span>
 
@@ -737,7 +737,7 @@ export default function GerenciamentoArmarios() {
                           <span className="text-sm font-bold">{opcao.titulo}</span>
                           {/* Valor e prazo na tela: quem está no balcão precisa
                               saber o que está registrando sem abrir Configurações. */}
-                          <span className="text-xs text-[var(--primary-color)] font-semibold">
+                          <span className="text-xs text-[var(--primary-text)] font-semibold">
                             {Number(opcao.valor) > 0
                               ? Number(opcao.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
                               : 'valor não configurado'}
@@ -849,7 +849,7 @@ export default function GerenciamentoArmarios() {
                 usuariosFiltradosModal.map((usr) => (
                   <div key={usr.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-3 px-2 rounded-xl hover:bg-[var(--surface-raised)]/30 transition-colors group gap-2">
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-[var(--on-bg)] group-hover:text-[var(--primary-color)] transition-colors truncate">
+                      <p className="text-sm font-semibold text-[var(--on-bg)] group-hover:text-[var(--primary-text)] transition-colors truncate">
                         {usr.nome_completo || 'Sem Nome Cadastrado'}
                       </p>
                       <p className="text-xs text-gray-400 mt-0.5 truncate">
@@ -858,7 +858,7 @@ export default function GerenciamentoArmarios() {
                     </div>
                     <button
                       onClick={() => handleVincularUsuario(usr.id, usr.nome_completo, usr.role)}
-                      className="text-xs bg-[var(--primary-color)]/10 hover:bg-[var(--primary-color)]/20 text-[var(--primary-color)] border border-[var(--primary-color)]/30 px-3 py-2 rounded-xl font-bold transition-colors whitespace-nowrap w-full sm:w-auto text-center"
+                      className="text-xs bg-[var(--primary-color)]/10 hover:bg-[var(--primary-color)]/20 text-[var(--primary-text)] border border-[var(--primary-color)]/30 px-3 py-2 rounded-xl font-bold transition-colors whitespace-nowrap w-full sm:w-auto text-center"
                     >
                       Selecionar Aluno
                     </button>
@@ -1028,7 +1028,7 @@ export default function GerenciamentoArmarios() {
               <button
                 type="submit"
                 disabled={criandoLote}
-                className="px-4 py-1.5 bg-[var(--primary-color)]/15 hover:bg-[var(--primary-color)]/25 border border-[var(--primary-color)]/30 rounded-lg text-xs font-semibold text-[var(--primary-color)] transition-colors disabled:opacity-50"
+                className="px-4 py-1.5 bg-[var(--primary-color)]/15 hover:bg-[var(--primary-color)]/25 border border-[var(--primary-color)]/30 rounded-lg text-xs font-semibold text-[var(--primary-text)] transition-colors disabled:opacity-50"
               >
                 {criandoLote ? 'Criando...' : 'Criar Armários'}
               </button>

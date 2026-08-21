@@ -580,7 +580,7 @@ function Painel({ usuario, onSair }) {
                         <div className="flex justify-end gap-2">
                           <button
                             onClick={() => abrirEdicaoEscola(escola)}
-                            className="text-sm text-[var(--primary-color)] border border-[var(--primary-color)]/40 px-3 py-1.5 rounded-md hover:bg-[var(--primary-color)]/10 transition-colors"
+                            className="text-sm text-[var(--primary-text)] border border-[var(--primary-color)]/40 px-3 py-1.5 rounded-md hover:bg-[var(--primary-color)]/10 transition-colors"
                           >
                             Editar
                           </button>
@@ -602,7 +602,7 @@ function Painel({ usuario, onSair }) {
           {escolasFiltradas.length > 0 && (
             <div className="flex items-center justify-between gap-3 p-3 border-t border-white/10">
               <span className="text-xs text-gray-500">
-                Página <span className="text-[var(--primary-color)] font-semibold">{paginaEscolaAtual}</span> de {totalPaginasEscolas}
+                Página <span className="text-[var(--primary-text)] font-semibold">{paginaEscolaAtual}</span> de {totalPaginasEscolas}
               </span>
               <div className="flex items-center gap-2">
                 <button
@@ -676,7 +676,7 @@ function Painel({ usuario, onSair }) {
                       <td className="p-3 text-right whitespace-nowrap">
                         <button
                           onClick={() => handleUsarDadosLead(lead)}
-                          className="text-sm text-[var(--primary-color)] border border-[var(--primary-color)]/40 px-3 py-1.5 rounded-md hover:bg-[var(--primary-color)]/10 transition-colors"
+                          className="text-sm text-[var(--primary-text)] border border-[var(--primary-color)]/40 px-3 py-1.5 rounded-md hover:bg-[var(--primary-color)]/10 transition-colors"
                         >
                           Usar estes dados
                         </button>
@@ -691,7 +691,7 @@ function Painel({ usuario, onSair }) {
           {leads.length > 0 && (
             <div className="flex items-center justify-between gap-3 p-3 border-t border-white/10">
               <span className="text-xs text-gray-500">
-                Página <span className="text-[var(--primary-color)] font-semibold">{paginaLeadAtual}</span> de {totalPaginasLeads}
+                Página <span className="text-[var(--primary-text)] font-semibold">{paginaLeadAtual}</span> de {totalPaginasLeads}
               </span>
               <div className="flex items-center gap-2">
                 <button

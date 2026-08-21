@@ -2,7 +2,7 @@
   max-width: 1140px;
   margin: 0 auto;
   padding: 16px;
-  color: var(--on-bg, #ffffff);
+  color: var(--on-bg, var(--on-bg));
   box-sizing: border-box;
 }
 
@@ -12,15 +12,15 @@
   padding: 64px 16px;
   font-size: 1rem;
 }
-.loading-state { color: #cbd5e1; }
-.error-state { color: #f43f5e; }
+.loading-state { color: var(--on-bg-muted); }
+.error-state { color: var(--danger); }
 
 /* Cabeçalho */
 .manage-header {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid color-mix(in srgb, var(--on-bg) 5%, transparent);
   padding-bottom: 16px;
   margin-bottom: 24px;
 }
@@ -41,7 +41,7 @@
 
 .manage-subtitle {
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--on-bg-muted);
   margin: 0;
 }
 
@@ -51,9 +51,9 @@
   box-sizing: border-box;
   padding: 12px 16px;
   background-color: var(--surface-color);
-  border: 1px solid #1f2635;
+  border: 1px solid var(--surface-raised);
   border-radius: 10px;
-  color: #ffffff;
+  color: var(--on-bg);
   font-size: 14px;
   margin-bottom: 20px;
   outline: none;
@@ -61,14 +61,14 @@
 }
 
 .search-input:focus {
-  border-color: var(--primary-color, #22d3ee);
+  border-color: var(--primary-color, var(--info));
 }
 
 /* Faixa de Erro */
 .error-banner {
-  background-color: rgba(244, 63, 94, 0.1);
-  border: 1px solid rgba(244, 63, 94, 0.2);
-  color: #f43f5e;
+  background-color: color-mix(in srgb, var(--danger) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 20%, transparent);
+  color: var(--danger);
   padding: 12px 16px;
   border-radius: 8px;
   margin-bottom: 20px;
@@ -78,7 +78,7 @@
 /* Tabela e Envoltórios */
 .table-wrapper {
   background-color: var(--surface-color);
-  border: 1px solid #1f2635;
+  border: 1px solid var(--surface-raised);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -98,12 +98,12 @@
 .manage-table th,
 .manage-table td {
   padding: 14px 16px;
-  border-bottom: 1px solid #1f2635;
+  border-bottom: 1px solid var(--surface-raised);
 }
 
 .manage-table th {
-  background-color: #161b26;
-  color: #94a3b8;
+  background-color: var(--surface-color);
+  color: var(--on-bg-muted);
   font-weight: 600;
   text-transform: uppercase;
   font-size: 11px;
@@ -115,12 +115,12 @@
 }
 
 .manage-table tbody tr:hover {
-  background-color: rgba(255, 255, 255, 0.025);
+  background-color: color-mix(in srgb, var(--on-bg) 2.5%, transparent);
 }
 
 .empty-message {
   text-align: center;
-  color: #94a3b8;
+  color: var(--on-bg-muted);
   padding: 40px 16px !important;
 }
 
@@ -137,20 +137,20 @@
   border: 1px solid transparent;
   outline: none;
   cursor: pointer;
-  background-color: #1a2333;
-  color: #ffffff;
+  background-color: var(--surface-color);
+  color: var(--on-bg);
 }
 
 .role-select.admin {
-  color: #38bdf8;
-  background-color: rgba(56, 189, 248, 0.1);
-  border-color: rgba(56, 189, 248, 0.2);
+  color: var(--info);
+  background-color: color-mix(in srgb, var(--info) 10%, transparent);
+  border-color: color-mix(in srgb, var(--info) 20%, transparent);
 }
 
 .role-select.student {
-  color: #a78bfa;
-  background-color: rgba(167, 139, 250, 0.1);
-  border-color: rgba(167, 139, 250, 0.2);
+  color: var(--info);
+  background-color: color-mix(in srgb, var(--info) 10%, transparent);
+  border-color: color-mix(in srgb, var(--info) 20%, transparent);
 }
 
 /* Botões */
@@ -181,7 +181,7 @@
 .btn-delete-row {
   background: none;
   border: none;
-  color: #f43f5e;
+  color: var(--danger);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -191,7 +191,7 @@
 }
 
 .btn-delete-row:hover {
-  background-color: rgba(244, 63, 94, 0.1);
+  background-color: color-mix(in srgb, var(--danger) 10%, transparent);
 }
 
 /* Estruturas de Modais */
@@ -211,13 +211,13 @@
 
 .modal-content {
   background-color: var(--surface-color);
-  border: 1px solid #1f2635;
+  border: 1px solid var(--surface-raised);
   border-radius: 16px;
   width: 100%;
   max-width: 440px;
   padding: 20px;
   box-sizing: border-box;
-  box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+  box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px color-mix(in srgb, var(--on-bg) 2%, transparent) inset;
 }
 
 .modal-title {
@@ -225,14 +225,14 @@
   font-size: 18px;
   font-weight: bold;
   font-family: var(--font-display, 'Space Grotesk', sans-serif);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid color-mix(in srgb, var(--on-bg) 5%, transparent);
   padding-bottom: 12px;
-  color: #ffffff;
+  color: var(--on-bg);
 }
 
 .modal-message {
   font-size: 14px;
-  color: #cbd5e1;
+  color: var(--on-bg-muted);
   margin: 16px 0;
   line-height: 1.5;
 }
@@ -246,16 +246,16 @@
 
 .form-group label {
   font-size: 12px;
-  color: #8fa0dd;
+  color: var(--on-bg-muted);
   font-weight: 600;
 }
 
 .form-input {
   padding: 10px 12px;
   border-radius: 8px;
-  background-color: #121829;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #ffffff;
+  background-color: var(--surface-color);
+  border: 1px solid color-mix(in srgb, var(--on-bg) 10%, transparent);
+  color: var(--on-bg);
   font-size: 14px;
   outline: none;
   box-sizing: border-box;
@@ -263,7 +263,7 @@
 }
 
 .form-input:focus {
-  border-color: var(--primary-color, #06b6d4);
+  border-color: var(--primary-color, var(--info));
 }
 
 .modal-actions {
@@ -283,21 +283,21 @@
 }
 
 .btn-cancel {
-  background-color: #1f2635;
-  color: #cbd5e1;
+  background-color: var(--surface-raised);
+  color: var(--on-bg-muted);
 }
 
 .btn-cancel:hover {
-  background-color: #2e374a;
+  background-color: var(--surface-raised);
 }
 
 .btn-save {
-  background-color: var(--primary-color, #06b6d4);
-  color: #ffffff;
+  background-color: var(--primary-color, var(--info));
+  color: var(--on-bg);
 }
 
 .btn-save:hover {
-  background-color: color-mix(in srgb, var(--primary-color, #06b6d4) 82%, #000);
+  background-color: color-mix(in srgb, var(--primary-color, var(--info)) 82%, #000);
 }
 
 /* Toast Notification */
@@ -307,7 +307,7 @@
   right: 20px;
   padding: 12px 20px;
   border-radius: 8px;
-  color: #ffffff;
+  color: var(--on-bg);
   font-size: 14px;
   font-weight: 600;
   z-index: 10000;
@@ -316,11 +316,11 @@
 }
 
 .toast-notification.sucesso {
-  background-color: #10b981;
+  background-color: var(--success);
 }
 
 .toast-notification.erro {
-  background-color: #ef4444;
+  background-color: var(--danger);
 }
 
 /* Componente de Paginação Costumizada */
@@ -330,14 +330,14 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px;
-  border-top: 1px solid #1f2635;
-  background-color: #161b26;
+  border-top: 1px solid var(--surface-raised);
+  background-color: var(--surface-color);
   gap: 12px;
 }
 
 .pagination-info {
   font-size: 13px;
-  color: #8fa0dd;
+  color: var(--on-bg-muted);
 }
 
 .pagination-buttons {
@@ -349,8 +349,8 @@
 }
 
 .btn-pagination {
-  background-color: #1f2635;
-  color: #cbd5e1;
+  background-color: var(--surface-raised);
+  color: var(--on-bg-muted);
   padding: 8px 14px;
   font-size: 12px;
   font-weight: 600;
@@ -366,12 +366,12 @@
 }
 
 .btn-pagination:not(:disabled):hover {
-  background-color: #2e374a;
+  background-color: var(--surface-raised);
 }
 
 .pagination-current {
   font-size: 13px;
-  color: #ffffff;
+  color: var(--on-bg);
 }
 
 .pagination-current span {
@@ -428,7 +428,7 @@
   }
 
   .manage-table tr {
-    border-bottom: 2px solid #1f2635;
+    border-bottom: 2px solid var(--surface-raised);
     padding: 12px 6px;
     background-color: var(--surface-color);
   }
@@ -455,7 +455,7 @@
     content: attr(data-label);
     flex-shrink: 0;
     font-weight: 600;
-    color: #94a3b8;
+    color: var(--on-bg-muted);
     font-size: 12px;
     text-transform: uppercase;
     text-align: left;

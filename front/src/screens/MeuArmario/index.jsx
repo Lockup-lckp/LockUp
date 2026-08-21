@@ -68,7 +68,7 @@ export default function MeuArmario() {
   if (loading) {
     return (
       <div className="armario-pagina" style={{ justifyContent: 'center' }}>
-        <p style={{ color: 'var(--primary-color)', fontWeight: 600 }}>
+        <p style={{ color: 'var(--primary-text)', fontWeight: 600 }}>
           Carregando informações do seu armário...
         </p>
       </div>

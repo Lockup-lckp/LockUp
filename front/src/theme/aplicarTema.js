@@ -71,13 +71,104 @@ const textoSobre = (fundo) =>
 
 const CONTRASTE_MINIMO_AA = 4.5;
 
+// Mistura duas cores. Equivale ao color-mix(in srgb, a X%, b) do CSS.
+const misturar = (corA, corB, fracaoDeA) => {
+    const a = hexParaRgb(corA), b = hexParaRgb(corB);
+    if (!a || !b) return corA;
+    return paraHex({
+        r: a.r * fracaoDeA + b.r * (1 - fracaoDeA),
+        g: a.g * fracaoDeA + b.g * (1 - fracaoDeA),
+        b: a.b * fracaoDeA + b.b * (1 - fracaoDeA)
+    });
+};
+
+// Quanto a cor de estado tinge o fundo do proprio chip.
+//
+// Chip de estado no sistema inteiro e "cor a 10% sobre o fundo, com a mesma cor
+// na letra" -- o armario livre, o "Ativo e pago", o aviso de erro. Calcular a
+// legibilidade contra o fundo da PAGINA erra por pouco e sempre para o mesmo
+// lado: media contra o branco, mas a letra vive sobre um branco levemente
+// esverdeado. Foi assim que o verde parou em 4,33:1 na primeira medicao,
+// mirando 4,5.
+const TINTA_DO_CHIP = 0.10;
+
+// Contraste alvo do texto secundário. Fica no mínimo da WCAG AA de propósito:
+// mais que isso deixaria de ser secundário e competiria com o texto principal.
+const CONTRASTE_DO_TEXTO_APAGADO = 4.6;
+
+/**
+ * Aproxima a cor do texto do fundo, até o limite do legível.
+ *
+ * É o que produz hierarquia sem inventar um cinza: a cor secundária é sempre a
+ * mesma cor do texto, só que mais perto do fundo — e para exatamente onde
+ * pararia de ser lida.
+ */
+const apagarAteOLimite = (corDoTexto, fundo) => {
+    let ultimaBoa = corDoTexto;
+    // Passos de 4%: 25 passos chegam ao próprio fundo no limite.
+    for (let i = 1; i <= 25; i++) {
+        const tentativa = misturar(corDoTexto, fundo, 1 - i * 0.04);
+        if (contraste(tentativa, fundo) < CONTRASTE_DO_TEXTO_APAGADO) break;
+        ultimaBoa = tentativa;
+    }
+    return ultimaBoa;
+};
+
+// Cores de ESTADO, não de marca. Verde é "deu certo", vermelho é "deu errado" —
+// e isso não muda de escola para escola, então elas não entram na
+// personalização.
+//
+// O que muda é o quanto elas precisam escurecer para serem lidas. Estes são os
+// matizes de partida, calibrados para fundo escuro; sobre fundo claro cada um
+// é escurecido até passar na WCAG, preservando o matiz (ver garantirContraste).
+const SEMANTICAS = {
+    sucesso: '#3DDC97',
+    erro: '#EF4444',
+    aviso: '#F1C40F',
+    info: '#38BDF8'
+};
+
+/**
+ * Aproxima a cor do preto (sobre fundo claro) ou do branco (sobre fundo
+ * escuro) até alcançar o contraste mínimo.
+ *
+ * Muda só a luminosidade, nunca o matiz: um verde escurecido continua verde, e
+ * é o matiz que carrega o significado. Trocar #3DDC97 por um verde qualquer
+ * "que funcione" faria cada tela ter o seu.
+ *
+ * Existe porque as cores de estado eram FIXAS e calibradas para o navy. Sobre
+ * o branco da Bento Quirino, #3DDC97 dá 1,7:1 — o "Ativo e pago" do Meu
+ * Armário ficava ilegível, e o alerta de erro também.
+ */
+const garantirContraste = (cor, fundo, minimo = CONTRASTE_MINIMO_AA) => {
+    if (!hexParaRgb(cor) || !hexParaRgb(fundo)) return cor;
+    if (contraste(cor, fundo) >= minimo) return cor;
+
+    const fundoClaro = luminancia(hexParaRgb(fundo)) > 0.45;
+    let ajustada = cor;
+
+    // Passos de 5%: fino o bastante para não escurecer além do necessário,
+    // e 20 passos chegam ao preto/branco puro no pior caso.
+    for (let i = 1; i <= 20; i++) {
+        ajustada = fundoClaro ? escurecer(cor, i * 0.05) : clarear(cor, i * 0.05);
+        if (contraste(ajustada, fundo) >= minimo) return ajustada;
+    }
+    return ajustada;
+};
+
+
 // Tokens que o tema por escola sobrescreve. Guardados numa lista só para que
 // limpar seja exatamente o inverso de aplicar — esquecer um aqui deixaria a
 // cor da escola vazando para a landing.
 const TOKENS_DO_TEMA = [
     '--primary-color', '--secondary-color', '--bg-color',
     '--surface-color', '--surface-raised', '--on-primary',
-    '--on-bg', '--on-bg-muted', '--border-color'
+    '--on-bg', '--on-bg-muted', '--border-color',
+    // Estado: nao sao da marca, mas SAO calculadas a partir do fundo da
+    // escola, entao precisam ser desfeitas junto.
+    '--success', '--danger', '--warning', '--info',
+    '--on-success', '--on-danger', '--on-warning', '--on-info',
+    '--secondary-text', '--primary-text'
 ];
 
 /**
@@ -123,12 +214,83 @@ export const aplicarTema = (escola) => {
     // branco sobre página branca — invisível.
     const claro = luminancia(hexParaRgb(fundo)) > 0.45;
 
-    raiz.setProperty('--surface-color', claro ? escurecer(fundo, 0.03) : clarear(fundo, 0.07));
-    raiz.setProperty('--surface-raised', claro ? escurecer(fundo, 0.07) : clarear(fundo, 0.14));
+    const superficie = claro ? escurecer(fundo, 0.03) : clarear(fundo, 0.07);
+    const superficieAlta = claro ? escurecer(fundo, 0.07) : clarear(fundo, 0.14);
+
+    raiz.setProperty('--surface-color', superficie);
+    raiz.setProperty('--surface-raised', superficieAlta);
     raiz.setProperty('--on-primary', textoSobre(primaria));
-    raiz.setProperty('--on-bg', claro ? '#111111' : '#ffffff');
-    raiz.setProperty('--on-bg-muted', claro ? 'rgba(0,0,0,0.60)' : 'rgba(255,255,255,0.58)');
-    raiz.setProperty('--border-color', claro ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.10)');
+
+    // ── A referência de contraste ────────────────────────────────────
+    //
+    // Todo texto abaixo é calculado contra ESTA cor, e não contra o fundo da
+    // página. O motivo custou duas medições erradas: o texto quase nunca fica
+    // sobre a página nua. Ele fica sobre um cartão, e o cartão é a superfície
+    // mais afastada do fundo — mais clara no tema escuro, mais escura no
+    // claro. Nos dois casos, o pior lugar para se ler.
+    //
+    // Mirar no fundo da página produz um valor que passa na régua e reprova na
+    // tela: foi assim que o verde parou em 4,33:1 e o rosa da Etec Conselheiro
+    // Antônio Prado em 3,89:1, os dois "aprovados" no cálculo.
+    const referencia = superficieAlta;
+
+    // Texto secundário: o mais apagado que ainda se lê.
+    //
+    // Era alfa fixo (58% do branco), calibrado para fundo quase preto. Sobre um
+    // ameixa médio isso dá 3,69:1. Agora parte da cor do texto e se aproxima do
+    // fundo enquanto o contraste aguentar — apagado é uma INTENÇÃO de
+    // hierarquia, não um valor de opacidade escolhido no olho.
+    const corDoTexto = claro ? '#111111' : '#ffffff';
+    raiz.setProperty('--on-bg', corDoTexto);
+    raiz.setProperty('--on-bg-muted', apagarAteOLimite(corDoTexto, referencia));
+
+    // Borda: mesma ideia, mas ela não carrega texto, então basta ser vista.
+    raiz.setProperty('--border-color', claro ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.14)');
+
+    // Cor colorida que vira LETRA.
+    //
+    // O chip do sistema é sempre "a cor a 10% no fundo, a mesma cor na letra" —
+    // o armário livre, o "Ativo e pago", o selo do portal. Então o fundo real
+    // da letra é a referência levemente tingida pela própria cor.
+    const legivelComoTexto = (cor) =>
+        garantirContraste(cor, misturar(cor, referencia, TINTA_DO_CHIP));
+
+    // Cores de estado. Eram fixas em index.css e calibradas para o navy: sobre
+    // o branco da Bento Quirino, o verde de "Ativo e pago" dava 1,7:1.
+    raiz.setProperty('--success', legivelComoTexto(SEMANTICAS.sucesso));
+    raiz.setProperty('--danger', legivelComoTexto(SEMANTICAS.erro));
+    raiz.setProperty('--warning', legivelComoTexto(SEMANTICAS.aviso));
+    raiz.setProperty('--info', legivelComoTexto(SEMANTICAS.info));
+
+    // Texto SOBRE cada uma delas, para quando a cor é o preenchimento e não a
+    // letra (chip sólido, botão de excluir).
+    raiz.setProperty('--on-success', textoSobre(SEMANTICAS.sucesso));
+    raiz.setProperty('--on-danger', textoSobre(SEMANTICAS.erro));
+    raiz.setProperty('--on-warning', textoSobre(SEMANTICAS.aviso));
+    raiz.setProperty('--on-info', textoSobre(SEMANTICAS.info));
+
+    // A marca, ajustada para poder carregar texto.
+    //
+    // --primary-color continua sendo a cor da instituição, usada como
+    // preenchimento de botão (onde --on-primary resolve o contraste). Mas ela
+    // também colore título, preço e rótulo, e aí vive sobre um cartão: o rosa
+    // #ec4899 da Etec Conselheiro Antônio Prado dá 2,08:1 sobre o ameixa dela.
+    //
+    // Na Bento Quirino as duas são idênticas — o bordô já passa —, então trocar
+    // para --primary-text não mexe em nada que já estava certo.
+    raiz.setProperty('--primary-text', legivelComoTexto(primaria));
+
+    // A secundária é escolhida por afinidade com a marca, não por contraste: o
+    // laranja #F48220 da Bento Quirino dá 2,4:1 sobre branco. Ela continua
+    // valendo como preenchimento e filete (--secondary-color); onde houver
+    // letra, usa-se esta.
+    //
+    // É o que conserta o nome da escola na barra de navegação, escrito num
+    // gradiente que terminava na secundária e sumia no fim.
+    raiz.setProperty(
+        '--secondary-text',
+        legivelComoTexto(hexParaRgb(secundaria) ? secundaria : primaria)
+    );
 
     // Aviso, não bloqueio: a cor já está gravada no banco e travar a tela aqui
     // deixaria a escola sem portal. Quem impede a combinação ruim é a validação
@@ -137,7 +299,7 @@ export const aplicarTema = (escola) => {
     if (razao < CONTRASTE_MINIMO_AA) {
         console.warn(
             `[LCKP tema] Contraste de ${razao.toFixed(2)}:1 entre a cor principal (${primaria}) e o fundo (${fundo}). ` +
-            `O mínimo recomendado pela WCAG AA é ${CONTRASTE_MINIMO_AA}:1.`
+            `O texto usa a variante ajustada (--primary-text), mas o par escolhido não alcança o mínimo de ${CONTRASTE_MINIMO_AA}:1 da WCAG AA.`
         );
     }
 };

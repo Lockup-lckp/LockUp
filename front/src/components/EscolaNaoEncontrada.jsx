@@ -32,7 +32,7 @@ export default function EscolaNaoEncontrada({ codigo }) {
                 fontSize: '3.5rem',
                 fontWeight: 800,
                 letterSpacing: '-0.03em',
-                color: 'var(--primary-color)',
+                color: 'var(--primary-text)',
                 margin: '0 0 0.5rem'
             }}>
                 404

@@ -98,7 +98,7 @@ export function ItemNav({ para, rotulo, Icone, onNavegar }) {
       aria-current={ativo ? 'page' : undefined}
       className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium no-underline transition-colors ${
         ativo
-          ? 'bg-[color-mix(in_srgb,var(--primary-color)_14%,transparent)] text-[var(--primary-color)]'
+          ? 'bg-[color-mix(in_srgb,var(--primary-color)_14%,transparent)] text-[var(--primary-text)]'
           : 'text-[var(--on-bg-muted)] hover:bg-[color-mix(in_srgb,var(--on-bg)_7%,transparent)] hover:text-[var(--on-bg)]'
       }`}
     >
