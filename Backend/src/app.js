@@ -28,14 +28,84 @@ app.use(helmet());
 // Teto geral por IP, antes de qualquer rota.
 app.use(limiteGeral);
 
-// Origens liberadas via env. Ex: CORS_ORIGINS="http://localhost:5173,https://app.lckp.com.br"
+// ── CORS ──────────────────────────────────────────────────────────────
+//
+// Origens fixas via env. Ex: CORS_ORIGINS="http://localhost:5173,https://www.lckp.com.br"
 const origensPermitidas = (process.env.CORS_ORIGINS || 'http://localhost:5173')
   .split(',')
   .map((o) => o.trim())
   .filter(Boolean);
 
+// Mais o subdomínio de CADA escola, aceito pela forma do endereço.
+//
+// A lista fixa não escala: cada instituição nova exigiria editar a env e
+// reiniciar o serviço, e esquecer isso quebra o portal inteiro de um jeito
+// difícil de ler — a API responde 200, o dado está certo, e o navegador
+// descarta a resposta antes de o front vê-la. Foi exatamente o que aconteceu
+// com etec-bentoquirino.lckp.com.br: 404 "Instituição não encontrada" numa
+// escola que existe.
+//
+// Aceitar pela FORMA é seguro aqui porque o curinga *.lckp.com.br aponta para
+// o nosso próprio deploy: para servir uma página em qualquer subdomínio desse
+// domínio é preciso controlar o nosso DNS. E liberar a origem não concede dado
+// nenhum — subdomínio de escola inexistente continua levando 404 da API.
+//
+// As regras são as MESMAS de front/src/utils/tenant.js (slugDoHostname). Os
+// dois arquivos precisam concordar: um endereço que o front aceita e o CORS
+// recusa vira uma escola que carrega a tela e não carrega os dados.
+const DOMINIO_BASE = (process.env.DOMINIO_BASE || 'lckp.com.br').toLowerCase();
+
+// Subdomínios da plataforma. Nenhuma escola pode registrá-los.
+const SUBDOMINIOS_RESERVADOS = new Set([
+  'www', 'api', 'admin', 'app', 'painel', 'docs', 'status',
+  'mail', 'staging', 'dev', 'test', 'cdn', 'assets', 'auth', 'webhook'
+]);
+
+// O certificado curinga cobre UM nível só: 'a.lckp.com.br' vale,
+// 'a.b.lckp.com.br' falha no TLS antes de chegar aqui.
+const FORMATO_SLUG = /^[a-z0-9-]{3,40}$/;
+
+const ehSubdominioDeEscola = (origem) => {
+  let url;
+  try {
+    url = new URL(origem);
+  } catch {
+    return false; // Origin malformado.
+  }
+
+  // https em produção. http continua valendo fora dela, senão o teste local em
+  // subdomínio (http://etec-x.lvh.me:5173) precisaria de um caminho próprio.
+  const emProducao = process.env.NODE_ENV === 'production';
+  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && !emProducao)) return false;
+  if (emProducao && url.port) return false;
+
+  const host = url.hostname.toLowerCase();
+  if (!host.endsWith('.' + DOMINIO_BASE)) return false;
+
+  const sub = host.slice(0, -(DOMINIO_BASE.length + 1));
+  if (!sub || sub.includes('.')) return false;
+  if (SUBDOMINIOS_RESERVADOS.has(sub)) return false;
+  if (!FORMATO_SLUG.test(sub)) return false;
+  if (sub.startsWith('-') || sub.endsWith('-')) return false;
+
+  return true;
+};
+
 app.use(cors({
-  origin: origensPermitidas,
+  origin: (origem, callback) => {
+    // Sem cabeçalho Origin: curl, health check da plataforma, webhook do
+    // gateway. Não é requisição de navegador, então não há nada que o CORS
+    // proteja — recusar aqui derrubaria o webhook de pagamento.
+    if (!origem) return callback(null, true);
+
+    if (origensPermitidas.includes(origem)) return callback(null, true);
+    if (ehSubdominioDeEscola(origem)) return callback(null, true);
+
+    // Registra a origem recusada. Sem isto, o sintoma que chega é
+    // "o portal não carrega" e a causa fica invisível nos dois lados.
+    console.warn('[LCKP CORS] Origem recusada:', origem);
+    return callback(new Error('Origem não permitida pelo CORS.'));
+  },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
