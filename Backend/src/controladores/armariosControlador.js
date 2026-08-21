@@ -199,7 +199,41 @@ const CAMPOS_PLANO_ESCOLA =
 // Lanca ErroDeNegocio em vez de devolver um padrao silencioso: quem escolheu
 // semestral numa escola que so vende anual precisa saber disso, e nao levar um
 // ano inteiro pelo preco que apertou.
-const resolverPlanoPresencial = (escola, modalidadePedida) => {
+// Quanto foi efetivamente cobrado no balcão.
+//
+// Nem todo vínculo manual é uma venda. A secretaria também concede armário a
+// aluno em situação de vulnerabilidade, e forçar o preço cheio nesses casos
+// inflaria o faturamento da escola com dinheiro que nunca entrou -- o mesmo
+// defeito, invertido, que fez o registro presencial existir.
+//
+// Devolve undefined quando quem chamou não opinou: aí vale o preço da escola,
+// que é o comportamento de antes deste campo existir.
+//
+// @returns {number|undefined}  valor em reais
+const lerValorCobrado = (registrarPagamento, valorPago) => {
+    if (registrarPagamento === undefined || registrarPagamento === null) return undefined;
+
+    // Isenção. Vira locação de R$ 0,00, não ausência de locação: sem linha em
+    // `rentals` o armário sai do extrato E some da rotina que encerra o ciclo
+    // letivo, ficando com o aluno para sempre.
+    if (registrarPagamento === false) return 0;
+
+    if (valorPago === undefined || valorPago === null || valorPago === '') return undefined;
+
+    const numero = Number(valorPago);
+    if (!Number.isFinite(numero)) {
+        throw new ErroDeNegocio('O valor cobrado precisa ser um número.');
+    }
+    // Negativo é como o extrato representa ESTORNO. Aceitar aqui faria um erro
+    // de digitação no balcão subtrair do faturamento do ano.
+    if (numero < 0) {
+        throw new ErroDeNegocio('O valor cobrado não pode ser negativo.');
+    }
+
+    return Math.round(numero * 100) / 100;
+};
+
+const resolverPlanoPresencial = (escola, modalidadePedida, valorCobrado) => {
     const modalidade = modalidadePedida === 'semestral' ? 'semestral' : 'anual';
 
     if (modalidade === 'semestral' && !escola.permite_semestral) {
@@ -208,15 +242,20 @@ const resolverPlanoPresencial = (escola, modalidadePedida) => {
         );
     }
 
-    const valor = modalidade === 'semestral'
+    const valorDaTabela = modalidade === 'semestral'
         ? Number(escola.valor_armario_semestral)
         : Number(escola.valor_armario);
 
-    if (!valor || valor <= 0) {
+    // Preço configurado só é obrigatório quando o valor NÃO veio do balcão.
+    // Uma isenção, ou uma cobrança de valor combinado, não depende de a escola
+    // ter cadastrado a tabela -- e recusar por isso travaria o atendimento.
+    if (valorCobrado === undefined && (!valorDaTabela || valorDaTabela <= 0)) {
         throw new ErroDeNegocio(
             `O valor da locação ${modalidade} não está configurado para esta instituição.`
         );
     }
+
+    const valor = valorCobrado === undefined ? valorDaTabela : valorCobrado;
 
     const dia = modalidade === 'semestral'
         ? (escola.encerramento_semestral_dia ?? 6)
@@ -295,7 +334,7 @@ const registrarLocacaoPresencial = async (armario, usuarioId, plano) => {
 
 export const atualizarArmario = async (req, res) => {
     const { id } = req.params;
-    const { status, usuarioId, usuarioNome, modalidade } = req.body;
+    const { status, usuarioId, usuarioNome, modalidade, registrarPagamento, valorPago } = req.body;
 
     try {
         const idParaBanco = usuarioId ? usuarioId : null;
@@ -334,7 +373,10 @@ export const atualizarArmario = async (req, res) => {
             // Escola sumida e caso impossivel na pratica, mas se acontecer o
             // vinculo segue sem cobranca: entregar o armario e melhor do que
             // travar o atendimento no balcao por um problema de cadastro.
-            if (escola) plano = resolverPlanoPresencial(escola, modalidade);
+            // Lido ANTES do UPDATE, junto da modalidade: valor inválido precisa
+            // ser recusado com o armário ainda livre.
+            const valorCobrado = lerValorCobrado(registrarPagamento, valorPago);
+            if (escola) plano = resolverPlanoPresencial(escola, modalidade, valorCobrado);
         }
 
         let query = supabase

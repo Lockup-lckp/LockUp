@@ -44,6 +44,15 @@ export default function GerenciamentoArmarios() {
   // vende para a maioria; o semestral só aparece se a instituição o oferecer.
   const [modalidadeVinculo, setModalidadeVinculo] = useState('anual');
 
+  // Nem todo vínculo manual é uma venda: a secretaria também concede armário a
+  // aluno em situação de vulnerabilidade. Começa em "sim" porque cobrar é o
+  // caso comum — mas a pergunta existe, e a isenção deixa de ser um valor
+  // errado registrado no extrato.
+  const [registrarPagamento, setRegistrarPagamento] = useState(true);
+  // Texto, não número: o campo precisa aceitar estar vazio enquanto se digita,
+  // e um estado numérico transformaria "" em 0 a cada tecla apagada.
+  const [valorCobrado, setValorCobrado] = useState('');
+
   // Estados para o Modal de Atribuição a Funcionário (sem conta de usuário)
   const [modalFuncionarioAberto, setModalFuncionarioAberto] = useState(false);
   const [armarioFuncionario, setArmarioFuncionario] = useState(null);
@@ -192,6 +201,23 @@ export default function GerenciamentoArmarios() {
     }
   };
 
+  // A limpeza estava repetida em três lugares. Esquecer um deles deixaria a
+  // próxima secretária abrindo o modal com a isenção do aluno anterior ainda
+  // marcada — e registrando R$ 0,00 sem perceber.
+  // Preço da modalidade escolhida. Só para a tela: quem decide o valor
+  // gravado é o backend, a partir da mesma configuração.
+  const valorDaTabela = Number(
+    modalidadeVinculo === 'semestral' ? escola?.valor_armario_semestral : escola?.valor_armario
+  ) || 0;
+
+  const fecharModalVinculo = () => {
+    setModalAberto(false);
+    setArmarioSelecionado(null);
+    setModalidadeVinculo('anual');
+    setRegistrarPagamento(true);
+    setValorCobrado('');
+  };
+
   const handleVincularUsuario = async (usuarioId, usuarioNome, usuarioRole) => {
     if (!armarioSelecionado) return;
 
@@ -206,7 +232,12 @@ export default function GerenciamentoArmarios() {
         status: 'alugado',
         usuarioId,
         usuarioNome,
-        modalidade: modalidadeVinculo
+        modalidade: modalidadeVinculo,
+        registrarPagamento,
+        // Vazio = usar o preço da escola. O backend trata undefined assim.
+        valorPago: registrarPagamento && valorCobrado.trim() !== ''
+          ? Number(valorCobrado.replace(',', '.'))
+          : undefined
       });
 
       setArmarios(prev => prev.map(a => 
@@ -215,9 +246,7 @@ export default function GerenciamentoArmarios() {
           : a
       ));
 
-      setModalAberto(false);
-      setArmarioSelecionado(null);
-      setModalidadeVinculo('anual');
+      fecharModalVinculo();
     } catch (err) {
       alert(err?.message || 'Erro ao vincular o usuário ao armário.');
     }
@@ -613,7 +642,7 @@ export default function GerenciamentoArmarios() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => { setModalAberto(false); setArmarioSelecionado(null); setModalidadeVinculo('anual'); }}
+                  onClick={fecharModalVinculo}
                   className="text-gray-400 hover:text-[var(--on-bg)] transition-colors text-sm font-medium bg-transparent border-none cursor-pointer shrink-0"
                 >
                   ✕ Fechar
@@ -683,6 +712,77 @@ export default function GerenciamentoArmarios() {
                   </div>
                 </div>
               )}
+
+              {/* Registrar pagamento?
+                  Nem todo vínculo manual é uma venda. Quando a escola concede o
+                  armário — aluno em situação de vulnerabilidade, por exemplo —
+                  a locação é gravada com R$ 0,00 em vez de não ser gravada:
+                  sem linha no extrato o armário sumiria do relatório E da
+                  rotina que encerra o ciclo letivo, ficando com o aluno para
+                  sempre. */}
+              <div className="mt-4">
+                <p className="text-xs font-semibold text-gray-400 mb-2">Registrar pagamento?</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: true, titulo: 'Sim', nota: 'Entra no faturamento' },
+                    { id: false, titulo: 'Não, isento', nota: 'Registra R$ 0,00' }
+                  ].map((opcao) => {
+                    const ativa = registrarPagamento === opcao.id;
+                    return (
+                      <button
+                        key={String(opcao.id)}
+                        type="button"
+                        onClick={() => setRegistrarPagamento(opcao.id)}
+                        aria-pressed={ativa}
+                        className={`flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-xl border text-left transition-colors ${
+                          ativa
+                            ? 'bg-[var(--primary-color)]/15 border-[var(--primary-color)] text-[var(--on-bg)]'
+                            : 'bg-[var(--bg-color)] border-[var(--border-color)] text-gray-300'
+                        }`}
+                      >
+                        <span className="text-sm font-bold">{opcao.titulo}</span>
+                        <span className="text-[11px] text-gray-500">{opcao.nota}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {registrarPagamento ? (
+                  <div className="mt-3">
+                    <label htmlFor="valor-cobrado" className="text-xs font-semibold text-gray-400 block mb-1.5">
+                      Quanto foi cobrado
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-400 shrink-0">R$</span>
+                      <input
+                        id="valor-cobrado"
+                        type="text"
+                        inputMode="decimal"
+                        value={valorCobrado}
+                        onChange={(e) => setValorCobrado(e.target.value.replace(/[^\d.,]/g, ''))}
+                        placeholder={valorDaTabela > 0
+                          ? valorDaTabela.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+                          : 'valor não configurado'}
+                        className="w-full px-3 py-2 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-xl text-sm text-[var(--on-bg)] outline-none focus:border-[var(--primary-color)] transition-colors placeholder:text-gray-500"
+                      />
+                    </div>
+                    {/* O campo vazio NÃO é erro: é o caso comum. Dizer isso
+                        evita que a secretaria digite o valor de tabela à mão
+                        toda vez, e evita o erro de digitação junto. */}
+                    <p className="text-[11px] text-gray-500 mt-1.5">
+                      Deixe em branco para cobrar o valor da instituição
+                      {valorDaTabela > 0 && ` (${valorDaTabela.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })})`}.
+                      Preencha só se o valor combinado foi outro.
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-gray-500 mt-2 leading-relaxed">
+                    A locação entra no extrato com <strong className="text-[var(--on-bg)]">R$ 0,00</strong> e
+                    não altera o faturamento. O armário continua expirando no fim do ciclo,
+                    como qualquer outro.
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="p-3 sm:p-4 overflow-y-auto flex-1 divide-y divide-[var(--border-color)]/60">
@@ -718,7 +818,7 @@ export default function GerenciamentoArmarios() {
                 Alunos elegíveis listados: {usuariosFiltradosModal.length}
               </span>
               <button
-                onClick={() => { setModalAberto(false); setArmarioSelecionado(null); setModalidadeVinculo('anual'); }}
+                onClick={fecharModalVinculo}
                 className="w-full sm:w-auto px-5 py-2 bg-[var(--surface-raised)] hover:bg-[var(--surface-color)] border border-[var(--border-color)] rounded-xl text-xs font-semibold text-gray-300 transition-colors"
               >
                 Cancelar

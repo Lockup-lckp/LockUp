@@ -78,6 +78,11 @@ export default function HistoricoPagamentos() {
     .filter((i) => i.estorno)
     .reduce((total, i) => total + Math.abs(Number(i.valor) || 0), 0);
   const quantidadeSemValor = historicoDoAno.filter((item) => item.valor === null || item.valor === undefined).length;
+  // Armários concedidos pela escola. Entram no extrato com R$ 0,00 para
+  // continuarem expirando no fim do ciclo — sem linha em rentals, o armário
+  // ficaria com o aluno para sempre. Somam zero, mas a escola precisa saber
+  // quantos foram.
+  const quantidadeIsenta = historicoDoAno.filter((i) => !i.estorno && Number(i.valor) === 0).length;
 
   const totalPaginas = Math.ceil(historicoDoAno.length / ITENS_POR_PAGINA) || 1;
   const historicoPaginado = historicoDoAno.slice(
@@ -150,6 +155,7 @@ export default function HistoricoPagamentos() {
         <p className="text-xs text-gray-500 mt-2">
           {historicoDoAno.length} lançamento{historicoDoAno.length === 1 ? '' : 's'} neste ciclo
           {totalDevolvido > 0 && ` · ${formatarMoeda(totalDevolvido)} devolvido em estornos`}
+          {quantidadeIsenta > 0 && ` · ${quantidadeIsenta} ${quantidadeIsenta === 1 ? 'armário concedido' : 'armários concedidos'}`}
           {quantidadeSemValor > 0 && ` (${quantidadeSemValor} sem valor registrado, não somada aqui)`}
         </p>
       </div>
@@ -188,9 +194,11 @@ export default function HistoricoPagamentos() {
                         Devolução
                       </span>
                     )}
+                    {/* Uma linha de R$ 0,00 sem rótulo parece defeito. Isento
+                        diz que foi decisão da escola, não valor perdido. */}
                     {!item.estorno && item.origem === 'presencial' && (
                       <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-amber-950/60 text-amber-400 border border-amber-900/50">
-                        Secretaria
+                        {Number(item.valor) === 0 ? 'Isento' : 'Secretaria'}
                       </span>
                     )}
                   </td>
