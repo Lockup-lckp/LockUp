@@ -1,6 +1,6 @@
-import { slugDoHostname } from '../utils/tenant.js';
+import { useCodigoEscola } from '../utils/useCodigoEscola.js';
 import React, { useEffect, useState, useCallback } from 'react';
-import { useParams, Outlet } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { escolaService } from '../services/escolaService';
 import { EscolaContext } from './contextoEscola.js';
 import { aplicarTema, aplicarIdentidade, limparTema } from './aplicarTema.js';
@@ -19,11 +19,8 @@ import { aplicarTema, aplicarIdentidade, limparTema } from './aplicarTema.js';
 // motivo la (Fast Refresh).
 
 export function EscolaProvider({ children }) {
-  const { schoolCode: codigoDaRota } = useParams();
-  // Subdomínio vence a rota: num endereço próprio da escola, um /:schoolCode
-  // divergente na URL não pode fazer o portal de uma instituição servir dados
-  // de outra.
-  const schoolCode = slugDoHostname() ?? codigoDaRota;
+  // Hostname primeiro, rota depois — a regra vive em useCodigoEscola.
+  const schoolCode = useCodigoEscola();
   const [escola, setEscola] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(false);

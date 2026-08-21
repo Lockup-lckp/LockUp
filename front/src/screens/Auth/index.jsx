@@ -1,6 +1,7 @@
+import { useCodigoEscola } from '../../utils/useCodigoEscola.js';
 import { rotaEscola } from '../../utils/tenant.js';
 import React, { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { authService } from '../../services/authService';
 import { useEscola } from '../../theme/contextoEscola.js';
 import Carregando from '../../components/Carregando.jsx';
@@ -8,7 +9,7 @@ import EscolaNaoEncontrada from '../../components/EscolaNaoEncontrada.jsx';
 import './Login.css';
 
 export default function Login() {
-  const { schoolCode } = useParams();
+  const schoolCode = useCodigoEscola();
   const navigate = useNavigate();
 
   // A escola (e o tema) já são carregados e aplicados pelo EscolaProvider.

@@ -1,5 +1,6 @@
+import { useCodigoEscola } from '../../../utils/useCodigoEscola.js';
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+
 import { checkoutService } from '../../../services/checkoutServices';
 import { useEscola } from '../../../theme/contextoEscola.js';
 import Carregando from '../../../components/Carregando.jsx';
@@ -19,7 +20,7 @@ const formatarData = (isoString) => {
 };
 
 export default function HistoricoPagamentos() {
-  const { schoolCode } = useParams();
+  const schoolCode = useCodigoEscola();
   const { escola } = useEscola();
   const [historico, setHistorico] = useState([]);
   const [carregando, setCarregando] = useState(true);

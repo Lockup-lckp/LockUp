@@ -1,11 +1,12 @@
+import { useCodigoEscola } from '../utils/useCodigoEscola.js';
 import { rotaEscola } from '../utils/tenant.js';
 import React from "react";
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useEscola } from '../theme/contextoEscola.js';
 
 export default function NavBar({ onMenuClick }) {
   const navigate = useNavigate();
-  const { schoolCode } = useParams();
+  const schoolCode = useCodigoEscola();
   const { escola } = useEscola();
 
   const usuario = JSON.parse(sessionStorage.getItem('usuario') || '{}');

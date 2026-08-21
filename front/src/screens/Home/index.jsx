@@ -1,6 +1,7 @@
+import { useCodigoEscola } from '../../utils/useCodigoEscola.js';
 import { rotaEscola } from '../../utils/tenant.js';
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { armariosService } from '../../services/armariosServices';
 import { useEscola } from '../../theme/contextoEscola.js';
 import Carregando from '../../components/Carregando.jsx';
@@ -10,7 +11,7 @@ import '../HomeAdmin/HomeAdmin.css';
 
 export default function Home() {
   const navigate = useNavigate();
-  const { schoolCode } = useParams(); // Obtém o schoolCode diretamente dos parâmetros da URL
+  const schoolCode = useCodigoEscola();
   const { escola: escolaDados } = useEscola(); // Escola (valor, cores, logo) já carregada pelo EscolaProvider
   const [armarios, setArmarios] = useState([]);
   const [corredores, setCorredores] = useState([]);

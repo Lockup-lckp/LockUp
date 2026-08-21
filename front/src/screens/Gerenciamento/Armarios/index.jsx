@@ -1,7 +1,8 @@
+import { useCodigoEscola } from '../../../utils/useCodigoEscola.js';
 import React, { useState, useEffect } from 'react';
 import { useTravarScroll } from '../../../utils/travarScroll';
 import Carregando from '../../../components/Carregando.jsx';
-import { useParams } from 'react-router-dom';
+
 import { armariosService } from '../../../services/armariosServices';
 import { usuarioService } from '../../../services/usuariosServices';
 import { nomearCorredor, rotuloCorredor, rotuloCorredorPlural } from '../../../utils/rotuloCorredor';
@@ -23,7 +24,7 @@ const STATUS_BADGE_CLASS = {
 };
 
 export default function GerenciamentoArmarios() {
-  const { schoolCode } = useParams(); 
+  const schoolCode = useCodigoEscola();
   const [armarios, setArmarios] = useState([]);
   const [usuarios, setUsuarios] = useState([]); 
   const [termoBusca, setTermoBusca] = useState('');

@@ -1,6 +1,7 @@
+import { useCodigoEscola } from '../../utils/useCodigoEscola.js';
 import { rotaEscola } from '../../utils/tenant.js';
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { armariosService } from '../../services/armariosServices';
 import { useEscola } from '../../theme/contextoEscola.js';
 import { nomearCorredor, rotuloCorredor } from '../../utils/rotuloCorredor';
@@ -9,7 +10,7 @@ import './MeuArmario.css';
 
 export default function MeuArmario() {
   const navigate = useNavigate();
-  const { schoolCode } = useParams(); // Captura o schoolCode diretamente da URL
+  const schoolCode = useCodigoEscola();
   const { escola } = useEscola();
   const valorArmario = escola?.valor_armario ?? null; // Valor configurado da escola (via EscolaProvider)
   const limiteArmarios = Number(escola?.max_armarios_por_aluno) || 1;

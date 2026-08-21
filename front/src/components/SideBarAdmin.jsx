@@ -1,6 +1,7 @@
+import { useCodigoEscola } from '../utils/useCodigoEscola.js';
 import { rotaEscola } from '../utils/tenant.js';
 import React from 'react';
-import { useParams } from 'react-router-dom';
+
 import {
   PainelLateral,
   ItemNav,
@@ -13,7 +14,7 @@ import {
 
 // Barra lateral do ADMIN da escola.
 export default function SideBarAdmin({ isOpen, onClose }) {
-  const { schoolCode } = useParams();
+  const schoolCode = useCodigoEscola();
 
   return (
     <PainelLateral isOpen={isOpen} onClose={onClose} titulo="Administração">

@@ -1,6 +1,7 @@
+import { useCodigoEscola } from '../../utils/useCodigoEscola.js';
 import { rotaEscola } from '../../utils/tenant.js';
 import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { authService } from '../../services/authService';
 import { useEscola } from '../../theme/contextoEscola.js';
 import './Login.css'; // Reaproveita perfeitamente os estilos do login
@@ -16,7 +17,7 @@ export default function AlterarSenha() {
   const { escola: dadosEscola } = useEscola();
 
   const navigate = useNavigate();
-  const { schoolCode } = useParams(); // Captura com precisão o código da escola atual da URL
+  const schoolCode = useCodigoEscola();
 
   const handleAlterarSenha = async (e) => {
     e.preventDefault();

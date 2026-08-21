@@ -1,6 +1,7 @@
+import { useCodigoEscola } from '../../utils/useCodigoEscola.js';
 import { rotaEscola } from '../../utils/tenant.js';
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useEscola } from '../../theme/contextoEscola.js';
 import { rotuloCorredorPlural } from '../../utils/rotuloCorredor';
 import { ligarAnimacoes } from '../../utils/revelar';
@@ -61,7 +62,7 @@ const logosDe = (escola) =>
     ].filter((l) => urlValida(l.url) && l.posicao !== 'nenhum');
 
 export default function PortalEscola() {
-    const { schoolCode } = useParams();
+    const schoolCode = useCodigoEscola();
     const { escola, carregando, erro } = useEscola();
     const [contratoAberto, setContratoAberto] = useState(false);
     const raizRef = useRef(null);
@@ -128,7 +129,7 @@ export default function PortalEscola() {
 
                         <nav className="pe-topo__links">
                             <a href="#como-funciona" className="pe-link pe-link--some">Como funciona</a>
-                            <a href="#regras" className="pe-link pe-link--some">Regras</a>
+                            <a href="#informacoes" className="pe-link pe-link--some">Informações</a>
                             <Link
                                 to={rotaLogin}
                                 className="lckp-btn"
@@ -225,11 +226,13 @@ export default function PortalEscola() {
                         </div>
                     </section>
 
-                    <section id="regras" className="pe-secao pe-bloco">
-                        <h2 data-reveal className="pe-bloco__titulo">O que a instituição definiu</h2>
+                    <section id="informacoes" className="pe-secao pe-bloco">
+                        {/* Escrito para o aluno, não para quem vende o sistema. A
+                            distinção entre o que a escola define e o que a plataforma
+                            define não interessa a quem só quer um armário. */}
+                        <h2 data-reveal className="pe-bloco__titulo">O que você precisa saber</h2>
                         <p data-reveal className="pe-bloco__linha">
-                            Estas regras são da {escola.name}, não da plataforma — cada escola
-                            configura as suas.
+                            Antes de escolher o seu armário na {escola.name}.
                         </p>
 
                         <div className="pe-fatos" data-reveal-group>

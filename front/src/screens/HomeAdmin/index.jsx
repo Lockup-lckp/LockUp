@@ -1,11 +1,12 @@
+import { useCodigoEscola } from '../../utils/useCodigoEscola.js';
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+
 import { armariosService } from '../../services/armariosServices';
 import './HomeAdmin.css'; // Importando o CSS isolado
 import Carregando from '../../components/Carregando.jsx';
 
 export default function HomeAdmin() {
-  const { schoolCode } = useParams(); // Captura o schoolCode da URL da rota
+  const schoolCode = useCodigoEscola();
   const [armarios, setArmarios] = useState([]);
   const [corredores, setCorredores] = useState([]);
   const [corredorAtivo, setCorredorAtivo] = useState(null);

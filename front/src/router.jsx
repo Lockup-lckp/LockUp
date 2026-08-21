@@ -1,6 +1,7 @@
+import { useCodigoEscola } from './utils/useCodigoEscola.js';
 import { ehSubdominioDeEscola, rotaEscola } from './utils/tenant.js';
 import React, { Suspense, lazy, useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Outlet, Navigate, useLocation, useParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Outlet, Navigate, useLocation } from 'react-router-dom';
 
 // Cada tela vira um pedaço de JS separado, baixado só quando a rota é visitada
 // (ex: um aluno nunca baixa o código das telas de admin/superadmin).
@@ -113,7 +114,7 @@ function CarregandoRota() {
 // 🔒 Guarda exclusiva do checkout: só entra vindo do mapa de armários (com a flag de origem).
 function CheckoutProtectedRoute({ children }) {
   const location = useLocation();
-  const { schoolCode } = useParams();
+  const schoolCode = useCodigoEscola();
 
   const veioDaHome = location.state?.origemValida;
 

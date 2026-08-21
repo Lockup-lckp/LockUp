@@ -1,12 +1,13 @@
+import { useCodigoEscola } from '../../../utils/useCodigoEscola.js';
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+
 import { usuarioService } from '../../../services/usuariosServices';
 import { useEscola } from '../../../theme/contextoEscola.js';
 import Carregando from '../../../components/Carregando.jsx';
 import './Gerenciamento.css';
 
 export default function Gerenciamento() {
-  const { schoolCode } = useParams(); // Código em texto da URL (Ex: 'etec-bento-quirino')
+  const schoolCode = useCodigoEscola();
   const { escola, carregando: escolaCarregando } = useEscola();
   // Cada instituição chama a matrícula de um jeito. A ETEC Bento Quirino usa RM.
   const rotuloMatricula = (escola?.tipo_matricula || 'rm').toUpperCase();
@@ -92,7 +93,6 @@ export default function Gerenciamento() {
     // de proposito: incluir faria a busca rodar sem parar.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolIdUuid, escolaCarregando]);
-
 
   const mostrarNotificacao = (mensagem, tipo = 'erro') => {
     setNotificacao({ aberto: true, mensagem, tipo });

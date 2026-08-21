@@ -1,6 +1,7 @@
+import { useCodigoEscola } from '../../utils/useCodigoEscola.js';
 import { rotaEscola } from '../../utils/tenant.js';
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { checkoutService } from '../../services/checkoutServices';
 import { validarCPF, aplicarMascaraCPF } from '../../utils/validadorCpf';
 import { useEscola } from '../../theme/contextoEscola.js';
@@ -38,7 +39,7 @@ const Spinner = ({ large }) => <span className={`spinner${large ? ' large' : ''}
 export default function Checkout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { schoolCode } = useParams();
+  const schoolCode = useCodigoEscola();
   const { escola } = useEscola();
 
   const m_armario = location.state?.armario || { nome: 'N/A', corredor: 'N/A' };

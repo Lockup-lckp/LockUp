@@ -1,6 +1,7 @@
+import { useCodigoEscola } from '../../utils/useCodigoEscola.js';
 import { rotaEscola } from '../../utils/tenant.js';
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { escolaService } from '../../services/escolaService';
 import { useEscola } from '../../theme/contextoEscola.js';
 import Carregando from '../../components/Carregando.jsx';
@@ -102,7 +103,7 @@ function CampoLogo({ titulo, ajuda, url, campo, posicao, aoMudarPosicao, aoEnvia
 
 export default function Personalizacao() {
   const navigate = useNavigate();
-  const { schoolCode } = useParams();
+  const schoolCode = useCodigoEscola();
   const { escola, carregando, atualizarEscolaLocal } = useEscola();
 
   const usuario = JSON.parse(sessionStorage.getItem('usuario') || '{}');

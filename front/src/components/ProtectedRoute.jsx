@@ -1,6 +1,7 @@
+import { useCodigoEscola } from '../utils/useCodigoEscola.js';
 import { rotaEscola } from '../utils/tenant.js';
 import React, { useEffect } from 'react';
-import { Navigate, useParams } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { useEscola } from '../theme/contextoEscola.js';
 import Carregando from './Carregando.jsx';
 
@@ -12,7 +13,7 @@ import Carregando from './Carregando.jsx';
 // daqui — e ainda mantinha a tela em "Validando segurança..." esperando a
 // segunda resolver. Reaproveitando o contexto, a checagem é síncrona.
 export default function ProtectedRoute({ children }) {
-  const { schoolCode } = useParams();
+  const schoolCode = useCodigoEscola();
   const { escola, carregando, erro } = useEscola();
 
   const usuarioLogado = JSON.parse(sessionStorage.getItem('usuario') || '{}');
