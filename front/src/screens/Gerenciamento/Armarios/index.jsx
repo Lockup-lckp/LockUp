@@ -23,10 +23,20 @@ const STATUS_BADGE_CLASS = {
   funcionario: 'bg-violet-950/60 text-violet-400 border border-violet-900/50',
 };
 
+// Busca de alunos no modal de vinculo.
+// Duas letras porque abaixo disso a busca devolveria meia escola; 300ms para
+// uma requisicao por PALAVRA digitada, nao uma por tecla.
+const MINIMO_PARA_BUSCAR = 2;
+const ATRASO_DA_BUSCA_MS = 300;
+
 export default function GerenciamentoArmarios() {
   const schoolCode = useCodigoEscola();
   const [armarios, setArmarios] = useState([]);
-  const [usuarios, setUsuarios] = useState([]); 
+  // Resultado da busca do modal de vínculo. Nasce vazio e só é preenchido
+  // quando alguém digita: a lista completa não é mais baixada.
+  const [usuarios, setUsuarios] = useState([]);
+  const [buscandoAlunos, setBuscandoAlunos] = useState(false);
+  const [erroBuscaAlunos, setErroBuscaAlunos] = useState(null);
   const [termoBusca, setTermoBusca] = useState('');
   const [corredorFiltro, setCorredorFiltro] = useState(''); // '' = todos os blocos
   const [termoBuscaUsuario, setTermoBuscaUsuario] = useState(''); 
@@ -95,12 +105,10 @@ export default function GerenciamentoArmarios() {
       setCarregando(true);
       setErro(null);
 
-      // Armários e usuários são independentes: buscar em paralelo faz a tela
-      // carregar no tempo da requisição mais lenta, não na soma das duas.
-      // O filtro por escola acontece no servidor nos dois casos.
-      const [respArmarios, respUsuarios] = await Promise.allSettled([
-        armariosService.buscarTodos(schoolCode),
-        usuarioService.buscarTodos(escola.id)
+      // Os alunos NÃO são carregados aqui. Eles vêm por busca, no modal de
+      // vínculo — ver o efeito de busca adiante.
+      const [respArmarios] = await Promise.allSettled([
+        armariosService.buscarTodos(schoolCode)
       ]);
 
       if (respArmarios.status === 'fulfilled' && Array.isArray(respArmarios.value)) {
@@ -113,14 +121,6 @@ export default function GerenciamentoArmarios() {
         setArmarios([]);
       }
 
-      if (respUsuarios.status === 'fulfilled' && Array.isArray(respUsuarios.value)) {
-        setUsuarios(respUsuarios.value);
-      } else {
-        if (respUsuarios.status === 'rejected') {
-          console.error("Erro específico ao buscar usuários:", respUsuarios.reason);
-        }
-        setUsuarios([]);
-      }
     } catch (err) {
       setErro('Erro geral ao processar dados do sistema.');
       console.error(err);
@@ -204,6 +204,48 @@ export default function GerenciamentoArmarios() {
   // A limpeza estava repetida em três lugares. Esquecer um deles deixaria a
   // próxima secretária abrindo o modal com a isenção do aluno anterior ainda
   // marcada — e registrando R$ 0,00 sem perceber.
+  // Busca de alunos para o vínculo, sob demanda.
+  //
+  // Antes a tela baixava o cadastro inteiro da escola no carregamento e
+  // filtrava no navegador. Com nove alunos era invisível; com mil é meio
+  // megabyte de dado pessoal trafegando por um clique em "vincular", e uma
+  // lista que ninguém consegue percorrer com o olho.
+  //
+  // O atraso de 300ms existe para uma busca por requisição, não uma por tecla:
+  // digitar "Maria" dispararia cinco consultas, e a resposta da terceira pode
+  // chegar depois da quinta e sobrescrever o resultado certo.
+  useEffect(() => {
+    if (!modalAberto || !escola?.id) return undefined;
+
+    const termo = termoBuscaUsuario.trim();
+    // Termo curto não limpa estado: a tela decide o que mostrar a partir do
+    // próprio termo, e `usuarios` fica simplesmente fora de cena. Limpar aqui
+    // seria setState no corpo do efeito, que dispara render em cascata.
+    if (termo.length < MINIMO_PARA_BUSCAR) return undefined;
+
+    // `cancelado` protege contra a resposta atrasada de uma busca anterior
+    // chegar depois e substituir a atual.
+    let cancelado = false;
+
+    const timer = setTimeout(async () => {
+      setBuscandoAlunos(true);
+      try {
+        const achados = await usuarioService.buscarAlunos(escola.id, termo);
+        if (cancelado) return;
+        setUsuarios(Array.isArray(achados) ? achados : []);
+        setErroBuscaAlunos(null);
+      } catch (err) {
+        if (cancelado) return;
+        setUsuarios([]);
+        setErroBuscaAlunos(err.message || 'Não foi possível buscar os alunos.');
+      } finally {
+        if (!cancelado) setBuscandoAlunos(false);
+      }
+    }, ATRASO_DA_BUSCA_MS);
+
+    return () => { cancelado = true; clearTimeout(timer); };
+  }, [modalAberto, termoBuscaUsuario, escola?.id]);
+
   // Preço da modalidade escolhida. Só para a tela: quem decide o valor
   // gravado é o backend, a partir da mesma configuração.
   const valorDaTabela = Number(
@@ -216,6 +258,10 @@ export default function GerenciamentoArmarios() {
     setModalidadeVinculo('anual');
     setRegistrarPagamento(true);
     setValorCobrado('');
+    setTermoBuscaUsuario('');
+    setUsuarios([]);
+    setErroBuscaAlunos(null);
+    setBuscandoAlunos(false);
   };
 
   const handleVincularUsuario = async (usuarioId, usuarioNome, usuarioRole) => {
@@ -402,17 +448,10 @@ export default function GerenciamentoArmarios() {
   const indiceFinal = indiceInicial + itensPorPagina;
   const armariosPaginados = armariosFiltrados.slice(indiceInicial, indiceFinal);
 
-  // 🎯 FILTRAGEM DO MODAL: Filtra apenas quem NÃO é admin (role !== 'admin')
-  const usuariosFiltradosModal = usuarios.filter(usr => {
-    const termo = termoBuscaUsuario.toLowerCase();
-    const naoEAdmin = usr.role !== 'admin';
-    
-    return (
-      naoEAdmin &&
-      (usr.nome_completo?.toLowerCase().includes(termo) ||
-       usr.email_institucional?.toLowerCase().includes(termo))
-    );
-  });
+  // O servidor já devolve só alunos da instituição. O filtro de admin
+  // permanece como segunda barreira: uma mudança futura no backend não pode
+  // fazer um administrador aparecer aqui como opção de vínculo.
+  const usuariosFiltradosModal = usuarios.filter((usr) => usr.role !== 'admin');
 
   if (escolaNaoIdentificada) {
     return (
@@ -786,9 +825,24 @@ export default function GerenciamentoArmarios() {
             </div>
 
             <div className="p-3 sm:p-4 overflow-y-auto flex-1 divide-y divide-[var(--border-color)]/60">
-              {usuariosFiltradosModal.length === 0 ? (
+              {termoBuscaUsuario.trim().length < MINIMO_PARA_BUSCAR ? (
                 <div className="text-center py-10">
-                  <p className="text-gray-400 text-sm">Nenhum aluno elegível encontrado.</p>
+                  <p className="text-gray-400 text-sm">Digite o nome ou o e-mail do aluno.</p>
+                  <p className="text-xs text-gray-600 mt-1">
+                    A lista aparece a partir de {MINIMO_PARA_BUSCAR} letras.
+                  </p>
+                </div>
+              ) : buscandoAlunos ? (
+                <div className="py-10"><Carregando rotulo="Buscando alunos" /></div>
+              ) : erroBuscaAlunos ? (
+                <div className="text-center py-10">
+                  <p className="text-red-400 text-sm">{erroBuscaAlunos}</p>
+                </div>
+              ) : usuariosFiltradosModal.length === 0 ? (
+                <div className="text-center py-10">
+                  <p className="text-gray-400 text-sm">
+                    Nenhum aluno encontrado para &ldquo;{termoBuscaUsuario.trim()}&rdquo;.
+                  </p>
                   <p className="text-xs text-gray-600 mt-1">Contas de administradores não constam nesta alocação.</p>
                 </div>
               ) : (
@@ -815,7 +869,9 @@ export default function GerenciamentoArmarios() {
 
             <div className="p-4 border-t border-[var(--border-color)] bg-[var(--surface-raised)] flex flex-col sm:flex-row justify-between items-center gap-3">
               <span className="text-xs text-gray-500 font-medium text-center sm:text-left">
-                Alunos elegíveis listados: {usuariosFiltradosModal.length}
+                {termoBuscaUsuario.trim().length < MINIMO_PARA_BUSCAR
+                  ? 'Busque o aluno pelo nome ou e-mail'
+                  : `${usuariosFiltradosModal.length} aluno(s) encontrado(s)`}
               </span>
               <button
                 onClick={fecharModalVinculo}

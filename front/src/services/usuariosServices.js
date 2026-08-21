@@ -7,6 +7,20 @@ export const usuarioService = {
   // servidor — evita baixar todos os usuários de todas as escolas só pra descartar
   // a maioria no navegador (só tem efeito quando quem chama é superadmin; admin de
   // escola já vem sempre travado na própria instituição pelo backend).
+  // Busca sob demanda, para a tela de vínculo de armário.
+  //
+  // Existe porque baixar o cadastro inteiro para filtrar no navegador é
+  // aceitável com nove alunos e insustentável com mil -- e o dado pessoal de
+  // toda a escola trafegava por um clique em "vincular".
+  buscarAlunos: async (schoolId, termo, limite = 25) => {
+    const params = new URLSearchParams({ papel: 'aluno', busca: termo, limite: String(limite) });
+    if (schoolId) params.set('school_id', schoolId);
+
+    const response = await fetch(`${API_URL}?${params}`, { headers: getAuthHeaders() });
+    if (!response.ok) throw new Error('Não foi possível buscar os alunos.');
+    return await response.json();
+  },
+
   buscarTodos: async (schoolId) => {
     try {
       const url = schoolId

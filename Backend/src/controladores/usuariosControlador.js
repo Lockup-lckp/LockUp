@@ -21,6 +21,18 @@ const ehSuperadmin = (req) => req.user?.role === 'superadmin';
 // LISTAR USUÁRIOS — admin de escola vê só a própria instituição; superadmin vê todos,
 // ou pode filtrar por uma escola específica via ?school_id= (ex: tela de gerenciamento
 // de uma única instituição) pra não baixar todo mundo só pra filtrar no navegador.
+// Teto de resultados. Existe para a busca nunca virar "traga todo mundo": a
+// tela mostra uma lista para escolher UM aluno, e ninguem escolhe visualmente
+// entre trezentos nomes -- refina a busca.
+const LIMITE_PADRAO_BUSCA = 25;
+const LIMITE_MAXIMO_BUSCA = 50;
+
+// Escapa o que o PostgREST trata como sintaxe dentro de or(...).
+// Virgula separa condicoes e parenteses fecham o grupo: um aluno chamado
+// "Ana (Bolsista)" quebraria a consulta inteira sem isto.
+const limparTermoDeBusca = (termo) =>
+    String(termo).replace(/[,()*%\\]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
+
 export const listarUsuarios = async (req, res) => {
     try {
         let query = supabase.from('users').select(COLUNAS_PUBLICAS);
@@ -30,6 +42,38 @@ export const listarUsuarios = async (req, res) => {
             query = query.eq('school_id', req.user.school_id);
         } else if (req.query.school_id) {
             query = query.eq('school_id', req.query.school_id);
+        }
+
+        // Filtro por papel. A tela de vínculo só oferece aluno, e filtrar aqui
+        // evita trazer administradores para o navegador só para escondê-los.
+        if (req.query.papel) {
+            query = query.eq('role', req.query.papel);
+        }
+
+        // Busca por nome ou e-mail. Sem ela a tela de vínculo baixava a escola
+        // inteira e filtrava no navegador -- aceitável com nove usuários,
+        // insustentável com mil, e todo o cadastro trafegando por um clique.
+        const termo = limparTermoDeBusca(req.query.busca || '');
+        if (req.query.busca !== undefined && !termo) {
+            // Pediu busca e o termo virou nada (so curinga, so pontuacao).
+            // Devolver a escola inteira aqui contrariaria o proprio motivo
+            // de a busca existir: um "*" digitado por engano baixaria o
+            // cadastro completo.
+            return res.status(200).json([]);
+        }
+
+        if (termo) {
+            query = query.or(`nome_completo.ilike.%${termo}%,email_institucional.ilike.%${termo}%`);
+        }
+
+        // O limite só se aplica a quem busca. Sem isto, a tela de gerenciamento
+        // de usuários -- que precisa listar todo mundo -- passaria a mostrar 25.
+        if (req.query.busca !== undefined || req.query.limite !== undefined) {
+            const pedido = Number(req.query.limite);
+            const limite = Number.isFinite(pedido) && pedido > 0
+                ? Math.min(pedido, LIMITE_MAXIMO_BUSCA)
+                : LIMITE_PADRAO_BUSCA;
+            query = query.order('nome_completo', { ascending: true }).limit(limite);
         }
 
         const { data, error } = await query;
