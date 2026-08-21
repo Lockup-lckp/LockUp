@@ -32,8 +32,6 @@
 .mapa {
     --lado: 72px;                  /* recalculado pelo JS; este é só o ponto de partida */
     --vao: 8px;
-    --manutencao: #F1C40F;         /* mesmo tom que HomeAdmin.css usa em .status-manutencao */
-
     /* A parede recebe um toque da cor da escola para não ser um cinza morto. */
     --parede-alta: color-mix(in srgb, var(--surface-raised) 86%, var(--primary-color) 14%);
     --parede-baixa: var(--surface-color);
@@ -346,6 +344,18 @@
     .mapa-armario-estado { display: none; }
 }
 
+/* A palavra do estado carrega a cor; o número, não.
+ *
+ * O número precisa ser lido por quem vai digitar o cadeado, então fica sempre
+ * em --on-bg. A palavra é curta e redundante com a borda, então pode usar a
+ * cor de estado — que o tema garante legível em qualquer paleta de escola. */
+.mapa-armario.livre .mapa-armario-estado { color: var(--success); }
+/* A palavra do armário ocupado NÃO leva o vermelho: medido, dava 3,5:1 no
+   tema padrão, e ainda com 0,72 de opacidade por cima. O vermelho já está na
+   borda e no preenchimento — repetir na letra só custava legibilidade. */
+.mapa-armario.manutencao .mapa-armario-estado { color: var(--warning); }
+.mapa-armario.escolhido .mapa-armario-estado { color: var(--on-primary); }
+
 /* Verde = livre. É a mesma convenção do mapa do admin (.status-disponivel),
    então quem cuida da escola e quem aluga veem a mesma cor para a mesma coisa. */
 .mapa-armario.livre {
@@ -370,8 +380,8 @@
 
 .mapa-armario.manutencao {
     background: repeating-linear-gradient(135deg,
-        color-mix(in srgb, var(--manutencao) 20%, transparent) 0 8px, color-mix(in srgb, var(--manutencao) 6%, transparent) 8px 16px);
-    border-color: color-mix(in srgb, var(--manutencao) 50%, transparent);
+        color-mix(in srgb, var(--warning) 20%, transparent) 0 8px, color-mix(in srgb, var(--warning) 6%, transparent) 8px 16px);
+    border-color: color-mix(in srgb, var(--warning) 50%, transparent);
     cursor: not-allowed;
 }
 
@@ -463,8 +473,8 @@
 .mapa-legenda .cor-ocupado { background: color-mix(in srgb, var(--danger) 14%, transparent);
     border-color: color-mix(in srgb, var(--danger) 50%, transparent); }
 .mapa-legenda .cor-manutencao {
-    background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--manutencao) 30%, transparent) 0 4px, transparent 4px 8px);
-    border-color: color-mix(in srgb, var(--manutencao) 50%, transparent);
+    background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--warning) 30%, transparent) 0 4px, transparent 4px 8px);
+    border-color: color-mix(in srgb, var(--warning) 50%, transparent);
 }
 .mapa-legenda .cor-escolhido {
     background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
