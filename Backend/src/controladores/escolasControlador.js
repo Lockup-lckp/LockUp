@@ -10,13 +10,20 @@ import { responderErro } from '../utils/erros.js';
 // superadmin — o admin de escola não pode mexer na própria comissão contratual
 // nem trocar o gateway de pagamento.
 //
-// As cores NÃO estão nesta lista de propósito. Desde a virada white-label o
-// tema por instituição existe (primary_color, secondary_color, bg_color), mas
-// quem define é o superadmin: um administrador escolhendo o próprio par de
-// cores pode deixar o botão de comprar ilegível na escola inteira, e o motor
-// de tema apenas avisa no console — ele não bloqueia.
+// As cores ESTAO na lista desde 2026-08-21. Antes ficavam de fora porque um
+// administrador podia deixar o proprio sistema ilegivel; hoje as cores de
+// TEXTO sao derivadas do fundo por calculo (ver aplicarTema.js), entao a pior
+// escolha possivel produz um tema feio, nunca um tema que nao se le.
 const CAMPOS_EDITAVEIS_ADMIN = [
   'logo_url',
+  // Identidade visual. Deixou de ser exclusiva do superadmin quando o motor
+  // de tema passou a CALCULAR as cores de texto a partir do fundo: o risco de
+  // um administrador tornar o proprio sistema ilegivel deixou de existir --
+  // o contraste e garantido por construcao, nao pela escolha.
+  'primary_color',
+  'secondary_color',
+  'bg_color',
+  'tema_modo',
   'logo_2_url',
   'logo_1_posicao',
   'logo_2_posicao',
@@ -42,6 +49,38 @@ const CAMPOS_EDITAVEIS_ADMIN = [
 // Nunca devolvidos a cliente nenhum, nem ao superadmin: uma credencial que
 // trafega para o navegador é uma credencial vazada.
 const CAMPOS_SECRETOS = ['pagbank_token_cifrado', 'credenciais_gateway_cifrado'];
+
+// ── Identidade visual ────────────────────────────────────────────────
+//
+// Aceita apenas hexadecimal de 6 dígitos com '#'. Não é preciosismo: o motor de
+// tema (front/src/theme/aplicarTema.js) desiste em silêncio quando não consegue
+// ler a cor, e o portal volta ao navy da plataforma sem erro nenhum na tela.
+// Uma cor malformada gravada aqui reapareceria como "o tema não funciona".
+const FORMATO_HEX = /^#[0-9a-fA-F]{6}$/;
+const MODOS_DE_TEMA = ['auto', 'claro', 'escuro'];
+
+const validarIdentidadeVisual = (campos) => {
+  for (const campo of ['primary_color', 'secondary_color', 'bg_color']) {
+    if (!(campo in campos)) continue;
+    const valor = campos[campo];
+    // null limpa a cor e devolve a escola ao tema da plataforma.
+    if (valor === null || valor === '') { campos[campo] = null; continue; }
+    if (typeof valor !== 'string' || !FORMATO_HEX.test(valor.trim())) {
+      return `A cor enviada em ${campo} precisa estar no formato #RRGGBB.`;
+    }
+    campos[campo] = valor.trim().toUpperCase();
+  }
+
+  if ('tema_modo' in campos) {
+    const modo = String(campos.tema_modo || 'auto').toLowerCase();
+    if (!MODOS_DE_TEMA.includes(modo)) {
+      return `O modo do tema precisa ser um de: ${MODOS_DE_TEMA.join(', ')}.`;
+    }
+    campos.tema_modo = modo;
+  }
+
+  return null;
+};
 
 // Contrato público da escola (portal, login, tema, checkout). É montado em JS a partir
 // de select('*') em vez de nomear as colunas na consulta: nomear coluna que
@@ -70,6 +109,10 @@ const projetarEscolaPublica = (escola) => {
     primary_color: escola.primary_color ?? null,
     secondary_color: escola.secondary_color ?? null,
     bg_color: escola.bg_color ?? null,
+    // Direcao das superficies. 'auto' deduz pela luminancia do fundo, que e o
+    // comportamento anterior a esta coluna existir -- e continua sendo o
+    // default quando a migracao ainda nao foi aplicada.
+    tema_modo: escola.tema_modo ?? 'auto',
     valor_armario: escola.valor_armario ?? null,
     tipo_matricula: escola.tipo_matricula ?? 'rm',
     // Regra de locação, não segredo: o aluno precisa saber quantos armários
@@ -306,13 +349,52 @@ export const atualizarEscola = async (req, res) => {
     }
   }
 
+  // Vale para admin e superadmin: cor malformada quebra o tema do mesmo jeito
+  // em qualquer um dos dois caminhos.
+  const erroDeIdentidade = validarIdentidadeVisual(camposParaAtualizar);
+  if (erroDeIdentidade) {
+    return res.status(400).json({ error: erroDeIdentidade });
+  }
+
   try {
-    const { data, error } = await supabase
-      .from('schools')
-      .update(camposParaAtualizar)
-      .eq('id', id)
-      .select()
-      .single();
+  // Grava, ignorando coluna que a migração ainda não criou.
+  //
+  // O PostgREST recusa a escrita INTEIRA por causa de um único campo
+  // desconhecido (PGRST204 / 42703). Sem este tratamento, subir uma versão do
+  // sistema antes de rodar a migração faria o admin ver "Instituição não
+  // localizada" ao salvar qualquer configuração — uma mensagem que manda
+  // procurar a escola quando o problema é uma coluna.
+  //
+  // É o espelho do que projetarEscolaPublica já faz na leitura: campo novo
+  // ausente cai no default em vez de derrubar tudo. Aqui, campo novo ausente é
+  // descartado e o resto é salvo — e o recurso passa a funcionar sozinho
+  // assim que a migração rodar, sem precisar coordenar deploy com banco.
+  const gravar = (campos) =>
+    supabase.from('schools').update(campos).eq('id', id).select().single();
+
+  let { data, error } = await gravar(camposParaAtualizar);
+
+  // Até três: um payload pode carregar mais de um campo novo.
+  for (let tentativa = 0; tentativa < 3; tentativa++) {
+    if (!error || (error.code !== 'PGRST204' && error.code !== '42703')) break;
+
+    const ausente = error.message?.match(/'([^']+)'/)?.[1];
+    if (!ausente || !(ausente in camposParaAtualizar)) break;
+
+    console.warn(
+      `[LCKP] Coluna '${ausente}' ainda não existe em schools — o campo foi ignorado. ` +
+      'Rode a migração pendente em Backend/sql/ para o recurso passar a valer.'
+    );
+    delete camposParaAtualizar[ausente];
+
+    if (Object.keys(camposParaAtualizar).length === 0) {
+      return res.status(400).json({
+        error: 'Nenhum dos campos enviados existe nesta instalação. Há migração pendente no banco.'
+      });
+    }
+    ({ data, error } = await gravar(camposParaAtualizar));
+  }
+
 
     // Violação de CHECK não é "não encontrada": o registro existe e a regra é
     // que recusou. Traduzir tudo como 404 mandava o admin procurar a escola

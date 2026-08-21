@@ -1,6 +1,8 @@
+import { useAvisoDeSaida } from '../../utils/useAvisoDeSaida.js';
+import { calcularTokens, contraste } from '../../theme/aplicarTema.js';
 import { useCodigoEscola } from '../../utils/useCodigoEscola.js';
 import { rotaEscola } from '../../utils/tenant.js';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { escolaService } from '../../services/escolaService';
 import { useEscola } from '../../theme/contextoEscola.js';
@@ -101,6 +103,80 @@ function CampoLogo({ titulo, ajuda, url, campo, posicao, aoMudarPosicao, aoEnvia
   );
 }
 
+// Um seletor de cor com leitura de contraste ao lado.
+//
+// O nativo <input type="color"> abre o seletor do sistema operacional, que o
+// administrador ja sabe usar. O campo de texto ao lado existe porque marca de
+// escola chega como codigo ("nosso bordo e #741012"), nao como ponto num
+// gradiente.
+function CampoCor({ titulo, ajuda, valor, aoMudar }) {
+  const valida = /^#[0-9a-fA-F]{6}$/.test(valor);
+
+  return (
+    <div className="perso-field">
+      <label className="lckp-label">{titulo}</label>
+      <div className="perso-cor">
+        <input
+          type="color"
+          className="perso-cor__amostra"
+          value={valida ? valor : '#000000'}
+          onChange={(e) => aoMudar(e.target.value.toUpperCase())}
+          aria-label={titulo}
+        />
+        <input
+          type="text"
+          className="lckp-input perso-cor__hex"
+          value={valor}
+          onChange={(e) => {
+            const bruto = e.target.value.trim();
+            aoMudar(bruto.startsWith('#') ? bruto.toUpperCase() : ('#' + bruto).toUpperCase());
+          }}
+          spellCheck={false}
+          maxLength={7}
+          aria-label={`${titulo} em hexadecimal`}
+        />
+      </div>
+      {!valida && <p className="perso-ajuda perso-ajuda--alerta">Use o formato #RRGGBB.</p>}
+      {ajuda && <p className="perso-ajuda">{ajuda}</p>}
+    </div>
+  );
+}
+
+// Prévia do tema, desenhada com os tokens que o motor produziria.
+//
+// Não é uma imitação: os valores vêm de calcularTokens, o mesmo cálculo que o
+// portal usa. Uma prévia que "parece" o resultado divergiria no primeiro
+// ajuste, e o lugar onde isso apareceria seria a escola, depois de salvo.
+function PreviaDoTema({ tokens }) {
+  if (!tokens) {
+    return (
+      <p className="perso-ajuda perso-ajuda--alerta">
+        Não foi possível ler as cores. Confira o formato antes de salvar.
+      </p>
+    );
+  }
+
+  return (
+    <div className="perso-previa" style={tokens}>
+      <div className="perso-previa__barra">
+        <span className="perso-previa__marca">Sua Escola</span>
+        <span className="perso-previa__saida">Sair</span>
+      </div>
+      <div className="perso-previa__corpo">
+        <p className="perso-previa__titulo">Seu armário</p>
+        <p className="perso-previa__texto">
+          Escolha no mapa e pague pelo Pix. Este é o texto secundário.
+        </p>
+        <div className="perso-previa__linha">
+          <span className="perso-previa__chip perso-previa__chip--ok">Disponível</span>
+          <span className="perso-previa__chip perso-previa__chip--erro">Ocupado</span>
+        </div>
+        <button type="button" className="perso-previa__botao" tabIndex={-1}>Alugar armário</button>
+      </div>
+    </div>
+  );
+}
+
 export default function Personalizacao() {
   const navigate = useNavigate();
   const schoolCode = useCodigoEscola();
@@ -129,6 +205,18 @@ export default function Personalizacao() {
   const [valorSemestral, setValorSemestral] = useState('');
   const [encSemestralDia, setEncSemestralDia] = useState('6');
   const [encSemestralMes, setEncSemestralMes] = useState('7');
+
+  // Identidade visual. Deixou de ser exclusiva do superadmin quando as cores
+  // de TEXTO passaram a ser derivadas do fundo por cálculo: a pior escolha
+  // possível produz um tema feio, nunca um que não se lê.
+  const [corPrimaria, setCorPrimaria] = useState('#E8B44A');
+  const [corSecundaria, setCorSecundaria] = useState('#C8912E');
+  const [corFundo, setCorFundo] = useState('#0A1F44');
+  const [temaModo, setTemaModo] = useState('auto');
+
+  // A tela tinha quatro cartões empilhados e um botão no fim. Em abas, cada
+  // assunto cabe na tela sem rolagem e o botão de salvar fica sempre visível.
+  const [aba, setAba] = useState('identidade');
 
   const [salvando, setSalvando] = useState(false);
   const [feedback, setFeedback] = useState(null); // { tipo: 'sucesso'|'erro', texto }
@@ -165,7 +253,74 @@ export default function Personalizacao() {
     setValorSemestral(escola.valor_armario_semestral != null ? String(escola.valor_armario_semestral) : '');
     setEncSemestralDia(String(escola.encerramento_semestral_dia ?? 6));
     setEncSemestralMes(String(escola.encerramento_semestral_mes ?? 7));
+    // Sem cor gravada, mostra a da plataforma: é o que a escola está vendo.
+    setCorPrimaria(escola.primary_color || '#E8B44A');
+    setCorSecundaria(escola.secondary_color || '#C8912E');
+    setCorFundo(escola.bg_color || '#0A1F44');
+    setTemaModo(escola.tema_modo || 'auto');
   }
+
+  // Há alteração pendente?
+  //
+  // Comparação campo a campo com o que veio do servidor, e não uma flag
+  // levantada no primeiro onChange: com a flag, digitar e apagar deixaria o
+  // aviso ligado para sempre, e o admin aprenderia a ignorá-lo.
+  //
+  // Tudo é comparado como texto porque os campos SÃO texto na tela — o
+  // formulário guarda '100' e o banco guarda 100, e comparar tipos diferentes
+  // acusaria mudança onde não houve.
+  const comoTexto = (v, padrao = '') => (v === null || v === undefined ? padrao : String(v));
+
+  const temAlteracao = useMemo(() => {
+    if (!escola) return false;
+    const pares = [
+      [corPrimaria, comoTexto(escola.primary_color, '#E8B44A')],
+      [corSecundaria, comoTexto(escola.secondary_color, '#C8912E')],
+      [corFundo, comoTexto(escola.bg_color, '#0A1F44')],
+      [temaModo, comoTexto(escola.tema_modo, 'auto')],
+      [logo1Posicao, comoTexto(escola.logo_1_posicao, 'esquerda')],
+      [logo2Posicao, comoTexto(escola.logo_2_posicao, 'nenhum')],
+      [rotuloCorredor, comoTexto(escola.rotulo_corredor, 'bloco')],
+      [tipoMatricula, comoTexto(escola.tipo_matricula, 'rm')],
+      [maxArmarios, comoTexto(escola.max_armarios_por_aluno, '1')],
+      [valorArmario, comoTexto(escola.valor_armario)],
+      [aberturaDia, comoTexto(escola.abertura_dia, '1')],
+      [aberturaMes, comoTexto(escola.abertura_mes, '2')],
+      [encerramentoDia, comoTexto(escola.encerramento_dia, '20')],
+      [encerramentoMes, comoTexto(escola.encerramento_mes, '12')],
+      [String(permiteSemestral), String(Boolean(escola.permite_semestral))],
+      [valorSemestral, comoTexto(escola.valor_armario_semestral)],
+      [encSemestralDia, comoTexto(escola.encerramento_semestral_dia, '6')],
+      [encSemestralMes, comoTexto(escola.encerramento_semestral_mes, '7')]
+    ];
+    return pares.some(([agora, salvo]) => agora !== salvo);
+  }, [escola, corPrimaria, corSecundaria, corFundo, temaModo, logo1Posicao, logo2Posicao,
+      rotuloCorredor, tipoMatricula, maxArmarios, valorArmario, aberturaDia, aberturaMes,
+      encerramentoDia, encerramentoMes, permiteSemestral, valorSemestral,
+      encSemestralDia, encSemestralMes]);
+
+  // Sair da tela com alteração pendente pede confirmação. A logo não entra na
+  // conta: o upload grava direto, então ela já está salva quando aparece.
+  const bloqueioDeSaida = useAvisoDeSaida(temAlteracao);
+
+  // Os tokens que ESTAS cores produziriam. Mesmo cálculo do portal.
+  const tokensDaPrevia = useMemo(
+    () => calcularTokens({
+      primary_color: corPrimaria,
+      secondary_color: corSecundaria,
+      bg_color: corFundo,
+      tema_modo: temaModo
+    }),
+    [corPrimaria, corSecundaria, corFundo, temaModo]
+  );
+
+  // Leitura de contraste do par escolhido.
+  //
+  // Informa, não bloqueia. O texto do sistema é ajustado por cálculo e sempre
+  // se lê; o que este número diz é se a COR DA ESCOLA vai aparecer como marca
+  // ou se vai ser lavada até quase sumir. É uma decisão de identidade, e ela é
+  // da instituição.
+  const razaoPrimaria = contraste(corPrimaria, corFundo);
 
   // Redireciona quem não é admin (a API também bloqueia, mas evitamos exibir a tela).
   useEffect(() => {
@@ -186,6 +341,7 @@ export default function Personalizacao() {
     atualizarEscolaLocal(resultado.escola || { [campo]: resultado.url });
     setFeedback({ tipo: 'sucesso', texto: 'Logo enviada.' });
   };
+
 
   const inteiroOuNulo = (valor, min, max) => {
     const n = parseInt(valor, 10);
@@ -214,10 +370,20 @@ export default function Personalizacao() {
       return;
     }
 
+    const hexValido = (c) => /^#[0-9a-fA-F]{6}$/.test(c);
+    if (![corPrimaria, corSecundaria, corFundo].every(hexValido)) {
+      setFeedback({ tipo: 'erro', texto: 'Confira as cores: o formato é #RRGGBB.' });
+      return;
+    }
+
     setSalvando(true);
     setFeedback(null);
 
     const payload = {
+      primary_color: corPrimaria,
+      secondary_color: corSecundaria,
+      bg_color: corFundo,
+      tema_modo: temaModo,
       logo_1_posicao: logo1Posicao,
       logo_2_posicao: logo2Posicao,
       rotulo_corredor: rotuloCorredor,
@@ -269,17 +435,118 @@ export default function Personalizacao() {
   const exemploCorredor = rotuloCorredor === 'corredor' ? 'Corredor 3' : 'Bloco 3';
   const exemploMatricula = tipoMatricula === 'ra' ? 'RA' : 'RM';
 
+  const ABAS = [
+    { id: 'identidade', rotulo: 'Identidade visual' },
+    { id: 'regras', rotulo: 'Regras do aluno' },
+    { id: 'locacao', rotulo: 'Locação e ciclo' }
+  ];
+
   return (
     <div className="perso-container">
       <header className="perso-header">
-        <h2 className="perso-title">Configurações da Instituição</h2>
-        <p className="perso-subtitle">
-          Logos, valor e as regras que o portal usa com os alunos da {escola?.name || 'sua escola'}.
-          A identidade visual do portal é padrão do LCKP e não é editável.
-        </p>
+        <div>
+          <h2 className="perso-title">Configurações da {escola?.name || 'Instituição'}</h2>
+          <p className="perso-subtitle">
+            Identidade visual, regras e calendário. O que você muda aqui aparece
+            no portal e nas telas do aluno.
+          </p>
+        </div>
+
+        {/* Salvar fica no cabeçalho, e o cabeçalho gruda no topo. Antes o botão
+            vivia no fim de quatro cartões empilhados: mexer numa data lá em
+            cima exigia rolar a tela inteira para confirmar. */}
+        <div className="perso-header__acoes">
+          {temAlteracao && <span className="perso-pendente">Alterações não salvas</span>}
+          <button className="lckp-btn" onClick={handleSalvar} disabled={salvando || !temAlteracao}>
+            {salvando ? 'Salvando...' : 'Salvar'}
+          </button>
+        </div>
       </header>
 
+      {feedback && <div className={`perso-toast ${feedback.tipo}`}>{feedback.texto}</div>}
+
+      <nav className="perso-abas" role="tablist" aria-label="Seções das configurações">
+        {ABAS.map((a) => (
+          <button
+            key={a.id}
+            role="tab"
+            type="button"
+            aria-selected={aba === a.id}
+            onClick={() => setAba(a.id)}
+            className={`perso-aba ${aba === a.id ? 'perso-aba--ativa' : ''}`}
+          >
+            {a.rotulo}
+          </button>
+        ))}
+      </nav>
+
+      {aba === 'identidade' && (
       <div className="perso-grid">
+        <div className="lckp-card perso-card">
+          <h3>Cores</h3>
+          <p className="perso-ajuda">
+            Três cores. As demais — superfícies, bordas e a cor do texto — são
+            calculadas a partir delas, e é esse cálculo que impede um tema
+            ilegível.
+          </p>
+
+          <CampoCor
+            titulo="Cor principal"
+            ajuda="Botões, títulos e destaques."
+            valor={corPrimaria}
+            aoMudar={setCorPrimaria}
+          />
+
+          <CampoCor
+            titulo="Cor secundária"
+            ajuda="Filetes e acentos. Não carrega texto — para letra o sistema usa uma versão escurecida dela."
+            valor={corSecundaria}
+            aoMudar={setCorSecundaria}
+          />
+
+          <CampoCor
+            titulo="Cor de fundo"
+            ajuda="A base de todas as telas."
+            valor={corFundo}
+            aoMudar={setCorFundo}
+          />
+
+          <div className="perso-field">
+            <label className="lckp-label">Modo</label>
+            <select className="lckp-input" value={temaModo} onChange={(e) => setTemaModo(e.target.value)}>
+              <option value="auto">Automático — deduzir pelo fundo</option>
+              <option value="claro">Claro</option>
+              <option value="escuro">Escuro</option>
+            </select>
+            <p className="perso-ajuda">
+              Decide se os cartões ficam mais claros ou mais escuros que a página.
+              O automático acerta nos extremos e hesita em fundos de tom médio.
+            </p>
+          </div>
+        </div>
+
+        <div className="lckp-card perso-card">
+          <h3>Como vai ficar</h3>
+          <p className="perso-ajuda">
+            Desenhado com as cores calculadas a partir da sua escolha — é o que
+            o aluno vai ver.
+          </p>
+
+          <PreviaDoTema tokens={tokensDaPrevia} />
+
+          <div className="perso-contraste">
+            <span>Sua cor principal sobre o fundo</span>
+            <strong>{razaoPrimaria.toFixed(2)}:1</strong>
+          </div>
+          <p className="perso-ajuda">
+            {razaoPrimaria >= 4.5
+              ? 'Ótimo: a cor da escola aparece como marca, sem precisar de ajuste.'
+              : razaoPrimaria >= 3
+                ? 'Aceitável: o sistema vai clarear um pouco a sua cor onde ela virar texto.'
+                : 'Este par é difícil: para o texto ser legível o sistema vai alterar bastante a sua cor. Considere um fundo mais afastado dela.'}
+          </p>
+        </div>
+
         <div className="lckp-card perso-card">
           <h3>Logos</h3>
           <p className="perso-ajuda">
@@ -307,6 +574,11 @@ export default function Personalizacao() {
           />
         </div>
 
+      </div>
+      )}
+
+      {aba === 'regras' && (
+      <div className="perso-grid">
         <div className="lckp-card perso-card">
           <h3>Como a escola fala</h3>
           <p className="perso-ajuda">
@@ -348,19 +620,13 @@ export default function Personalizacao() {
             <p className="perso-ajuda">Quantos armários cada estudante pode alugar por ciclo.</p>
           </div>
 
-          <div className="perso-field">
-            <label className="lckp-label">Valor do armário (R$)</label>
-            <input
-              className="lckp-input"
-              type="text"
-              inputMode="decimal"
-              placeholder="Ex: 100.00"
-              value={valorArmario}
-              onChange={(e) => setValorArmario(e.target.value)}
-            />
-          </div>
         </div>
 
+      </div>
+      )}
+
+      {aba === 'locacao' && (
+      <div className="perso-grid">
         <div className="lckp-card perso-card">
           <h3>Métodos de aluguel</h3>
           <p className="perso-ajuda">
@@ -376,6 +642,21 @@ export default function Personalizacao() {
               </div>
               <span className="lckp-chip">Sempre disponível</span>
             </div>
+          </div>
+
+          <div className="perso-field">
+            <label className="lckp-label">Valor do armário — anual (R$)</label>
+            <input
+              className="lckp-input"
+              type="text"
+              inputMode="decimal"
+              placeholder="Ex: 100.00"
+              value={valorArmario}
+              onChange={(e) => setValorArmario(e.target.value)}
+            />
+          </div>
+
+          <div className="perso-field">
 
             <label className={`perso-metodo ${permiteSemestral ? 'perso-metodo--ativo' : ''}`}>
               <input
@@ -467,13 +748,43 @@ export default function Personalizacao() {
           </div>
         </div>
       </div>
+      )}
 
-      <div className="perso-actions">
-        <button className="lckp-btn" onClick={handleSalvar} disabled={salvando}>
-          {salvando ? 'Salvando...' : 'Salvar configurações'}
-        </button>
-        {feedback && <div className={`perso-toast ${feedback.tipo}`}>{feedback.texto}</div>}
-      </div>
+      {/* Confirmação de saída. Aparece quando a navegação foi interceptada por
+          haver alteração pendente. O botão que descarta é o secundário, e o que
+          fica é o primário: a ação destrutiva não deve ser a mais fácil de
+          acertar com o dedo. */}
+      {bloqueioDeSaida?.state === 'blocked' && (
+        <div className="lckp-modal__backdrop" role="presentation">
+          <div className="lckp-modal lckp-modal--medio" role="dialog" aria-modal="true" aria-labelledby="titulo-saida">
+            <div className="perso-saida">
+              <h3 id="titulo-saida" className="perso-saida__titulo">Sair sem salvar?</h3>
+              <p className="perso-saida__texto">
+                Você mudou as configurações da {escola?.name || 'instituição'} e ainda
+                não salvou. Se sair agora, as alterações se perdem.
+              </p>
+              <div className="perso-saida__acoes">
+                <button
+                  type="button"
+                  className="lckp-btn lckp-btn--ghost"
+                  onClick={() => bloqueioDeSaida.proceed()}
+                >
+                  Sair sem salvar
+                </button>
+                <button
+                  type="button"
+                  className="lckp-btn"
+                  onClick={() => bloqueioDeSaida.reset()}
+                  autoFocus
+                >
+                  Continuar editando
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

@@ -231,3 +231,235 @@
 /* O anual não é uma escolha: não tem caixa e não responde ao clique. */
 .perso-metodo--fixo { cursor: default; justify-content: space-between; }
 .perso-metodo--fixo:hover { border-color: var(--border-color); }
+
+/* ==================================================================
+   Abas, identidade visual e confirmação de saída
+   Acrescentado em 2026-08-21, quando a tela passou de quatro cartões
+   empilhados para três abas com o salvar sempre à vista.
+   ================================================================== */
+
+.perso-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.perso-header__acoes {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* Aviso de pendência ao lado do botão. Fica em --warning, não em vermelho:
+   ter alteração não salva não é erro, é estado. */
+.perso-pendente {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning) 30%, transparent);
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  white-space: nowrap;
+}
+
+.perso-abas {
+  display: flex;
+  gap: 0.25rem;
+  margin: 1.25rem 0 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  overflow-x: auto;
+}
+
+.perso-aba {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0.7rem 1rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--on-bg-muted);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+  /* Alinha o traço da aba ativa COM a régua do container. */
+  margin-bottom: -1px;
+}
+.perso-aba:hover { color: var(--on-bg); }
+
+.perso-aba--ativa {
+  color: var(--primary-text);
+  border-bottom-color: var(--primary-color);
+}
+
+/* ── Seletor de cor ─────────────────────────────────────────────── */
+
+.perso-cor {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* O <input type="color"> nativo vem com moldura e respiro próprios de cada
+   navegador. Zerar tudo e desenhar a amostra aqui é o que faz o campo parecer
+   parte do sistema em vez de um controle do sistema operacional. */
+.perso-cor__amostra {
+  inline-size: 3rem;
+  block-size: 2.6rem;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-control);
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.perso-cor__amostra::-webkit-color-swatch-wrapper { padding: 3px; }
+.perso-cor__amostra::-webkit-color-swatch { border: none; border-radius: 7px; }
+.perso-cor__amostra::-moz-color-swatch { border: none; border-radius: 7px; }
+
+.perso-cor__hex {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.perso-ajuda--alerta { color: var(--warning); }
+
+/* ── Prévia ─────────────────────────────────────────────────────── */
+
+/* Recebe os tokens calculados por inline style, então tudo aqui dentro se
+   resolve com as cores da ESCOLHA PENDENTE, não com as do tema em vigor. */
+.perso-previa {
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.perso-previa__barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.9rem;
+  background: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.perso-previa__marca {
+  font-family: var(--font-display, sans-serif);
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: var(--primary-text);
+}
+
+.perso-previa__saida {
+  font-size: 0.7rem;
+  color: var(--danger);
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent);
+  border-radius: 6px;
+  padding: 0.15rem 0.5rem;
+}
+
+.perso-previa__corpo { padding: 1rem; }
+
+.perso-previa__titulo {
+  font-family: var(--font-display, sans-serif);
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--on-bg);
+  margin: 0 0 0.3rem;
+}
+
+.perso-previa__texto {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--on-bg-muted);
+  margin: 0 0 0.75rem;
+}
+
+.perso-previa__linha { display: flex; gap: 0.4rem; margin-bottom: 0.9rem; }
+
+.perso-previa__chip {
+  font-size: 0.68rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+}
+.perso-previa__chip--ok {
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--success) 30%, transparent);
+}
+.perso-previa__chip--erro {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+}
+
+.perso-previa__botao {
+  background: var(--primary-color);
+  color: var(--on-primary);
+  border: none;
+  border-radius: var(--radius-control);
+  padding: 0.55rem 1rem;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  /* A prévia não é operável: é uma figura. Sem isto o dedo tenta clicar. */
+  pointer-events: none;
+}
+
+.perso-contraste {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--on-bg) 5%, transparent);
+  border: 1px solid var(--border-color);
+  font-size: 0.8rem;
+  color: var(--on-bg-muted);
+}
+.perso-contraste strong {
+  font-family: var(--font-display, sans-serif);
+  font-size: 1.05rem;
+  color: var(--on-bg);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Confirmação de saída ───────────────────────────────────────── */
+
+.perso-saida { padding: 1.5rem; }
+
+.perso-saida__titulo {
+  font-family: var(--font-display, sans-serif);
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--on-bg);
+  margin: 0 0 0.6rem;
+}
+
+.perso-saida__texto {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--on-bg-muted);
+  margin: 0 0 1.4rem;
+}
+
+.perso-saida__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+@media (max-width: 560px) {
+  .perso-header__acoes { width: 100%; justify-content: space-between; }
+  .perso-saida__acoes .lckp-btn { flex: 1; justify-content: center; }
+}

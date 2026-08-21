@@ -186,21 +186,25 @@ export const limparTema = () => {
 
 
 /**
- * Escreve a identidade visual da escola nos tokens de :root.
+ * Todos os tokens que a identidade desta escola produz, SEM aplicar nada.
  *
- * Sem escola (ou sem cores configuradas) não faz nada: os tokens do index.css
- * continuam valendo, e o sistema aparece na marca LCKP — que é o certo para a
- * landing e para o painel da plataforma.
+ * Separado de aplicarTema para a tela de Configurações poder mostrar a prévia
+ * do que vai valer. Duplicar a matemática lá faria a prévia e a realidade
+ * divergirem no primeiro ajuste -- e o lugar onde isso apareceria seria a
+ * escola, depois de salvo.
+ *
+ * @returns {Object<string,string>|null} null quando não há cor legível para ler
  */
-export const aplicarTema = (escola) => {
-    if (!escola) return;
+export const calcularTokens = (escola) => {
+    if (!escola) return null;
 
     const primaria = escola.primary_color;
     const secundaria = escola.secondary_color;
     const fundo = escola.bg_color;
-    if (!hexParaRgb(primaria) || !hexParaRgb(fundo)) return;
+    if (!hexParaRgb(primaria) || !hexParaRgb(fundo)) return null;
 
-    const raiz = document.documentElement.style;
+    const tokens = {};
+    const raiz = { setProperty: (chave, valor) => { tokens[chave] = valor; } };
 
     raiz.setProperty('--primary-color', primaria);
     raiz.setProperty('--secondary-color', hexParaRgb(secundaria) ? secundaria : escurecer(primaria, 0.18));
@@ -209,10 +213,18 @@ export const aplicarTema = (escola) => {
     // Superfícies derivadas do fundo, não fixas: um cartão cinza sobre fundo
     // bordô denuncia que o tema foi só "trocar a cor do botão".
     //
-    // A direção depende do fundo. Num tema escuro o cartão é mais CLARO que a
+    // A direção depende do modo. Num tema escuro o cartão é mais CLARO que a
     // página; num tema claro, mais ESCURO. Clarear sempre deixaria o cartão
     // branco sobre página branca — invisível.
-    const claro = luminancia(hexParaRgb(fundo)) > 0.45;
+    //
+    // 'auto' deduz pela luminância, que era a única regra até 2026-08-21. A
+    // dedução acerta nos extremos e hesita no meio: um ameixa #623E55 tem
+    // luminância 0,09 e é lido como escuro, mas a escola pode querer que ele se
+    // comporte como base clara. Quem sabe é a instituição, não a conta.
+    const modo = escola.tema_modo || 'auto';
+    const claro = modo === 'claro' ? true
+        : modo === 'escuro' ? false
+        : luminancia(hexParaRgb(fundo)) > 0.45;
 
     const superficie = claro ? escurecer(fundo, 0.03) : clarear(fundo, 0.07);
     const superficieAlta = claro ? escurecer(fundo, 0.07) : clarear(fundo, 0.14);
@@ -292,13 +304,32 @@ export const aplicarTema = (escola) => {
         legivelComoTexto(hexParaRgb(secundaria) ? secundaria : primaria)
     );
 
+    return tokens;
+};
+
+/**
+ * Escreve a identidade visual da escola nos tokens de :root.
+ *
+ * Sem escola (ou sem cores configuradas) não faz nada: os tokens do index.css
+ * continuam valendo, e o sistema aparece na marca LCKP — que é o certo para a
+ * landing e para o painel da plataforma.
+ */
+export const aplicarTema = (escola) => {
+    const tokens = calcularTokens(escola);
+    if (!tokens) return;
+
+    const raiz = document.documentElement.style;
+    for (const [chave, valor] of Object.entries(tokens)) {
+        raiz.setProperty(chave, valor);
+    }
+
     // Aviso, não bloqueio: a cor já está gravada no banco e travar a tela aqui
     // deixaria a escola sem portal. Quem impede a combinação ruim é a validação
     // na hora de escolher, em Configurações.
-    const razao = contraste(primaria, fundo);
+    const razao = contraste(escola.primary_color, escola.bg_color);
     if (razao < CONTRASTE_MINIMO_AA) {
         console.warn(
-            `[LCKP tema] Contraste de ${razao.toFixed(2)}:1 entre a cor principal (${primaria}) e o fundo (${fundo}). ` +
+            `[LCKP tema] Contraste de ${razao.toFixed(2)}:1 entre a cor principal (${escola.primary_color}) e o fundo (${escola.bg_color}). ` +
             `O texto usa a variante ajustada (--primary-text), mas o par escolhido não alcança o mínimo de ${CONTRASTE_MINIMO_AA}:1 da WCAG AA.`
         );
     }
