@@ -45,7 +45,37 @@ export const obterEscolaPorCodigo = async (codigo) => {
     throw error;
   }
 
-  porCodigo.set(k, { linha: data ?? null, expiraEm: Date.now() + TTL_MS });
+  // Não achou pelo código atual: tenta o anterior.
+  //
+  // O código da escola vai para contrato assinado, e-mail enviado e link que
+  // aluno compartilha no grupo. Quando ele muda — e mudou, 'etec-043' virou
+  // 'etec-bentoquirino' — tudo isso apontaria para o vazio. Aqui o endereço
+  // antigo continua chegando na escola certa; quem manda o aluno para a URL
+  // nova é o portal, comparando o código pedido com o `codigo` devolvido.
+  const linha = data ?? await buscarPeloCodigoAnterior(codigo);
+
+  porCodigo.set(k, { linha, expiraEm: Date.now() + TTL_MS });
+  return linha;
+};
+
+// Separada porque tolera a coluna ainda não existir: enquanto a migração
+// 2026-08-22-codigo-anterior.sql não roda, o Postgres devolve 42703 e a busca
+// precisa seguir como "não encontrei" em vez de derrubar o endpoint mais quente
+// do sistema com 500 em toda escola desconhecida.
+const COLUNA_INEXISTENTE = '42703';
+
+const buscarPeloCodigoAnterior = async (codigo) => {
+  const { data, error } = await supabase
+    .from('schools')
+    .select('*')
+    .eq('codigo_anterior', codigo)
+    .maybeSingle();
+
+  if (error) {
+    if (error.code === COLUNA_INEXISTENTE) return null;
+    throw error;
+  }
+
   return data ?? null;
 };
 
