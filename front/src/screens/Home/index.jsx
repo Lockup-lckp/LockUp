@@ -56,6 +56,8 @@ export default function Home() {
     const fitaRef = useRef(null);
     const raizRef = useRef(null);
     const legendaRef = useRef(null);
+    const barraRef = useRef(null);
+    const pisoRef = useRef(null);
 
     const limiteArmarios = Number(escolaDados?.max_armarios_por_aluno) || 1;
     const atingiuLimite = armariosDoAluno >= limiteArmarios;
@@ -227,6 +229,32 @@ export default function Home() {
         posicionar(true);
     }, [ajustarEscala, posicionar, corredorAtivo]);
 
+    // Quanto a fita precisa subir para a barra não tapar a fileira de baixo.
+    //
+    // O levantamento é LIMITADO pelo espaço que sobra em cima: numa tela baixa,
+    // subir o quanto a barra pede empurraria o rótulo do módulo para trás da
+    // faixa de vidro. Melhor cobrir um pedacinho embaixo do que cortar em cima.
+    useLayoutEffect(() => {
+        const raiz = raizRef.current;
+        const barra = barraRef.current;
+        const piso = pisoRef.current;
+        const fita = fitaRef.current;
+        if (!raiz || !barra || !piso) return;
+
+        if (!armarioSelecionado) {
+            raiz.style.setProperty('--desvio-barra', '0px');
+            return;
+        }
+
+        const pedido = Math.max(0, barra.offsetHeight - piso.offsetHeight + 8);
+        const alvo = fita && fita.children[Math.min(paradaSegura, fita.children.length - 1)];
+        const folgaEmCima = alvo
+            ? Math.max(0, alvo.getBoundingClientRect().top - cenaRef.current.getBoundingClientRect().top - 8)
+            : 0;
+
+        raiz.style.setProperty('--desvio-barra', `${Math.min(pedido, folgaEmCima)}px`);
+    }, [armarioSelecionado, paradaSegura]);
+
     useEffect(() => {
         const recalcular = () => {
             ajustarEscala();
@@ -326,14 +354,15 @@ export default function Home() {
 
     return (
         <div className="mapa" ref={raizRef}>
-            <div>
-                <h2 className="mapa-titulo">Escolha seu armário</h2>
-                <p className="mapa-subtitulo">
-                    {`Toque no ${nomeDoCorredor} e depois no armário que você quer`}
-                </p>
-            </div>
+            <div className="mapa-cabecalho">
+                <div className="mapa-intro">
+                    <h2 className="mapa-titulo">Escolha seu armário</h2>
+                    <p className="mapa-subtitulo">
+                        {`Toque no ${nomeDoCorredor} e depois no armário`}
+                    </p>
+                </div>
 
-            <div className="mapa-corredores">
+                <div className="mapa-corredores">
                 {corredores.map((corredor) => (
                     <button
                         key={corredor}
@@ -345,8 +374,9 @@ export default function Home() {
                         <div className="mapa-corredor-livres">
                             {livresPorCorredor[corredor] || 0} livres
                         </div>
-                    </button>
-                ))}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             <div
@@ -407,7 +437,7 @@ export default function Home() {
                     </div>
                 )}
 
-                <div className="mapa-piso" />
+                <div className="mapa-piso" ref={pisoRef} />
                 <div className="mapa-borda" />
 
                 {modulos.length > 1 && (
@@ -433,23 +463,19 @@ export default function Home() {
                     </div>
                 )}
 
-                <div className={`mapa-barra ${armarioSelecionado ? 'aberta' : ''}`}>
+                <div className={`mapa-barra ${armarioSelecionado ? 'aberta' : ''}`} ref={barraRef}>
                     <div className="mapa-barra-quem">
-                        <div className="mapa-barra-rotulo">SEU ARMÁRIO</div>
-                        <div className="mapa-barra-armario">
+                        <span className="mapa-barra-armario">
                             {armarioSelecionado?.nome || '—'}
-                        </div>
-                        <div className="mapa-barra-onde">
+                        </span>
+                        <span className="mapa-barra-onde">
                             {armarioSelecionado
                                 ? nomearCorredor(escolaDados, armarioSelecionado.corredor)
                                 : ''}
-                        </div>
+                        </span>
                     </div>
 
-                    <div className="mapa-barra-preco">
-                        <div className="mapa-barra-rotulo">VALOR</div>
-                        <div className="mapa-barra-valor">{dinheiro(escolaDados?.valor_armario)}</div>
-                    </div>
+                    <div className="mapa-barra-valor">{dinheiro(escolaDados?.valor_armario)}</div>
 
                     <button
                         type="button"
@@ -468,7 +494,10 @@ export default function Home() {
                 <span><i className="cor-livre" /> Verde: pode escolher</span>
                 <span><i className="cor-ocupado" /> Vermelho: já alugado</span>
                 <span><i className="cor-manutencao" /> Listrado: em conserto</span>
-                <span><i className="cor-escolhido" /> Dourado: o seu</span>
+                {/* Sem nome de cor aqui: o destaque usa a cor da ESCOLA, que muda.
+                    Chamar de "dourado" ficava errado na Bento Quirino, que é laranja.
+                    Verde, vermelho e listrado podem ser nomeados — são fixos. */}
+                <span><i className="cor-escolhido" /> O que você escolheu</span>
 
                 {modulos.length > 1 && (
                     <div className="mapa-pontos">
