@@ -19,3 +19,5 @@ npm-debug.log*
 Thumbs.db
 docs/*.zip
 docs/backup-escolas-*.json
+
+.superpowers/
