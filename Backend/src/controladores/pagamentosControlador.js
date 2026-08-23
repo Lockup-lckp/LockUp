@@ -1,3 +1,4 @@
+import { obterEscolaPorCodigo } from '../servicos/cacheEscola.js';
 import crypto from 'crypto';
 import { MercadoPagoConfig, Payment } from 'mercadopago';
 import supabase from '../config/database.js';
@@ -719,11 +720,24 @@ export const webhookPagBank = async (req, res) => {
     const { schoolCode } = req.params;
 
     try {
-        const { data: escola, error: erroEscola } = await supabase
+        let { data: escola, error: erroEscola } = await supabase
             .from('schools')
             .select('id, codigo, pagbank_token_cifrado, pagbank_ambiente, credenciais_gateway_cifrado, gateway_ambiente')
             .eq('codigo', schoolCode)
             .maybeSingle();
+
+        // Não achou pelo código: a URL registrada no gateway pode carregar o
+        // ENDEREÇO da escola em vez da identidade. Quem cadastrou aquela URL
+        // foi uma pessoa, meses atrás, num painel que não é nosso — e o modo de
+        // falhar aqui é o pior que existe no sistema: o aluno paga, o gateway
+        // avisa, e a notificação é descartada com um 404 que ninguém lê.
+        //
+        // Fallback, não substituição: o caminho que já funciona continua sendo
+        // uma consulta só, e esta segunda ida só acontece quando a primeira
+        // falhou de qualquer forma.
+        if (!erroEscola && !escola) {
+            escola = await obterEscolaPorCodigo(schoolCode).catch(() => null);
+        }
 
         if (erroEscola || !escola) {
             console.warn(`[LCKP PAGBANK] Notificação para escola desconhecida: ${schoolCode}`);
@@ -829,11 +843,24 @@ export const webhookBancoDoBrasil = async (req, res) => {
     const { schoolCode } = req.params;
 
     try {
-        const { data: escola, error: erroEscola } = await supabase
+        let { data: escola, error: erroEscola } = await supabase
             .from('schools')
             .select('id, codigo, name, gateway, gateway_ambiente, credenciais_gateway_cifrado')
             .eq('codigo', schoolCode)
             .maybeSingle();
+
+        // Não achou pelo código: a URL registrada no gateway pode carregar o
+        // ENDEREÇO da escola em vez da identidade. Quem cadastrou aquela URL
+        // foi uma pessoa, meses atrás, num painel que não é nosso — e o modo de
+        // falhar aqui é o pior que existe no sistema: o aluno paga, o gateway
+        // avisa, e a notificação é descartada com um 404 que ninguém lê.
+        //
+        // Fallback, não substituição: o caminho que já funciona continua sendo
+        // uma consulta só, e esta segunda ida só acontece quando a primeira
+        // falhou de qualquer forma.
+        if (!erroEscola && !escola) {
+            escola = await obterEscolaPorCodigo(schoolCode).catch(() => null);
+        }
 
         if (erroEscola || !escola) {
             console.warn(`[LCKP BB] Notificação para escola desconhecida: ${schoolCode}`);

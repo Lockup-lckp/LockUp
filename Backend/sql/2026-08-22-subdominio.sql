@@ -31,9 +31,20 @@ CREATE UNIQUE INDEX IF NOT EXISTS schools_subdominio_unico
   WHERE subdominio IS NOT NULL;
 
 -- Bento Quirino: devolve o código e grava o endereço.
+--
+-- `codigo_anterior` volta a NULL no mesmo comando, e não é opcional: a migração
+-- 2026-08-22-codigo-anterior deixou lá 'etec-043' com uma trava dizendo que ela
+-- não pode ser igual ao `codigo` atual. Sem limpar, este UPDATE bate na trava
+-- (Postgres 23514) e a migração inteira falha.
+--
+-- Limpar é o certo, não só o que destrava: aquela coluna existia para o
+-- endereço antigo continuar encontrável, e `subdominio` passou a fazer isso.
+-- Guardar 'etec-bentoquirino' nas duas seria a mesma informação em dois lugares
+-- com significados diferentes — o tipo de redundância que diverge sozinha.
 UPDATE schools
    SET codigo = 'etec-043',
-       subdominio = 'etec-bentoquirino'
+       subdominio = 'etec-bentoquirino',
+       codigo_anterior = NULL
  WHERE codigo = 'etec-bentoquirino';
 
 -- Escolas que ainda não têm endereço próprio continuam sendo alcançadas pelo
