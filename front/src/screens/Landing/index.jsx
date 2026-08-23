@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { ligarAnimacoes } from '../../utils/revelar';
 import './Landing.css';
 import { leadsService } from '../../services/leadsService';
@@ -485,95 +484,6 @@ function CookieBanner({ aoAbrirPrivacidade, consentimento, aoDefinir }) {
   );
 }
 
-/* ─────────────── MODAL DE ACESSO DA ESCOLA (CÓDIGO) ─────────────── */
-function ModalAcessoEscola({ aberto, aoFechar }) {
-  const [codigo, setCodigo] = useState('');
-  const [erro, setErro] = useState('');
-  const modalRef = useRef(null);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!aberto) return;
-    document.body.style.overflow = 'hidden';
-    const onKey = (e) => { if (e.key === 'Escape') aoFechar(); };
-    window.addEventListener('keydown', onKey);
-    return () => {
-      document.body.style.overflow = '';
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [aberto, aoFechar]);
-
-  if (!aberto) return null;
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const codLimpo = codigo.trim().toLowerCase();
-    if (!codLimpo) {
-      setErro('Por favor, informe o código da sua escola.');
-      return;
-    }
-
-    if (navigate) {
-      navigate(`/${codLimpo}`);
-    } else {
-      window.location.href = `/${codLimpo}`;
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 sm:p-6" role="dialog" aria-modal="true" aria-label="Acessar minha escola">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={aoFechar} />
-      <div ref={modalRef} className="modal-entra relative w-full max-w-md flex flex-col rounded-2xl border border-white/10 bg-[#0d2a52] shadow-2xl overflow-hidden">
-        {/* Cabeçalho */}
-        <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-white/10 bg-white/[0.03]">
-          <div className="flex items-center gap-3">
-            <span className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: GOLD_SOFT, color: GOLD }}>
-              <IconPredio className="w-5 h-5" />
-            </span>
-            <div>
-              <h3 className="font-bold text-lg">Acessar minha escola</h3>
-              <p className="text-white/50 text-xs mt-0.5">Informe o código fornecido pela sua instituição.</p>
-            </div>
-          </div>
-          <button onClick={aoFechar} className="cursor-pointer w-8 h-8 shrink-0 rounded-lg border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition-colors" aria-label="Fechar">
-            <IconX className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Corpo */}
-        <div className="px-6 py-5">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {erro && (
-              <div className="bg-red-500/10 border border-red-500/40 text-red-400 rounded-lg p-3 text-sm">{erro}</div>
-            )}
-            <div>
-              <label className="block text-sm text-white/60 mb-1.5">Código da escola</label>
-              <input
-                type="text"
-                required
-                value={codigo}
-                onChange={(e) => setCodigo(e.target.value)}
-                autoFocus
-                className="w-full bg-black/20 border border-white/10 rounded-lg px-3.5 py-2.5 text-white outline-none transition-colors focus:border-[#E8B44A] uppercase placeholder:normal-case"
-                placeholder="Ex: etec-xxx"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="cursor-pointer w-full font-semibold px-6 py-3.5 rounded-lg transition-transform active:scale-[0.98] hover:brightness-110 flex items-center justify-center gap-2"
-              style={{ backgroundColor: GOLD, color: NAVY }}
-            >
-              Acessar portal
-              <IconSeta className="w-4 h-4" />
-            </button>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* ─────────────── MODAL DE CADASTRO DE ESCOLA ─────────────── */
 function ModalCadastro({ aberto, aoFechar, aoAbrirPrivacidade }) {
   const [campos, setCampos] = useState(CAMPOS_INICIAIS);
@@ -717,7 +627,6 @@ export default function Landing() {
   const [faqAberto, setFaqAberto] = useState(0);
   const [modalLegal, setModalLegal] = useState(null); // 'privacidade' | 'termos' | null
   const [modalCadastro, setModalCadastro] = useState(false);
-  const [modalAcesso, setModalAcesso] = useState(false);
   // Lido na inicializacao, nao em efeito: em efeito o banner aparecia por um
   // instante para quem ja tinha respondido, porque a leitura so acontecia
   // depois da primeira pintura.
@@ -735,7 +644,6 @@ export default function Landing() {
   useEffect(() => ligarAnimacoes(rootRef.current), []);
 
   const abrirCadastro = () => setModalCadastro(true);
-  const abrirAcesso = () => setModalAcesso(true);
 
   return (
     <div
@@ -764,11 +672,15 @@ export default function Landing() {
           <a href="#privacidade" className="cursor-pointer hidden md:inline text-sm text-white/70 hover:text-white transition-colors"> Privacidade </a>
           <a href="#faq" className="cursor-pointer hidden md:inline text-sm text-white/70 hover:text-white transition-colors">Dúvidas</a>
 
-          {/* Botão para Acessar Minha Escola */}
-          <button 
-            onClick={abrirAcesso} 
+          {/* Esta landing fala com ESCOLAS, não com alunos. O botão "Acessar
+              minha escola" saiu: quem entra no sistema chega pelo endereço da
+              própria instituição (etec-bentoquirino.lckp.com.br), que é o que
+              vai no cartaz da parede e no e-mail da secretaria. Um caminho
+              paralelo aqui só ensinava o aluno a passar pelo lugar errado. */}
+          <button
+            onClick={abrirCadastro}
             className="cursor-pointer text-sm font-semibold px-4 py-2 rounded-lg transition-transform active:scale-[0.97] hover:brightness-110" style={{ backgroundColor: GOLD, color: NAVY }}>
-            Acessar minha escola
+            Falar com a gente
           </button>
 
         </nav>
@@ -970,15 +882,6 @@ export default function Landing() {
       {/* ═══ MODAIS LEGAIS ═══ */}
       <ModalLegal aberto={modalLegal === 'privacidade'} titulo="Política de Privacidade" icone={<IconShield className="w-5 h-5" />} secoes={POLITICA_PRIVACIDADE} aoFechar={() => setModalLegal(null)} />
       <ModalLegal aberto={modalLegal === 'termos'} titulo="Termos de Uso" icone={<IconDoc className="w-5 h-5" />} secoes={TERMOS_USO} aoFechar={() => setModalLegal(null)} />
-
-      {/* ═══ MODAL DE ACESSO DA ESCOLA ═══ */}
-      {/* key: remonta a cada abertura, entao o formulario nasce limpo sem
-          precisar de um efeito que apague os campos. */}
-      <ModalAcessoEscola
-        key={`acesso-${modalAcesso}`}
-        aberto={modalAcesso}
-        aoFechar={() => setModalAcesso(false)}
-      />
 
       {/* ═══ MODAL DE CADASTRO ═══ */}
       <ModalCadastro

@@ -93,6 +93,9 @@ const projetarEscolaPublica = (escola) => {
     id: escola.id,
     name: escola.name,
     codigo: escola.codigo,
+    // Endereço público. Só o portal usa, para saber se chegou pelo endereço
+    // ou pelo código; nenhuma operação do sistema depende dele.
+    subdominio: escola.subdominio ?? null,
     logo_url: escola.logo_url ?? null,
     logo_2_url: escola.logo_2_url ?? null,
     logo_1_posicao: escola.logo_1_posicao ?? 'esquerda',

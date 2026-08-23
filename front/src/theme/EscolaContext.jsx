@@ -1,4 +1,4 @@
-import { useCodigoEscola } from '../utils/useCodigoEscola.js';
+import { useEnderecoDaEscola } from '../utils/useCodigoEscola.js';
 import React, { useEffect, useState, useCallback } from 'react';
 import { Outlet } from 'react-router-dom';
 import { escolaService } from '../services/escolaService';
@@ -19,14 +19,16 @@ import { aplicarTema, aplicarIdentidade, limparTema } from './aplicarTema.js';
 // motivo la (Fast Refresh).
 
 export function EscolaProvider({ children }) {
-  // Hostname primeiro, rota depois — a regra vive em useCodigoEscola.
-  const schoolCode = useCodigoEscola();
+  // ENDEREÇO, não código: este é o único ponto do sistema que recebe o
+  // endereço pelo qual o aluno chegou. Daqui sai a escola resolvida, e todo o
+  // resto passa a falar em `escola.codigo`.
+  const enderecoDaEscola = useEnderecoDaEscola();
   const [escola, setEscola] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(false);
 
   const carregar = useCallback(async () => {
-    if (!schoolCode) {
+    if (!enderecoDaEscola) {
       setErro(true);
       setCarregando(false);
       return;
@@ -34,7 +36,7 @@ export function EscolaProvider({ children }) {
     try {
       setCarregando(true);
       setErro(false);
-      const dados = await escolaService.buscarPorCodigo(schoolCode);
+      const dados = await escolaService.buscarPorCodigo(enderecoDaEscola);
       setEscola(dados);
       aplicarTema(dados);
       aplicarIdentidade(dados);
@@ -44,7 +46,7 @@ export function EscolaProvider({ children }) {
     } finally {
       setCarregando(false);
     }
-  }, [schoolCode]);
+  }, [enderecoDaEscola]);
 
   useEffect(() => {
     const buscar = async () => { await carregar(); };
