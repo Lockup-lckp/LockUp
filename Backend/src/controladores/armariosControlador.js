@@ -3,6 +3,7 @@ import supabase from '../config/database.js';
 // era uma consulta ao banco por requisição, sempre devolvendo a mesma linha.
 import { obterIdEscolaPorCodigo } from '../servicos/cacheEscola.js';
 import { responderErro, ErroDeNegocio } from '../utils/erros.js';
+import { montarRespostaMapa } from '../servicos/mapaCorredores.js';
 
 // LISTAR ARMÁRIOS FILTRADOS POR ESCOLA
 export const listarArmarios = async (req, res) => {
@@ -45,6 +46,60 @@ export const listarArmarios = async (req, res) => {
         res.json(armariosFormatados);
     } catch (err) {
         console.error("Erro ao listar armários:", err.message);
+        responderErro(res, err, 'armarios');
+    }
+};
+
+// MAPA DE CORREDORES DA ESCOLA (planta, parede e armários posicionados)
+export const obterMapa = async (req, res) => {
+    const { schoolCode } = req.params;
+
+    try {
+        const schoolId = await obterIdEscolaPorCodigo(schoolCode);
+        if (!schoolId) {
+            return res.status(404).json({ error: `Instituição com o código '${schoolCode}' não foi encontrada.` });
+        }
+
+        if (req.user.role !== 'superadmin' && schoolId !== req.user.school_id) {
+            return res.status(403).json({ error: 'Você só pode consultar armários da sua própria instituição.' });
+        }
+
+        const { data: corredores, error: erroCorredores } = await supabase
+            .from('corredores')
+            .select('*')
+            .eq('school_id', schoolId);
+
+        // 42P01 = tabela inexistente. Antes da migração rodar, a escola simplesmente
+        // não tem mapa e o portal continua na grade.
+        if (erroCorredores?.code === '42P01') return res.json({ corredores: [] });
+        if (erroCorredores) throw erroCorredores;
+        if (!corredores.length) return res.json({ corredores: [] });
+
+        const [planta, itens, armarios, escola] = await Promise.all([
+            supabase.from('plantas').select('*').eq('school_id', schoolId).maybeSingle(),
+            supabase.from('corredor_itens').select('*').in('corredor_id', corredores.map((c) => c.id)),
+            supabase
+                .from('lockers')
+                .select('id, nome, corredor, status, usuario_id, item_id, coluna, linha')
+                .eq('school_id', schoolId)
+                .not('item_id', 'is', null),
+            supabase.from('schools').select('mapa_estilo').eq('id', schoolId).maybeSingle()
+        ]);
+
+        for (const consulta of [planta, itens, armarios, escola]) {
+            if (consulta.error) throw consulta.error;
+        }
+
+        res.json(montarRespostaMapa({
+            planta: planta.data,
+            corredores,
+            itens: itens.data,
+            armarios: armarios.data,
+            usuarioId: req.user.id,
+            estilo: escola.data?.mapa_estilo ?? null
+        }));
+    } catch (err) {
+        console.error('Erro ao montar o mapa:', err.message);
         responderErro(res, err, 'armarios');
     }
 };

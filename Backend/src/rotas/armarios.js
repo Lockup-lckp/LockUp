@@ -6,7 +6,8 @@ import {
     criarArmario,
     criarArmariosEmLote,
     trocarArmarioDoAluno,
-    removerOcupante
+    removerOcupante,
+    obterMapa
 } from '../controladores/armariosControlador.js';
 import { verificarToken, exigirAdmin } from '../middlewares/autenticacaoMiddleware.js';
 
@@ -14,6 +15,7 @@ const router = Router();
 
 // Leitura: qualquer usuário autenticado (o aluno precisa ver os armários para alugar).
 router.get('/escola/:schoolCode', verificarToken, listarArmarios);
+router.get('/escola/:schoolCode/mapa', verificarToken, obterMapa);
 
 // Escrita: somente administradores. O escopo por escola é reforçado no controlador via token.
 router.post('/escola/:schoolCode', verificarToken, exigirAdmin, criarArmario);

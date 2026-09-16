@@ -4,6 +4,7 @@ import { obterGateway, validarConfiguracaoGateway, listarGateways, GATEWAY_PADRA
 import { obterEscolaPorCodigo, invalidarCacheEscolas } from '../servicos/cacheEscola.js';
 import { testarCredencialBB, registrarWebhookBB } from '../servicos/gateways/bancoDoBrasil.js';
 import { responderErro } from '../utils/erros.js';
+import { validarMapaEstilo } from '../servicos/mapaCorredores.js';
 
 // Campos que o admin de uma escola pode alterar na PRÓPRIA instituição (personalização).
 // Campos sensíveis (codigo, gateway, credenciais, taxa_comissao, name) ficam restritos ao
@@ -24,6 +25,8 @@ const CAMPOS_EDITAVEIS_ADMIN = [
   'secondary_color',
   'bg_color',
   'tema_modo',
+  // Cores do mapa de corredores. Validadas em validarMapaEstilo antes de gravar.
+  'mapa_estilo',
   'logo_2_url',
   'logo_1_posicao',
   'logo_2_posicao',
@@ -116,6 +119,8 @@ const projetarEscolaPublica = (escola) => {
     // comportamento anterior a esta coluna existir -- e continua sendo o
     // default quando a migracao ainda nao foi aplicada.
     tema_modo: escola.tema_modo ?? 'auto',
+    // Cores do mapa. Públicas como o resto do tema; NULL = escuro padrão.
+    mapa_estilo: escola.mapa_estilo ?? null,
     valor_armario: escola.valor_armario ?? null,
     tipo_matricula: escola.tipo_matricula ?? 'rm',
     // Regra de locação, não segredo: o aluno precisa saber quantos armários
@@ -357,6 +362,14 @@ export const atualizarEscola = async (req, res) => {
   const erroDeIdentidade = validarIdentidadeVisual(camposParaAtualizar);
   if (erroDeIdentidade) {
     return res.status(400).json({ error: erroDeIdentidade });
+  }
+
+  if ('mapa_estilo' in camposParaAtualizar) {
+    const estilo = validarMapaEstilo(camposParaAtualizar.mapa_estilo);
+    if (!estilo.valido) {
+      return res.status(400).json({ error: estilo.erro });
+    }
+    camposParaAtualizar.mapa_estilo = estilo.valor;
   }
 
   try {
