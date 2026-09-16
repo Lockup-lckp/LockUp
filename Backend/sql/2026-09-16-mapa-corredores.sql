@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS corredor_itens (
   tom TEXT CHECK (tom IS NULL OR tom IN ('claro', 'escuro')),
   larguras SMALLINT[],
   -- bloco sem tom ou sem colunas não tem como ser desenhado
-  CHECK (tipo <> 'bloco' OR (tom IS NOT NULL AND cardinality(larguras) > 0)),
+  CHECK (tipo <> 'bloco' OR (tom IS NOT NULL AND coalesce(cardinality(larguras), 0) > 0)),
   UNIQUE (corredor_id, ordem)
 );
 
