@@ -1,0 +1,1519 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mapa de Corredores LCKP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Roboto:wght@400;500;700&family=Roboto+Condensed:wght@700&display=swap">
+<style>
+:root {
+	color-scheme: dark;
+	--noite: #070E1D;
+	--carta: #0E1E3C;
+	--borda: rgba(255, 255, 255, .09);
+	--ouro: #E8B44A;
+	--texto: #F2F5FA;
+	--texto-2: rgba(242, 245, 250, .66);
+	--texto-3: rgba(242, 245, 250, .42);
+	--livre: #3D7BEA;
+	--ocupado: #DC4438;
+	--manutencao: #F0BE2C;
+	--cena-fundo: #091528;
+	--cor-corredor: #E8B44A;
+	--saida: cubic-bezier(.23, 1, .32, 1);
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+
+body {
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	background:
+		radial-gradient(1100px 700px at 10% -10%, rgba(232, 180, 74, .06), transparent 60%),
+		radial-gradient(900px 600px at 100% 0%, rgba(61, 123, 234, .09), transparent 55%),
+		var(--noite);
+	color: var(--texto);
+	font: 15px/1.45 Roboto, system-ui, -apple-system, "Segoe UI", sans-serif;
+	-webkit-font-smoothing: antialiased;
+	-webkit-tap-highlight-color: transparent;
+}
+
+button { font: inherit; color: inherit; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+button:focus-visible, .armario:focus-visible { outline: 2px solid var(--ouro); outline-offset: 3px; }
+
+/* ---------- topo ---------- */
+
+.topo {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 10px 16px;
+	padding: 12px 20px;
+	padding-top: max(12px, env(safe-area-inset-top));
+	background: rgba(6, 12, 25, .85);
+	border-bottom: 1px solid var(--borda);
+}
+
+.marca { display: flex; align-items: center; gap: 12px; min-width: 0; }
+
+.selo {
+	flex: none;
+	display: grid;
+	place-items: center;
+	width: 40px;
+	height: 40px;
+	border-radius: 12px;
+	background: linear-gradient(160deg, #143059, #0A1C38);
+	border: 1px solid rgba(232, 180, 74, .4);
+	color: var(--ouro);
+}
+
+.marca-texto { min-width: 0; }
+.marca-texto strong { display: block; font: 800 15px/1.2 Montserrat, "Segoe UI", sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.marca-texto span { display: block; font-size: 11px; color: var(--texto-3); letter-spacing: .1em; text-transform: uppercase; }
+
+.seletor { display: inline-flex; padding: 4px; border-radius: 999px; background: rgba(255, 255, 255, .06); border: 1px solid var(--borda); }
+
+.seletor button {
+	min-height: 38px;
+	border: 0;
+	background: transparent;
+	color: var(--texto-2);
+	font: 600 13px/1 Montserrat, "Segoe UI", sans-serif;
+	padding: 0 16px;
+	border-radius: 999px;
+	cursor: pointer;
+	transition: color 140ms ease, background-color 140ms ease, transform 140ms var(--saida);
+}
+
+.seletor button[aria-pressed="true"] { background: var(--ouro); color: #0A1524; }
+.seletor button:active { transform: scale(.96); }
+
+/* ---------- estrutura ---------- */
+
+.conteudo {
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	max-width: 1680px;
+	margin-inline: auto;
+	padding-inline: 20px;
+	padding-block: 18px max(18px, env(safe-area-inset-bottom));
+}
+
+.tela { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 16px; }
+
+.cabecalho { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 12px 20px; }
+.titulo { margin: 0; font: 800 clamp(23px, 2.4vw, 32px)/1.1 Montserrat, "Segoe UI", sans-serif; letter-spacing: -.01em; text-wrap: balance; }
+.dica { margin: 6px 0 0; color: var(--texto-2); }
+
+.pino {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 9px 15px;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, .05);
+	border: 1px solid var(--borda);
+	color: var(--texto-2);
+	white-space: nowrap;
+}
+
+.pino b { color: var(--texto); font: 700 16px/1 "Roboto Condensed", Roboto, sans-serif; font-variant-numeric: tabular-nums; }
+
+/* ---------- planta ---------- */
+
+/* posições vêm da escola: uma grade pra tela deitada e outra pra tela em pé */
+.planta {
+	flex: 1;
+	min-height: 0;
+	display: grid;
+	gap: 14px;
+	grid-template-columns: var(--colunas-p);
+	grid-template-rows: var(--linhas-p);
+}
+
+.planta > * { grid-area: var(--area-p); min-width: 0; min-height: 0; }
+
+.patio {
+	display: grid;
+	place-items: center;
+	padding-left: var(--recuo-p, 0px);
+	background-origin: content-box;
+	border-radius: 30px;
+	border: 1px solid rgba(255, 255, 255, .06);
+	background:
+		radial-gradient(closest-side, rgba(232, 180, 74, .07), transparent 80%),
+		repeating-linear-gradient(0deg, rgba(255, 255, 255, .028) 0 1px, transparent 1px 36px),
+		repeating-linear-gradient(90deg, rgba(255, 255, 255, .028) 0 1px, transparent 1px 36px),
+		rgba(255, 255, 255, .018);
+}
+
+.patio span {
+	font: 700 13px Montserrat, "Segoe UI", sans-serif;
+	letter-spacing: .34em;
+	text-indent: .34em;
+	text-transform: uppercase;
+	color: var(--texto-3);
+}
+
+.cartao {
+	container-type: inline-size;
+	position: relative;
+	display: flex;
+	padding: 0;
+	border-radius: 24px;
+	border: 1px solid color-mix(in srgb, var(--cor) 34%, transparent);
+	background:
+		radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--cor) 16%, transparent), transparent 60%),
+		#0C1B36;
+	text-align: left;
+	cursor: pointer;
+	z-index: 1;
+	transition: border-color 160ms ease, transform 160ms var(--saida);
+}
+
+.cartao:active { transform: scale(.98); }
+
+@media (hover: hover) and (pointer: fine) {
+	.cartao:hover { border-color: color-mix(in srgb, var(--cor) 75%, transparent); }
+	.cartao:hover .cartao-seta { transform: translateX(3px); opacity: 1; }
+}
+
+.cartao-corpo {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	padding: 16px 20px;
+	min-width: 0;
+}
+
+.cartao-sigla {
+	flex: none;
+	display: grid;
+	place-items: center;
+	width: 56px;
+	height: 56px;
+	border-radius: 50%;
+	background: var(--cor);
+	color: #0A1524;
+	font: 800 24px/1 Montserrat, "Segoe UI", sans-serif;
+	box-shadow: 0 0 0 5px color-mix(in srgb, var(--cor) 16%, transparent);
+}
+
+.cartao-sigla.longa { font-size: 17px; }
+
+.cartao-texto { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.cartao-nome { font: 800 20px/1.15 Montserrat, "Segoe UI", sans-serif; }
+.cartao-salas { font-size: 13px; color: var(--texto-3); }
+.nome-curto { display: none; }
+
+.cartao-livres { flex: none; display: grid; justify-items: end; gap: 2px; }
+.cartao-livres b { font: 700 30px/1 "Roboto Condensed", Roboto, sans-serif; font-variant-numeric: tabular-nums; }
+.cartao-livres span { font: 700 10px Montserrat, "Segoe UI", sans-serif; letter-spacing: .16em; color: var(--texto-3); text-transform: uppercase; }
+
+.cartao-seta { flex: none; width: 22px; height: 22px; color: var(--cor); opacity: .7; transition: transform 160ms var(--saida), opacity 160ms ease; }
+
+/* cartão estreito (corredores lado a lado na tela em pé): empilha o conteúdo */
+@container (max-width: 230px) {
+	.cartao-corpo { flex-direction: column; justify-content: center; text-align: center; gap: 10px; padding: 16px 10px; }
+	.cartao-texto { flex: none; justify-items: center; }
+	.cartao-nome { font-size: clamp(15px, 9cqi, 20px); }
+	.nome-longo { display: none; }
+	.nome-curto { display: inline; }
+	.cartao-salas { font-size: 12px; }
+	.cartao-livres { justify-items: center; }
+	.cartao-livres b { font-size: clamp(26px, 18cqi, 42px); }
+	.cartao-seta { display: none; }
+	.cartao-sigla { width: clamp(50px, 34cqi, 84px); height: clamp(50px, 34cqi, 84px); font-size: clamp(22px, 15cqi, 36px); }
+}
+
+/* ---------- corredor ---------- */
+
+.barra { display: flex; align-items: center; gap: 12px; }
+.barra-titulo { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; }
+.barra-sigla { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--cor-corredor); color: #0A1524; font: 800 17px/1 Montserrat, "Segoe UI", sans-serif; }
+.barra-sigla.longa { font-size: 13px; }
+.barra-titulo div { min-width: 0; }
+.barra-titulo h1 { margin: 0; font: 800 clamp(19px, 2vw, 25px)/1.15 Montserrat, "Segoe UI", sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.barra-titulo p { margin: 1px 0 0; color: var(--texto-3); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.btn {
+	flex: none;
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	min-height: 46px;
+	border: 1px solid var(--borda);
+	border-radius: 14px;
+	padding: 0 16px 0 12px;
+	background: rgba(255, 255, 255, .05);
+	font-weight: 600;
+	cursor: pointer;
+	transition: background-color 160ms ease, transform 160ms var(--saida);
+}
+
+.btn:active { transform: scale(.96); }
+
+@media (hover: hover) and (pointer: fine) {
+	.btn:hover { background: rgba(255, 255, 255, .09); }
+}
+
+.cena {
+	position: relative;
+	flex: 1;
+	min-height: 0;
+	overflow: hidden;
+	border-radius: 22px;
+	border: 1px solid var(--borda);
+	background: var(--cena-fundo);
+	box-shadow: 0 24px 60px -30px rgba(0, 0, 0, .9);
+	touch-action: pan-y;
+	user-select: none;
+	-webkit-user-select: none;
+}
+
+.trilho { position: absolute; left: 0; top: 0; transform-origin: 0 0; transition: transform 280ms var(--saida); }
+
+.foco {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	display: none;
+	background: rgba(5, 11, 24, .74);
+	transition: transform 280ms var(--saida);
+}
+.trilho svg { display: block; }
+
+.vinheta {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background:
+		linear-gradient(90deg, rgba(4, 9, 20, .5), transparent 12%, transparent 88%, rgba(4, 9, 20, .5)),
+		radial-gradient(120% 100% at 50% 0%, transparent 55%, rgba(4, 9, 20, .45));
+}
+
+.local {
+	position: absolute;
+	bottom: 14px;
+	left: 50%;
+	transform: translateX(-50%);
+	padding: 8px 15px;
+	border-radius: 999px;
+	background: rgba(7, 14, 29, .75);
+	border: 1px solid var(--borda);
+	font-size: 13px;
+	font-weight: 500;
+	white-space: nowrap;
+	backdrop-filter: blur(6px);
+	pointer-events: none;
+}
+
+.seta {
+	position: absolute;
+	top: 50%;
+	display: grid;
+	place-items: center;
+	width: 64px;
+	height: 64px;
+	border: 1px solid rgba(255, 255, 255, .16);
+	border-radius: 50%;
+	background: rgba(7, 16, 33, .8);
+	color: var(--texto);
+	cursor: pointer;
+	backdrop-filter: blur(6px);
+	transform: translateY(-50%);
+	transition: background-color 160ms ease, opacity 160ms ease, transform 160ms var(--saida);
+}
+
+.seta-esq { left: 14px; }
+.seta-dir { right: 14px; }
+.seta:active:not(:disabled) { transform: translateY(-50%) scale(.92); }
+.seta:disabled { opacity: .2; cursor: default; }
+.seta svg { width: 30px; height: 30px; }
+
+@media (hover: hover) and (pointer: fine) {
+	.seta:hover:not(:disabled) { background: rgba(20, 44, 82, .92); }
+}
+
+/* trilha do corredor: cada parada é um alvo de toque */
+.trilha { width: 100%; height: 44px; display: block; }
+.t-alvo { fill: transparent; cursor: pointer; }
+.t-seg { fill: rgba(255, 255, 255, .14); pointer-events: none; transition: fill 160ms ease; }
+.t-seg.atual { fill: var(--cor-corredor); }
+.t-porta { font: 700 10px Montserrat, "Segoe UI", sans-serif; fill: var(--texto-3); pointer-events: none; }
+
+.rodape { min-height: 72px; display: flex; align-items: center; }
+
+.legenda { list-style: none; margin: 0 auto; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 26px; color: var(--texto-2); }
+.legenda li { display: flex; align-items: center; gap: 9px; }
+.amostra { width: 16px; height: 22px; border-radius: 4px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3); }
+.amostra.livre { background: var(--livre); }
+.amostra.ocupado { background: var(--ocupado); }
+.amostra.manutencao { background: repeating-linear-gradient(45deg, var(--manutencao) 0 5px, #6F5D22 5px 8px); }
+
+.selecao {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	width: 100%;
+	padding: 10px 10px 10px 18px;
+	border-radius: 18px;
+	border: 1px solid rgba(232, 180, 74, .32);
+	background: linear-gradient(180deg, rgba(232, 180, 74, .08), rgba(255, 255, 255, .02));
+}
+
+.selecao-texto { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.selecao-texto strong { font: 800 19px/1.1 Montserrat, "Segoe UI", sans-serif; }
+.selecao-texto span { color: var(--texto-2); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.btn-alugar {
+	flex: none;
+	min-height: 52px;
+	border: 0;
+	border-radius: 14px;
+	padding: 0 26px;
+	background: var(--ouro);
+	color: #0A1524;
+	font: 700 16px/1 Montserrat, "Segoe UI", sans-serif;
+	cursor: pointer;
+	transition: transform 160ms var(--saida), filter 160ms ease;
+}
+
+.btn-alugar:active { transform: scale(.96); }
+
+/* ---------- textos dentro do desenho ---------- */
+
+.t-num { font-family: "Roboto Condensed", "Arial Narrow", sans-serif; font-weight: 700; fill: #10151C; }
+.t-placa { font-family: "Roboto Condensed", "Arial Narrow", sans-serif; font-weight: 700; fill: #131924; }
+
+.armario[data-status="livre"] { cursor: pointer; outline: none; }
+.armario .porta-armario { transition: filter 140ms ease; }
+.armario .anel { fill: none; stroke: none; }
+.armario.selecionado .anel { stroke: var(--ouro); stroke-width: 3.6; }
+.armario.selecionado .porta-armario { stroke: rgba(9, 21, 40, .9); stroke-width: 1.8; }
+
+@media (hover: hover) and (pointer: fine) {
+	.armario[data-status="livre"]:hover .porta-armario { filter: brightness(1.18); }
+}
+
+/* ---------- celular ---------- */
+
+@media (max-width: 640px) {
+	.planta { grid-template-columns: var(--colunas-r); grid-template-rows: var(--linhas-r); gap: 10px; }
+	.planta > * { grid-area: var(--area-r); }
+	.patio { border-radius: 17px; padding-left: var(--recuo-r, 0px); }
+	.patio span { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 11px; letter-spacing: .4em; }
+
+	.conteudo { padding-inline: 12px; padding-top: 14px; }
+	.topo { flex-wrap: nowrap; padding-inline: 12px; }
+	.selo { width: 36px; height: 36px; }
+	.marca-texto span { display: none; }
+	.seletor button { min-height: 34px; padding: 0 11px; font-size: 12px; }
+	.tela { gap: 12px; }
+	.cabecalho { align-items: center; }
+	.titulo { font-size: 22px; }
+	.dica { font-size: 14px; margin-top: 4px; }
+	.cabecalho .pino { padding: 7px 12px; font-size: 13px; }
+	.barra .pino { display: none; }
+	.btn span { display: none; }
+	.btn { padding: 0 12px; }
+	.selecao { padding-left: 14px; gap: 10px; }
+	.selecao-texto strong { font-size: 17px; }
+	.btn-alugar { padding: 0 20px; }
+}
+
+@container (max-width: 140px) {
+	.cartao-salas { display: none; }
+}
+
+/* no celular as setas descem pra uma faixa própria e não cobrem nenhum armário */
+.celular .vinheta { display: none; }
+.celular .foco { display: block; }
+.celular .seta { top: auto; bottom: 12px; width: 58px; height: 58px; transform: none; }
+.celular .seta:active:not(:disabled) { transform: scale(.92); }
+.celular .seta-esq { left: 12px; }
+.celular .seta-dir { right: 12px; }
+.celular .seta svg { width: 26px; height: 26px; }
+.celular .local { bottom: 26px; font-size: 13px; }
+
+/* totem: tela grande em pé, tudo maior pra ser tocado de pé */
+@media (min-width: 900px) and (max-aspect-ratio: 1/1) {
+	body { zoom: 1.5; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.trilho, .foco, .btn, .seta, .btn-alugar, .cartao, .cartao-seta, .t-seg { transition-duration: 1ms; }
+}
+</style>
+
+<header class="topo">
+	<div class="marca">
+		<span class="selo" aria-hidden="true">
+			<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M7 10V7.5a5 5 0 0 1 10 0V10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="4.5" y="10" width="15" height="10.5" rx="2.5" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="15.2" r="1.6" fill="currentColor"/></svg>
+		</span>
+		<span class="marca-texto">
+			<strong id="escolaNome">Etec Bento Quirino</strong>
+			<span>LCKP · Protótipo</span>
+		</span>
+	</div>
+	<div class="seletor" role="group" aria-label="Escola do protótipo">
+		<button type="button" id="escolaBentao" aria-pressed="true">Bentão</button>
+		<button type="button" id="escolaEtecap" aria-pressed="false">ETECAP</button>
+	</div>
+</header>
+
+<main class="conteudo" id="conteudo">
+	<section class="tela" id="telaPlanta" aria-labelledby="tituloPlanta">
+		<div class="cabecalho">
+			<div>
+				<h1 class="titulo" id="tituloPlanta">Escolha o corredor</h1>
+				<p class="dica">Toque no corredor onde você quer o armário.</p>
+			</div>
+			<span class="pino"><b id="totalLivres">0</b> armários livres</span>
+		</div>
+		<div class="planta" id="planta"></div>
+	</section>
+
+	<section class="tela" id="telaCorredor" aria-labelledby="tituloCorredor" hidden>
+		<div class="barra">
+			<button type="button" class="btn" id="btnPlanta" aria-label="Voltar para a planta">
+				<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+				<span>Planta</span>
+			</button>
+			<div class="barra-titulo">
+				<span class="barra-sigla" id="siglaCorredor" aria-hidden="true">1</span>
+				<div>
+					<h1 id="tituloCorredor">Corredor</h1>
+					<p id="subtituloCorredor"></p>
+				</div>
+			</div>
+			<span class="pino"><b id="livresCorredor">0</b> livres</span>
+		</div>
+
+		<div class="cena" id="cena">
+			<div class="trilho" id="trilho"></div>
+			<div class="vinheta"></div>
+			<div class="foco foco-esq" id="focoEsq"></div>
+			<div class="foco foco-dir" id="focoDir"></div>
+			<span class="local" id="local">Entrada do corredor</span>
+			<button type="button" class="seta seta-esq" id="setaVoltar" aria-label="Bloco anterior">
+				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+			</button>
+			<button type="button" class="seta seta-dir" id="setaAvancar" aria-label="Próximo bloco">
+				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+			</button>
+		</div>
+
+		<div class="trilha" id="trilha"></div>
+
+		<div class="rodape">
+			<ul class="legenda" id="legenda">
+				<li><span class="amostra livre"></span>Livre</li>
+				<li><span class="amostra ocupado"></span>Ocupado</li>
+				<li><span class="amostra manutencao"></span>Em manutenção</li>
+			</ul>
+			<div class="selecao" id="selecao" hidden>
+				<div class="selecao-texto">
+					<strong id="selecaoNumero">Armário</strong>
+					<span id="selecaoLocal"></span>
+				</div>
+				<button type="button" class="btn-alugar" id="btnAlugar">Alugar</button>
+			</div>
+		</div>
+	</section>
+</main>
+
+<script>
+/* =========================================================
+   Medidas do desenho, em centímetros da parede real
+   ========================================================= */
+
+const LARGURA = { estreito: 30, medio: 38, largo: 46 };
+const ALTURA = 340;
+const JANELA_TOPO = 12;
+const FAIXA_CONTROLES = 82;
+const JANELA_ALTURA = ALTURA - JANELA_TOPO;
+const MARGEM = 600;
+
+const LARGURA_ITEM = {
+	portal: 180, porta: 110, fundo: 150, fim: 90,
+	hidrante: 70, extintor: 26, lixeira: 42, mural: 110, quadro: 44, rampa: 210
+};
+
+const COR_STATUS = { livre: '#3D7BEA', ocupado: '#DC4438', manutencao: 'url(#listras)' };
+const NOME_STATUS = { livre: 'livre', ocupado: 'ocupado', manutencao: 'em manutenção' };
+
+// numeração por linha, da esquerda pra direita, igual às etiquetas da APM
+function grade(inicio, colunas, linhas) {
+	const saida = Array.from({ length: colunas }, () => []);
+	let n = inicio;
+	for (let l = 0; l < linhas; l++) {
+		for (let c = 0; c < colunas; c++) saida[c].push(n++);
+	}
+	return saida;
+}
+
+function bloco(tom, largura, colunas, extra = {}) {
+	const larguras = Array.isArray(largura) ? largura : colunas.map(() => LARGURA[largura]);
+	return { tipo: 'bloco', tom, larguras, colunas, ...extra };
+}
+
+const sala = (numero, extra = {}) => ({ tipo: 'porta', numero, ...extra });
+const lab = nome => ({ tipo: 'porta', lab: nome });
+const marco = (tipo, extra = {}) => ({ tipo, ...extra });
+
+// estimado = numeração deduzida das fotos, trocar quando chegar a lista oficial
+const EST = { estimado: true };
+
+/* =========================================================
+   Escolas
+   ========================================================= */
+
+const ESCOLAS = {
+	bentao: {
+		id: 'bentao',
+		nome: 'Etec Bento Quirino',
+		semente: 7,
+		cenaFundo: '#091528',
+		// linha início / coluna início / linha fim / coluna fim
+		planta: {
+			deitada: {
+				colunas: 'minmax(0, 1fr) minmax(0, .9fr) minmax(0, 1.25fr)',
+				linhas: 'repeat(6, minmax(0, 1fr))',
+				areas: { patio: '1 / 1 / 7 / 3', mec: '1 / 1 / 4 / 2', c3: '1 / 3 / 3 / 4', c2: '3 / 3 / 5 / 4', c1: '5 / 3 / 7 / 4' },
+				// o nome do pátio fica centralizado só na parte que não tem cartão em cima
+				recuo: 'calc((100% - 14px) / 1.9 + 14px)'
+			},
+			// celular: mesma orientação do prédio, só com o pátio mais fino
+			estreita: {
+				colunas: 'minmax(0, 1fr) 34px minmax(0, 1.6fr)',
+				linhas: 'repeat(6, minmax(0, 1fr))',
+				areas: { patio: '1 / 1 / 7 / 3', mec: '1 / 1 / 4 / 2', c3: '1 / 3 / 3 / 4', c2: '3 / 3 / 5 / 4', c1: '5 / 3 / 7 / 4' },
+				recuo: 'calc(100% - 34px)'
+			}
+		},
+		parede: {
+			parede: '#16243D', barra: '#101B2E', barraLinha: '#0A1220', vidro: '#1D3050', caixilho: '#2C4166',
+			cano: '#B14238', porta: '#4A2C1E', batente: '#2E1B0E', piso: '#0F1B2E', pisoJunta: '#1B2940',
+			claro: '#5A6880', escuro: '#3A4759', portal: '#B14238', marcaPlaca: '#E2572B'
+		},
+		corredores: [
+			{
+				id: 'c1', nome: 'Corredor 1', curto: 'Corredor', sigla: '1', cor: '#F5C542',
+				itens: [
+					marco('portal'),
+					sala('01'),
+					bloco('claro', 'estreito', grade(1, 4, 5), EST),
+					sala('02'),
+					bloco('escuro', 'estreito', grade(21, 4, 5), EST),
+					bloco('claro', 'estreito', grade(41, 4, 5), EST),
+					sala('03'),
+					marco('lixeira'),
+					bloco('claro', 'estreito', grade(61, 4, 6), EST),
+					bloco('claro', 'largo', grade(85, 4, 3)),
+					bloco('escuro', 'medio', grade(97, 4, 4), EST),
+					sala('04'),
+					marco('hidrante'),
+					bloco('escuro', 'estreito', grade(113, 6, 5), EST),
+					marco('extintor'),
+					sala('05'),
+					bloco('claro', 'estreito', grade(143, 2, 5), EST),
+					bloco('escuro', 'largo', grade(153, 4, 2)),
+					bloco('escuro', 'largo', grade(161, 4, 2), EST),
+					bloco('claro', 'medio', grade(169, 4, 4)),
+					sala('06'),
+					bloco('escuro', 'largo', grade(189, 4, 3)),
+					sala('07'),
+					marco('fundo')
+				]
+			},
+			{
+				id: 'c2', nome: 'Corredor 2', curto: 'Corredor', sigla: '2', cor: '#F28A30',
+				itens: [
+					marco('portal'),
+					sala('08'),
+					bloco('escuro', 'medio', grade(205, 4, 4)),
+					bloco('escuro', 'estreito', grade(221, 4, 5), EST),
+					bloco('claro', 'estreito', grade(241, 4, 4), EST),
+					bloco('claro', 'estreito', grade(589, 4, 4), EST),
+					bloco('claro', 'largo', grade(577, 2, 2)),
+					bloco('claro', 'largo', grade(585, 2, 2)),
+					sala('09'),
+					bloco('escuro', 'estreito', grade(257, 4, 5)),
+					bloco('escuro', 'estreito', grade(277, 4, 5), EST),
+					bloco('claro', 'estreito', grade(297, 2, 5), { estimado: true, status: 'manutencao' }),
+					marco('quadro'),
+					sala('10'),
+					bloco('claro', 'estreito', grade(307, 4, 5), EST),
+					bloco('escuro', 'estreito', grade(327, 4, 5), EST),
+					sala('11'),
+					marco('hidrante'),
+					marco('extintor'),
+					bloco('escuro', 'estreito', grade(347, 4, 4), EST),
+					bloco('escuro', 'estreito', grade(363, 4, 4), EST),
+					marco('lixeira'),
+					sala('12'),
+					// o Salão Nobre fecha o corredor de frente, não fica na parede das salas
+					marco('fundo', { vidro: true, rotulo: 'Salão Nobre' })
+				]
+			},
+			{
+				id: 'c3', nome: 'Corredor 3', curto: 'Corredor', sigla: '3', cor: '#E5484D',
+				itens: [
+					marco('portal'),
+					marco('mural'),
+					marco('extintor'),
+					sala('13'),
+					bloco('claro', 'estreito', grade(379, 4, 5), EST),
+					bloco('escuro', 'largo', grade(399, 2, 3), EST),
+					marco('hidrante'),
+					sala('14'),
+					marco('lixeira'),
+					sala(null, { estoque: true }),
+					bloco('claro', 'largo', grade(569, 2, 3)),
+					bloco('escuro', 'medio', grade(405, 4, 4)),
+					bloco('escuro', 'estreito', grade(421, 4, 5), EST),
+					bloco('claro', 'estreito', grade(441, 4, 5), EST),
+					bloco('escuro', 'largo', grade(461, 2, 4), EST),
+					bloco('claro', 'medio', grade(469, 4, 4)),
+					sala('15'),
+					marco('fundo', { numero: '16' })
+				]
+			},
+			{
+				id: 'mec', nome: 'Mecânica', sigla: 'M', cor: '#3DBE6E',
+				itens: [
+					marco('rampa'),
+					marco('extintor'),
+					lab('Ciências'),
+					marco('quadro'),
+					bloco('claro', 'estreito', grade(489, 2, 4)),
+					bloco('claro', [36, 36, 44, 44], [[497, 499, 501, 503], [498, 500, 502, 504], [505, 507, 509], [506, 508, 510]]),
+					sala('18'),
+					bloco('claro', 'estreito', grade(513, 4, 5)),
+					bloco('claro', [34, 34, 46, 46], [[533, 537, 541, 545], [534, 538, 542, 546], [535, 539, 543], [536, 540, 544]]),
+					marco('fim')
+				]
+			}
+		]
+	},
+
+	etecap: {
+		id: 'etecap',
+		nome: 'Etec Conselheiro Antônio Prado',
+		semente: 31,
+		cenaFundo: '#0A1330',
+		// modelo base: posições provisórias até a escola mandar a planta real
+		planta: {
+			deitada: {
+				colunas: 'minmax(0, .8fr) minmax(0, 1.3fr)',
+				linhas: 'repeat(3, minmax(0, 1fr))',
+				areas: { patio: '1 / 1 / 4 / 2', qui: '1 / 2 / 2 / 3', amb: '2 / 2 / 3 / 3', bio: '3 / 2 / 4 / 3' }
+			},
+			estreita: {
+				colunas: '34px minmax(0, 1fr)',
+				linhas: 'repeat(3, minmax(0, 1fr))',
+				areas: { patio: '1 / 1 / 4 / 2', qui: '1 / 2 / 2 / 3', amb: '2 / 2 / 3 / 3', bio: '3 / 2 / 4 / 3' }
+			}
+		},
+		parede: {
+			parede: '#18213F', barra: '#111834', barraLinha: '#0B1128', vidro: '#1F2A52', caixilho: '#303C6A',
+			cano: '#6E7699', porta: '#5A4128', batente: '#3A2917', piso: '#101636', pisoJunta: '#1B2350',
+			claro: '#5D6684', escuro: '#3D4664', portal: '#2B3A8C', marcaPlaca: '#8C97D8'
+		},
+		corredores: [
+			{
+				id: 'qui', nome: 'Química', sigla: 'Q', cor: '#5B8DEF',
+				itens: [
+					marco('portal'),
+					sala('01'),
+					bloco('claro', 'estreito', grade(1, 4, 5), EST),
+					bloco('escuro', 'estreito', grade(21, 4, 4), EST),
+					sala('02'),
+					marco('extintor'),
+					bloco('claro', 'medio', grade(37, 4, 4), EST),
+					sala('03'),
+					bloco('escuro', 'largo', grade(53, 2, 3), EST),
+					bloco('claro', 'estreito', grade(59, 4, 5), EST),
+					marco('lixeira'),
+					sala('04'),
+					marco('hidrante'),
+					bloco('claro', 'estreito', grade(79, 4, 5), EST),
+					lab('Química'),
+					marco('fim')
+				]
+			},
+			{
+				id: 'amb', nome: 'Meio Ambiente', sigla: 'MA', cor: '#3DBE6E',
+				itens: [
+					marco('portal'),
+					sala('05'),
+					bloco('escuro', 'estreito', grade(99, 4, 5), EST),
+					bloco('claro', 'largo', grade(119, 2, 3), EST),
+					sala('06'),
+					marco('mural'),
+					bloco('claro', 'estreito', grade(125, 6, 4), { estimado: true, status: 'manutencao' }),
+					sala('07'),
+					marco('extintor'),
+					bloco('claro', [32, 32, 44, 44], [[149, 151, 153, 155], [150, 152, 154, 156], [157, 159, 161], [158, 160, 162]], EST),
+					sala('08'),
+					bloco('escuro', 'medio', grade(163, 4, 4), EST),
+					marco('fundo', { lab: 'Meio Ambiente' })
+				]
+			},
+			{
+				id: 'bio', nome: 'Biotecnologia', sigla: 'B', cor: '#A77BF3',
+				itens: [
+					marco('portal'),
+					sala('09'),
+					bloco('claro', 'estreito', grade(179, 4, 5), EST),
+					marco('lixeira'),
+					sala('10'),
+					marco('hidrante'),
+					bloco('escuro', 'estreito', grade(199, 4, 5), EST),
+					bloco('claro', 'largo', grade(219, 4, 2), EST),
+					sala('11'),
+					bloco('claro', 'estreito', grade(227, 4, 4), EST),
+					lab('Biotecnologia'),
+					marco('fim')
+				]
+			}
+		]
+	}
+};
+
+/* =========================================================
+   Estado e utilidades
+   ========================================================= */
+
+const el = Object.fromEntries([
+	'conteudo', 'escolaNome', 'escolaBentao', 'escolaEtecap', 'telaPlanta', 'planta', 'totalLivres',
+	'telaCorredor', 'siglaCorredor', 'tituloCorredor', 'subtituloCorredor', 'livresCorredor', 'btnPlanta',
+	'cena', 'trilho', 'focoEsq', 'focoDir', 'setaVoltar', 'setaAvancar', 'local', 'trilha', 'legenda',
+	'selecao', 'selecaoNumero', 'selecaoLocal', 'btnAlugar'
+].map(id => [id, document.getElementById(id)]));
+
+const estado = { escola: 'bentao', corredor: null, layout: null, parada: 0, selecionado: null, celular: false };
+const montados = new Map();
+
+const f = n => Math.round(n * 100) / 100;
+const txt = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+const numero = n => String(n).padStart(3, '0');
+
+function ret(x, y, w, h, extra = '') {
+	return `<rect x="${f(x)}" y="${f(y)}" width="${f(w)}" height="${f(h)}" ${extra}/>`;
+}
+
+function statusDe(n, blocoAtual, semente) {
+	if (blocoAtual.status) return blocoAtual.status;
+	const v = ((Math.imul(n + semente * 1000, 2654435761) >>> 0) >>> 8) % 100;
+	return v < 56 ? 'livre' : v < 91 ? 'ocupado' : 'manutencao';
+}
+
+function nomePorta(porta) {
+	if (porta.lab) return `Lab. de ${porta.lab}`;
+	if (porta.rotulo) return porta.rotulo;
+	if (porta.estoque) return 'Estoque';
+	return `Sala ${porta.numero}`;
+}
+
+function descreverLocal(porta) {
+	if (!porta) return 'na entrada';
+	const nome = nomePorta(porta);
+	return porta.lab || porta.rotulo || porta.estoque ? `perto do ${nome}` : `perto da ${nome}`;
+}
+
+function rotuloCurto(item) {
+	if (item.lab) return 'Lab';
+	if (item.rotulo) return 'Salão';
+	return item.numero || '';
+}
+
+/* =========================================================
+   Geometria do corredor
+   ========================================================= */
+
+function montarCorredor(escola, corredor) {
+	const chave = `${escola.id}:${corredor.id}`;
+	if (montados.has(chave)) return montados.get(chave);
+
+	const itens = [];
+	let x = 40;
+	let anterior = null;
+	let ultimaPorta = null;
+
+	for (const original of corredor.itens) {
+		const item = { ...original };
+		if (anterior) x += anterior.tipo === 'bloco' && item.tipo === 'bloco' ? 5 : 28;
+		item.x = x;
+		item.largura = item.tipo === 'bloco'
+			? item.larguras.reduce((a, b) => a + b, 0) + 8
+			: LARGURA_ITEM[item.tipo];
+
+		if (item.tipo === 'porta') ultimaPorta = item;
+		if (item.tipo === 'bloco') {
+			item.local = descreverLocal(ultimaPorta);
+			item.status = item.colunas.map(col => col.map(n => statusDe(n, item, escola.semente)));
+		}
+
+		itens.push(item);
+		x += item.largura;
+		anterior = item;
+	}
+
+	const terminaFechado = anterior && (anterior.tipo === 'fundo' || anterior.tipo === 'fim');
+	const comprimento = x + (terminaFechado ? 0 : 60);
+
+	const paradas = [];
+	let portaAtual = null;
+	for (const item of itens) {
+		const temNome = item.numero || item.lab || item.rotulo || item.estoque;
+		if ((item.tipo === 'porta' || item.tipo === 'fundo') && temNome) portaAtual = item;
+		// o fim do corredor e o estoque não têm armário: não vale parar neles
+		const ehParada = item.tipo === 'bloco' || (item.tipo === 'porta' && !item.estoque);
+		if (!ehParada) continue;
+		paradas.push({
+			centro: item.x + item.largura / 2,
+			largura: item.largura,
+			topo: item.tipo === 'bloco' ? 90 : 16,
+			base: 308,
+			tipo: item.tipo === 'bloco' ? 'bloco' : 'porta',
+			rotulo: item.tipo === 'bloco' ? '' : rotuloCurto(item),
+			local: portaAtual ? descreverLocal(portaAtual) : 'na entrada'
+		});
+	}
+
+	const contagem = { livre: 0, ocupado: 0, manutencao: 0 };
+	for (const item of itens) {
+		if (item.tipo !== 'bloco') continue;
+		for (const col of item.status) for (const s of col) contagem[s]++;
+	}
+
+	const numeros = itens.filter(i => (i.tipo === 'porta' || i.tipo === 'fundo') && i.numero).map(i => i.numero);
+	const temLab = itens.some(i => i.lab);
+	let salas = numeros.length > 1
+		? `Salas ${numeros[0]} a ${numeros[numeros.length - 1]}`
+		: numeros.length === 1 ? `Sala ${numeros[0]}` : '';
+	if (temLab) salas = salas ? `${salas} e laboratório` : 'Laboratório';
+
+	const resultado = { itens, comprimento, paradas, contagem, livres: contagem.livre, salas };
+	montados.set(chave, resultado);
+	return resultado;
+}
+
+/* =========================================================
+   Desenho da parede
+   ========================================================= */
+
+function placa(x, y, largura, linha1, linha2, tamanho2, P) {
+	const meio = x + largura / 2;
+	let s = ret(x, y + 1, largura, 50, 'rx="3" fill="#000000" fill-opacity=".35"')
+		+ ret(x, y, largura, 50, 'rx="3" fill="#F4F6F8"')
+		+ ret(x + 6, y + 6, 8, 8, `rx="1" fill="${P.marcaPlaca}"`)
+		+ `<text class="t-placa" x="${f(meio + 5)}" y="${f(y + 13.5)}" font-size="6.2" text-anchor="middle">${txt(linha1)}</text>`;
+	if (linha2) {
+		s += `<text class="t-placa" x="${f(meio)}" y="${f(y + 42)}" font-size="${tamanho2}" text-anchor="middle">${txt(linha2)}</text>`;
+	}
+	return s;
+}
+
+function textoPlaca(item) {
+	if (item.lab) return ['LABORATÓRIO', item.lab.toUpperCase(), item.lab.length > 10 ? 9 : 12];
+	return ['SALA DE AULA', item.numero, 24];
+}
+
+function desenharBloco(item, P) {
+	const topo = 100;
+	const corpoH = 192;
+	const w = item.largura;
+	const corpo = item.tom === 'claro' ? P.claro : P.escuro;
+	let s = '';
+
+	// reflexo no piso, cortado por um véu da cor do chão
+	s += ret(item.x + 3, 300, w - 6, 34, `fill="${corpo}" fill-opacity=".22"`);
+	s += ret(item.x + 3, 300, w - 6, 34, 'fill="url(#pisoVeu)"');
+
+	s += ret(item.x, topo, w, corpoH, `rx="3" fill="${corpo}"`);
+	s += ret(item.x, topo, w, corpoH, 'rx="3" fill="url(#corpoBrilho)"');
+	s += ret(item.x + 2, topo, w - 4, 3, 'rx="1.5" fill="#FFFFFF" fill-opacity=".14"');
+	s += ret(item.x + 5, topo + corpoH, 7, 8, 'rx="1" fill="#05090F" fill-opacity=".8"');
+	s += ret(item.x + w - 12, topo + corpoH, 7, 8, 'rx="1" fill="#05090F" fill-opacity=".8"');
+
+	const areaTopo = topo + 9;
+	const areaH = corpoH - 13;
+	let cx = item.x + 4;
+
+	item.colunas.forEach((col, c) => {
+		const cw = item.larguras[c];
+		const celula = areaH / col.length;
+		s += ret(cx + cw * .22, topo + 5.5, cw * .56, 2.4, 'rx="1.2" fill="#000000" fill-opacity=".38"');
+
+		col.forEach((n, r) => {
+			const st = item.status[c][r];
+			const y = areaTopo + r * celula;
+			const larguraEtiqueta = Math.min(cw - 7, 24);
+			const papel = st === 'livre' ? 'role="button" tabindex="0" aria-pressed="false"' : 'role="img"';
+
+			s += `<g class="armario" data-n="${n}" data-status="${st}" data-local="${txt(item.local)}" ${papel} aria-label="Armário ${numero(n)}, ${NOME_STATUS[st]}">`;
+			s += ret(cx + 1.5, y + 1.5, cw - 3, celula - 3, `class="porta-armario" rx="2" fill="${COR_STATUS[st]}"`);
+			s += ret(cx + 1.5, y + 1.5, cw - 3, celula - 3, 'rx="2" fill="url(#portaBrilho)" pointer-events="none"');
+
+			if (celula >= 32) {
+				for (let i = 0; i < 4; i++) {
+					s += ret(cx + cw * .44, y + celula * .36 + i * 4.6, cw * .38, 1.8, 'rx=".9" fill="#04080F" fill-opacity=".26"');
+				}
+			}
+
+			s += ret(cx + 4, y + 5.6, larguraEtiqueta, 12, 'rx="1.5" fill="#000000" fill-opacity=".3"');
+			s += ret(cx + 4, y + 5, larguraEtiqueta, 12, 'rx="1.5" fill="#F7F9FB"');
+			s += `<text class="t-num" x="${f(cx + 4 + larguraEtiqueta / 2)}" y="${f(y + 14.3)}" font-size="8.6" text-anchor="middle">${numero(n)}</text>`;
+
+			if (st === 'ocupado') {
+				s += `<path d="M${f(cx + cw - 6)} ${f(y + celula * .46)} v-2.4 a2.1 2.1 0 0 0-4.2 0 v2.4" fill="none" stroke="#E7E9EC" stroke-opacity=".75" stroke-width="1.1"/>`;
+				s += ret(cx + cw - 9.2, y + celula * .46, 6.5, 6.5, 'rx="1.4" fill="#E0BC63"');
+			} else {
+				s += ret(cx + cw - 7, y + celula * .42, 2.6, 8, 'rx="1.3" fill="#04080F" fill-opacity=".34"');
+			}
+
+			s += ret(cx + .3, y + .3, cw - .6, celula - .6, 'class="anel" rx="2.5" pointer-events="none"');
+			s += '</g>';
+		});
+
+		cx += cw;
+	});
+
+	return s;
+}
+
+function desenharPorta(item, P) {
+	const x = item.x;
+	const [linha1, linha2, tamanho] = textoPlaca(item);
+	let s = '';
+
+	s += ret(x + 6, 300, 98, 30, `fill="${P.porta}" fill-opacity=".3"`);
+	s += ret(x + 6, 300, 98, 30, 'fill="url(#pisoVeu)"');
+
+	s += ret(x, 84, 110, 216, `rx="2" fill="${P.batente}"`);
+	s += ret(x + 9, 92, 92, 208, `rx="1.5" fill="${P.porta}"`);
+	s += ret(x + 9, 92, 92, 208, 'rx="1.5" fill="url(#portaMadeira)"');
+	s += ret(x + 20, 112, 70, 78, 'rx="3" fill="#000000" fill-opacity=".14"');
+	s += ret(x + 20, 204, 70, 78, 'rx="3" fill="#000000" fill-opacity=".14"');
+	s += ret(x + 86, 196, 5, 26, 'rx="2.5" fill="#C9CCCD"');
+	// estoque não tem placa na escola, então aqui também não
+	if (!item.estoque) s += placa(x + (item.lab ? 11 : 22), 24, item.lab ? 88 : 66, linha1, linha2, tamanho, P);
+
+	return s;
+}
+
+function desenharFundo(item, P) {
+	const x = item.x;
+	let s = ret(x, 0, 150, 340, `fill="${P.parede}"`)
+		+ ret(x, 0, 150, 340, 'fill="#000000" fill-opacity=".22"')
+		+ ret(x, 200, 150, 100, `fill="${P.barra}"`)
+		+ ret(x, 200, 150, 100, 'fill="#000000" fill-opacity=".2"')
+		+ ret(x, 0, 4, 340, 'fill="#000000" fill-opacity=".4"');
+
+	if (item.vidro) {
+		// porta dupla de vidro, vista de frente no fim do corredor
+		s += ret(x + 18, 92, 114, 208, 'rx="2" fill="#2A3444"')
+			+ ret(x + 24, 98, 49, 202, 'fill="#8DB4E6" fill-opacity=".2"')
+			+ ret(x + 77, 98, 49, 202, 'fill="#8DB4E6" fill-opacity=".2"')
+			+ `<path d="M${x + 30} 104 L${x + 50} 104 L${x + 30} 150 Z" fill="#FFFFFF" fill-opacity=".12"/>`
+			+ `<path d="M${x + 83} 104 L${x + 103} 104 L${x + 83} 150 Z" fill="#FFFFFF" fill-opacity=".12"/>`
+			+ ret(x + 65, 180, 3, 44, 'rx="1.5" fill="#C9CCCD"')
+			+ ret(x + 82, 180, 3, 44, 'rx="1.5" fill="#C9CCCD"');
+		s += ret(x + 20, 40, 110, 42, 'rx="3" fill="#000000" fill-opacity=".35"')
+			+ ret(x + 20, 39, 110, 42, 'rx="3" fill="#F4F6F8"')
+			+ `<text class="t-placa" x="${x + 75}" y="66" font-size="13" text-anchor="middle">${txt(item.rotulo.toUpperCase())}</text>`;
+		return s;
+	}
+
+	s += ret(x + 30, 96, 90, 204, `rx="2" fill="${P.batente}"`)
+		+ ret(x + 38, 103, 74, 197, `rx="1.5" fill="${item.cor || P.porta}"`)
+		+ ret(x + 38, 103, 74, 197, 'rx="1.5" fill="url(#portaMadeira)"')
+		+ ret(x + 100, 200, 4, 22, 'rx="2" fill="#C9CCCD"');
+
+	if (item.numero) {
+		s += placa(x + 42, 36, 66, 'SALA DE AULA', item.numero, 24, P);
+	} else if (item.lab) {
+		s += placa(x + 20, 36, 110, 'LABORATÓRIO', item.lab.toUpperCase(), 9, P);
+	}
+	return s;
+}
+
+function desenharItem(item, P, corredor, lay) {
+	const x = item.x;
+
+	switch (item.tipo) {
+		case 'bloco': return desenharBloco(item, P);
+		case 'porta': return desenharPorta(item, P);
+		case 'fundo': return desenharFundo(item, P);
+
+		case 'portal': {
+			const linha2 = lay.salas ? `(${lay.salas.toUpperCase()})` : '';
+			return ret(x, 0, 36, 300, `fill="${P.portal}"`)
+				+ ret(x, 0, 36, 300, 'fill="url(#corpoBrilho)"')
+				+ ret(x + 36, 0, 5, 300, 'fill="#000000" fill-opacity=".3"')
+				+ ret(x + 50, 111, 128, 44, 'rx="3" fill="#000000" fill-opacity=".35"')
+				+ ret(x + 50, 110, 128, 44, 'rx="3" fill="#F4F6F8"')
+				+ `<text class="t-placa" x="${x + 114}" y="129" font-size="12.5" text-anchor="middle">${txt(corredor.nome.toUpperCase())}</text>`
+				+ `<text class="t-placa" x="${x + 114}" y="145" font-size="6.4" text-anchor="middle">${txt(linha2)}</text>`;
+		}
+
+		case 'fim':
+			return ret(x, 0, 90, 340, `fill="${P.parede}"`)
+				+ ret(x, 0, 90, 340, 'fill="#000000" fill-opacity=".22"')
+				+ ret(x, 200, 90, 100, `fill="${P.barra}"`)
+				+ ret(x, 0, 4, 340, 'fill="#000000" fill-opacity=".4"');
+
+		case 'hidrante':
+			return ret(x + 31, 11, 8, 132, 'fill="#A83A31"')
+				+ ret(x - 14, 196, 12, 16, 'rx="2" fill="#C4552F"')
+				+ ret(x, 140, 70, 112, 'rx="4" fill="#C0362B"')
+				+ ret(x, 140, 70, 112, 'rx="4" fill="url(#corpoBrilho)"')
+				+ `<circle cx="${x + 35}" cy="176" r="13" fill="#12161C" stroke="#DFE3E8" stroke-opacity=".7" stroke-width="3"/>`
+				+ ret(x + 22, 228, 26, 3, 'rx="1.5" fill="#000000" fill-opacity=".3"')
+				+ ret(x + 22, 235, 26, 3, 'rx="1.5" fill="#000000" fill-opacity=".3"')
+				+ ret(x + 56, 252, 8, 48, 'fill="#A83A31"');
+
+		case 'extintor':
+			return ret(x + 2, 250, 22, 3, 'rx="1.5" fill="#4A4F57"')
+				+ ret(x + 9, 236, 8, 10, 'rx="2" fill="#2B3038"')
+				+ ret(x + 4, 244, 18, 54, 'rx="8" fill="#C0362B"')
+				+ ret(x + 4, 244, 18, 54, 'rx="8" fill="url(#corpoBrilho)"')
+				+ ret(x + 7, 264, 12, 14, 'rx="2" fill="#F4F6F8" fill-opacity=".8"');
+
+		case 'lixeira':
+			return `<path d="M${x + 3} 262 L${x + 39} 262 L${x + 36} 300 L${x + 6} 300 Z" fill="#9AA3AF" fill-opacity=".55"/>`
+				+ ret(x, 255, 42, 9, 'rx="4" fill="#B6BEC9" fill-opacity=".6"');
+
+		case 'mural':
+			return ret(x, 112, 110, 78, 'rx="3" fill="#1D5B41" stroke="#8E97A3" stroke-opacity=".5" stroke-width="4"')
+				+ ret(x + 62, 122, 30, 38, `rx="1" fill="#E8E4D6" fill-opacity=".85" transform="rotate(-8 ${x + 77} 141)"`);
+
+		case 'quadro':
+			return ret(x, 118, 40, 62, 'rx="3" fill="#39414D" stroke="#7E8794" stroke-opacity=".4" stroke-width="1.5"')
+				+ ret(x + 6, 128, 28, 8, 'rx="2" fill="#20262F"');
+
+		case 'rampa': {
+			let s = '';
+			[0, 24].forEach(d => {
+				s += `<path d="M${x} ${226 + d} L${x + 210} ${250 + d}" stroke="#3C63B0" stroke-width="4" fill="none" stroke-linecap="round"/>`;
+			});
+			[10, 105, 200].forEach(dx => {
+				const y = 226 + dx * 24 / 210;
+				s += ret(x + dx, y, 4, 300 - y, 'rx="2" fill="#3C63B0"');
+			});
+			return s;
+		}
+	}
+	return '';
+}
+
+function desenharParede(escola, corredor, lay) {
+	const P = escola.parede;
+	const inicio = -MARGEM;
+	const fim = lay.comprimento;
+	const W = fim - inicio;
+
+	let s = `<svg viewBox="${inicio} 0 ${lay.comprimento + MARGEM * 2} ${ALTURA}" role="group" aria-label="Parede do ${txt(corredor.nome)}">`;
+
+	s += '<defs>'
+		+ '<linearGradient id="corpoBrilho" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".13"/><stop offset=".45" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity=".2"/></linearGradient>'
+		+ '<linearGradient id="portaBrilho" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".17"/><stop offset=".55" stop-color="#FFFFFF" stop-opacity=".02"/><stop offset="1" stop-color="#000000" stop-opacity=".16"/></linearGradient>'
+		+ '<linearGradient id="portaMadeira" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".12"/><stop offset=".3" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity=".22"/></linearGradient>'
+		+ '<linearGradient id="paredeLuz" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".09"/><stop offset=".6" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>'
+		+ `<linearGradient id="pisoVeu" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${P.piso}" stop-opacity=".5"/><stop offset="1" stop-color="${P.piso}" stop-opacity="1"/></linearGradient>`
+		+ '<linearGradient id="vidroLuz" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".16"/><stop offset="1" stop-color="#FFFFFF" stop-opacity=".02"/></linearGradient>'
+		+ '<radialGradient id="luz"><stop offset="0" stop-color="#DCE8FF" stop-opacity=".22"/><stop offset="1" stop-color="#DCE8FF" stop-opacity="0"/></radialGradient>'
+		+ '<pattern id="listras" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#F0BE2C"/><rect width="3.6" height="9" fill="#181818" fill-opacity=".58"/></pattern>'
+		+ '</defs>';
+
+	s += ret(inicio, 0, W, 300, `fill="${P.parede}"`);
+	s += ret(inicio, 0, W, 300, 'fill="url(#paredeLuz)"');
+	s += ret(inicio, 0, W, 7, `fill="${P.barraLinha}"`);
+	s += ret(inicio, 7, W, 4, `fill="${P.cano}"`);
+
+	s += ret(inicio, 16, W, 68, `fill="${P.vidro}"`);
+	s += ret(inicio, 16, W, 68, 'fill="url(#vidroLuz)"');
+	for (let m = inicio; m < fim; m += 240) {
+		s += `<path d="M${m + 30} 19 L${m + 62} 19 L${m + 22} 81 L${m - 10} 81 Z" fill="#FFFFFF" fill-opacity=".07"/>`;
+	}
+	for (let m = inicio; m < fim; m += 80) s += ret(m, 16, 3, 68, `fill="${P.caixilho}"`);
+	s += ret(inicio, 16, W, 3, `fill="${P.caixilho}"`);
+	s += ret(inicio, 81, W, 3, `fill="${P.caixilho}"`);
+
+	s += ret(inicio, 200, W, 100, `fill="${P.barra}"`);
+	s += ret(inicio, 200, W, 2, 'fill="#FFFFFF" fill-opacity=".08"');
+
+	s += ret(inicio, 300, W, 40, `fill="${P.piso}"`);
+	for (let m = inicio; m < fim; m += 60) s += ret(m, 300, 1.2, 40, `fill="${P.pisoJunta}"`);
+	s += ret(inicio, 319, W, 1.2, `fill="${P.pisoJunta}"`);
+	s += ret(inicio, 297, W, 3, 'fill="#000000" fill-opacity=".25"');
+
+	// lâmpadas do forro e as poças de luz que elas jogam na parede e no chão
+	for (let m = inicio + 120; m < fim; m += 380) {
+		s += `<ellipse cx="${m + 60}" cy="40" rx="210" ry="120" fill="url(#luz)"/>`;
+		s += `<ellipse cx="${m + 60}" cy="316" rx="150" ry="18" fill="url(#luz)"/>`;
+		s += ret(m, 1, 120, 5, 'rx="2.5" fill="#E6EEFF" fill-opacity=".8"');
+	}
+
+	for (const item of lay.itens) s += desenharItem(item, P, corredor, lay);
+
+	return s + '</svg>';
+}
+
+/* =========================================================
+   Planta
+   ========================================================= */
+
+const SETA_CARTAO = '<svg class="cartao-seta" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+function desenharPlanta() {
+	const escola = ESCOLAS[estado.escola];
+	const { deitada, estreita } = escola.planta;
+	const estilo = el.planta.style;
+
+	estilo.setProperty('--colunas-p', deitada.colunas);
+	estilo.setProperty('--linhas-p', deitada.linhas);
+	estilo.setProperty('--colunas-r', estreita.colunas);
+	estilo.setProperty('--linhas-r', estreita.linhas);
+
+	const areas = id => `--area-p: ${deitada.areas[id]}; --area-r: ${estreita.areas[id]};`;
+	let total = 0;
+
+	const recuo = `--recuo-p: ${deitada.recuo || '0px'}; --recuo-r: ${estreita.recuo || '0px'};`;
+	let html = `<div class="patio" style="${areas('patio')} ${recuo}"><span>Pátio</span></div>`;
+
+	for (const c of escola.corredores) {
+		const lay = montarCorredor(escola, c);
+		total += lay.livres;
+		html += `<button type="button" class="cartao" data-id="${c.id}" style="--cor: ${c.cor}; ${areas(c.id)}" aria-label="${txt(c.nome)}, ${lay.livres} armários livres">`
+			+ '<span class="cartao-corpo">'
+			+ `<span class="cartao-sigla${c.sigla.length > 1 ? ' longa' : ''}">${txt(c.sigla)}</span>`
+			+ `<span class="cartao-texto"><span class="cartao-nome"><span class="nome-longo">${txt(c.nome)}</span><span class="nome-curto">${txt(c.curto || c.nome)}</span></span><span class="cartao-salas">${txt(lay.salas)}</span></span>`
+			+ `<span class="cartao-livres"><b>${lay.livres}</b><span>livres</span></span>`
+			+ SETA_CARTAO
+			+ '</span></button>';
+	}
+
+	el.planta.innerHTML = html;
+	el.totalLivres.textContent = total;
+}
+
+/* =========================================================
+   Trilha do corredor
+   ========================================================= */
+
+function desenharTrilha() {
+	const lay = estado.layout;
+	if (!lay) return;
+
+	const W = Math.max(240, el.trilha.clientWidth);
+	const H = 44;
+	const px = v => (v / lay.comprimento) * (W - 8) + 4;
+	let corpo = '';
+	let fimUltimoRotulo = -Infinity;
+
+	lay.paradas.forEach((p, i) => {
+		const largura = Math.max(px(p.largura) - 4, 6);
+		const x = px(p.centro) - largura / 2;
+		const ehPorta = p.tipo === 'porta';
+		const altura = ehPorta ? 12 : 8;
+		const y = 10 + (12 - altura) / 2;
+		// alvo invisível do tamanho da trilha inteira, pra dar pra acertar com o dedo
+		corpo += ret(x - 2, 0, largura + 4, H, `class="t-alvo" data-i="${i}"`);
+		corpo += ret(x, y, largura, altura, `class="t-seg${i === estado.parada ? ' atual' : ''}" rx="${altura / 2}"`);
+		// rótulo só entra se não encostar no anterior
+		const meio = x + largura / 2;
+		const meiaLargura = p.rotulo.length * 3.4;
+		if (ehPorta && p.rotulo && meio - meiaLargura > fimUltimoRotulo + 4) {
+			corpo += `<text class="t-porta" x="${f(meio)}" y="${H - 6}" text-anchor="middle">${txt(p.rotulo)}</text>`;
+			fimUltimoRotulo = meio + meiaLargura;
+		}
+	});
+
+	el.trilha.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="group" aria-label="Posição no corredor">${corpo}</svg>`;
+}
+
+/* =========================================================
+   Navegação
+   ========================================================= */
+
+function aparecer(no) {
+	if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+	no.animate(
+		[{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }],
+		{ duration: 220, easing: 'cubic-bezier(.23, 1, .32, 1)' }
+	);
+}
+
+function aplicarEscola(id) {
+	const escola = ESCOLAS[id];
+	estado.escola = id;
+	document.documentElement.style.setProperty('--cena-fundo', escola.cenaFundo);
+	el.escolaNome.textContent = escola.nome;
+	el.escolaBentao.setAttribute('aria-pressed', String(id === 'bentao'));
+	el.escolaEtecap.setAttribute('aria-pressed', String(id === 'etecap'));
+	try { localStorage.setItem('lckp-prototipo-escola', id); } catch (e) {}
+	mostrarPlanta();
+}
+
+function mostrarPlanta() {
+	estado.corredor = null;
+	estado.layout = null;
+	estado.selecionado = null;
+	el.telaCorredor.hidden = true;
+	el.telaPlanta.hidden = false;
+	el.trilho.innerHTML = '';
+	el.trilha.innerHTML = '';
+	desenharPlanta();
+	aparecer(el.telaPlanta);
+}
+
+function abrirCorredor(id) {
+	const escola = ESCOLAS[estado.escola];
+	const corredor = escola.corredores.find(c => c.id === id);
+	if (!corredor) return;
+
+	estado.corredor = corredor;
+	estado.layout = montarCorredor(escola, corredor);
+	estado.parada = 0;
+	estado.selecionado = null;
+	quadroAtual = null;
+
+	el.telaCorredor.style.setProperty('--cor-corredor', corredor.cor);
+	el.siglaCorredor.textContent = corredor.sigla;
+	el.siglaCorredor.classList.toggle('longa', corredor.sigla.length > 1);
+	el.tituloCorredor.textContent = corredor.nome;
+	el.subtituloCorredor.textContent = estado.layout.salas;
+	el.livresCorredor.textContent = estado.layout.livres;
+	el.trilho.innerHTML = desenharParede(escola, corredor, estado.layout);
+	el.telaPlanta.hidden = true;
+	el.telaCorredor.hidden = false;
+
+	atualizarSelecao();
+	posicionar(false);
+	desenharTrilha();
+	aparecer(el.telaCorredor);
+}
+
+// computador e totem: uma escala só pro corredor todo.
+// celular: cada parada ocupa a largura da tela, acima da faixa das setas.
+function enquadrar(lay, W, H) {
+	if (estado.celular) {
+		const areaH = H - FAIXA_CONTROLES;
+		return lay.paradas.map(p => {
+			const altura = p.base - p.topo;
+			const escala = Math.min((W - 20) / p.largura, areaH / altura, 6);
+			return {
+				escala,
+				tx: W / 2 - (p.centro + MARGEM) * escala,
+				ty: (areaH - altura * escala) / 2 - p.topo * escala + 4
+			};
+		});
+	}
+
+	const maior = Math.max(...lay.paradas.map(p => p.largura));
+	const escala = Math.max(.5, Math.min(H / JANELA_ALTURA, W / (maior + 4), 6));
+	const ty = (H - JANELA_ALTURA * escala) / 2 - JANELA_TOPO * escala;
+	return lay.paradas.map(p => ({ escala, tx: W / 2 - (p.centro + MARGEM) * escala, ty }));
+}
+
+let quadroAtual = null;
+
+function posicionar(animar) {
+	const lay = estado.layout;
+	const svg = el.trilho.firstElementChild;
+	if (!lay || !svg) return;
+
+	const W = el.cena.clientWidth;
+	const H = el.cena.clientHeight;
+	const parada = lay.paradas[estado.parada];
+	const quadro = enquadrar(lay, W, H)[estado.parada];
+
+	// o svg é redesenhado sempre na escala final, pra texto e etiqueta ficarem nítidos;
+	// a animação parte do quadro anterior convertido pra essa escala nova
+	svg.setAttribute('width', f((lay.comprimento + MARGEM * 2) * quadro.escala));
+	svg.setAttribute('height', f(ALTURA * quadro.escala));
+
+	el.trilho.style.transition = 'none';
+	if (animar && quadroAtual) {
+		el.trilho.style.transform = `translate3d(${f(quadroAtual.tx)}px, ${f(quadroAtual.ty)}px, 0) scale(${quadroAtual.escala / quadro.escala})`;
+	}
+	void el.trilho.offsetWidth;
+	if (animar) el.trilho.style.transition = '';
+	el.trilho.style.transform = `translate3d(${f(quadro.tx)}px, ${f(quadro.ty)}px, 0) scale(1)`;
+	quadroAtual = quadro;
+
+	// no celular o que está fora da parada atual fica escurecido
+	const inicio = quadro.tx + (parada.centro - parada.largura / 2 + MARGEM) * quadro.escala;
+	const final = quadro.tx + (parada.centro + parada.largura / 2 + MARGEM) * quadro.escala;
+	el.focoEsq.style.transition = animar ? '' : 'none';
+	el.focoDir.style.transition = animar ? '' : 'none';
+	el.focoEsq.style.transform = `translateX(${f(inicio - 6 - W)}px)`;
+	el.focoDir.style.transform = `translateX(${f(final + 6)}px)`;
+
+	el.setaVoltar.disabled = estado.parada === 0;
+	el.setaAvancar.disabled = estado.parada === lay.paradas.length - 1;
+	el.local.textContent = parada.local === 'na entrada'
+		? 'Entrada do corredor'
+		: parada.local[0].toUpperCase() + parada.local.slice(1);
+}
+
+function irPara(indice) {
+	const lay = estado.layout;
+	if (!lay) return;
+	const destino = Math.max(0, Math.min(lay.paradas.length - 1, indice));
+	if (destino === estado.parada) return;
+	estado.parada = destino;
+	posicionar(true);
+	desenharTrilha();
+}
+
+function alternarArmario(g) {
+	if (!g || g.dataset.status !== 'livre') return;
+	const n = g.dataset.n;
+
+	const anterior = el.trilho.querySelector('.armario.selecionado');
+	if (anterior) {
+		anterior.classList.remove('selecionado');
+		anterior.setAttribute('aria-pressed', 'false');
+	}
+
+	if (estado.selecionado && estado.selecionado.n === n) {
+		estado.selecionado = null;
+	} else {
+		g.classList.add('selecionado');
+		g.setAttribute('aria-pressed', 'true');
+		estado.selecionado = { n, local: g.dataset.local };
+	}
+	atualizarSelecao();
+}
+
+function atualizarSelecao() {
+	const sel = estado.selecionado;
+	el.legenda.hidden = Boolean(sel);
+	el.selecao.hidden = !sel;
+	if (!sel) return;
+	el.selecaoNumero.textContent = `Armário ${numero(sel.n)}`;
+	el.selecaoLocal.textContent = `${estado.corredor.nome} · ${sel.local}`;
+	el.btnAlugar.textContent = 'Alugar';
+}
+
+/* =========================================================
+   Eventos
+   ========================================================= */
+
+el.escolaBentao.addEventListener('click', () => aplicarEscola('bentao'));
+el.escolaEtecap.addEventListener('click', () => aplicarEscola('etecap'));
+el.btnPlanta.addEventListener('click', mostrarPlanta);
+el.setaVoltar.addEventListener('click', () => irPara(estado.parada - 1));
+el.setaAvancar.addEventListener('click', () => irPara(estado.parada + 1));
+
+el.btnAlugar.addEventListener('click', () => {
+	el.selecaoLocal.textContent = 'Protótipo: no sistema, aqui abre o pagamento.';
+	el.btnAlugar.textContent = 'Reservado';
+});
+
+el.planta.addEventListener('click', e => {
+	const cartao = e.target.closest('.cartao');
+	if (cartao) abrirCorredor(cartao.dataset.id);
+});
+
+el.trilha.addEventListener('click', e => {
+	const alvo = e.target.closest('.t-alvo');
+	if (alvo) irPara(Number(alvo.dataset.i));
+});
+
+let arrasto = null;
+let ignorarClique = false;
+
+el.cena.addEventListener('pointerdown', e => { arrasto = { x: e.clientX, moveu: false }; });
+el.cena.addEventListener('pointermove', e => {
+	if (arrasto && Math.abs(e.clientX - arrasto.x) > 12) arrasto.moveu = true;
+});
+
+el.cena.addEventListener('pointerup', e => {
+	if (!arrasto) return;
+	const dx = e.clientX - arrasto.x;
+	if (arrasto.moveu && Math.abs(dx) > 45) {
+		irPara(estado.parada + (dx < 0 ? 1 : -1));
+		ignorarClique = true;
+		setTimeout(() => { ignorarClique = false; }, 0);
+	}
+	arrasto = null;
+});
+
+el.cena.addEventListener('pointercancel', () => { arrasto = null; });
+
+el.trilho.addEventListener('click', e => {
+	if (ignorarClique) return;
+	alternarArmario(e.target.closest('.armario'));
+});
+
+el.trilho.addEventListener('keydown', e => {
+	const g = e.target.closest('.armario');
+	if (g && (e.key === 'Enter' || e.key === ' ')) {
+		e.preventDefault();
+		alternarArmario(g);
+	}
+});
+
+document.addEventListener('keydown', e => {
+	if (el.telaCorredor.hidden) return;
+	if (e.key === 'ArrowRight') irPara(estado.parada + 1);
+	else if (e.key === 'ArrowLeft') irPara(estado.parada - 1);
+	else if (e.key === 'Escape' && estado.selecionado) {
+		alternarArmario(el.trilho.querySelector('.armario.selecionado'));
+	}
+});
+
+function aoRedimensionar() {
+	if (el.telaCorredor.hidden) return;
+	posicionar(false);
+	desenharTrilha();
+}
+
+// observar a raiz também: mudança só na altura da janela não redimensiona a cena
+const observador = new ResizeObserver(aoRedimensionar);
+observador.observe(el.cena);
+observador.observe(document.documentElement);
+window.addEventListener('resize', aoRedimensionar);
+
+// celular = tela estreita, ou toque com tela até tablet
+const consultaCelular = window.matchMedia('(max-width: 640px), (pointer: coarse) and (max-width: 1024px)');
+
+function detectarCelular() {
+	estado.celular = consultaCelular.matches;
+	document.documentElement.classList.toggle('celular', estado.celular);
+}
+
+consultaCelular.addEventListener('change', () => {
+	detectarCelular();
+	quadroAtual = null;
+	aoRedimensionar();
+});
+
+el.focoEsq.addEventListener('click', () => irPara(estado.parada - 1));
+el.focoDir.addEventListener('click', () => irPara(estado.parada + 1));
+
+detectarCelular();
+
+let escolaInicial = 'bentao';
+try {
+	const salva = localStorage.getItem('lckp-prototipo-escola');
+	if (salva && ESCOLAS[salva]) escolaInicial = salva;
+} catch (e) {}
+aplicarEscola(escolaInicial);
+</script>
