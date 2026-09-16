@@ -111,9 +111,12 @@ Armário sem posição continua existindo e aparecendo no admin. Só não aparec
   "porta": "#4A2C1E",
   "armario_claro": "#5A6880",
   "armario_escuro": "#3A4759",
-  "selecao": "#E8B44A"
+  "selecao": "#E8B44A",
+  "corredores": { "1": "#F5C542", "mecanica": "#3DBE6E" }
 }
 ```
+
+`corredores` guarda a cor escolhida pelo admin para cada corredor, pela chave `codigo`, e vale por cima de `corredores.cor`. Assim tudo que o admin muda sai no mesmo salvamento da Personalização.
 
 As cores de status (livre, ocupado, manutenção) **não** são configuráveis: precisam significar a mesma coisa em qualquer escola.
 
@@ -158,13 +161,14 @@ Parte da numeração das fotos é estimada. A conferência é o que diz onde cor
 }
 ```
 
+- `cor` de cada corredor já vem com a escolha do admin aplicada.
 - `estado` já vem traduzido: `disponivel` → `livre`; `alugado` e `funcionario` → `ocupado`; `manutencao` → `manutencao`.
 - **Não** devolve `usuario_id` nem nome de ocupante. O aluno só sabe qual é o dele (`meu`).
 - Escola sem corredores responde `{ "corredores": [] }`, e o front cai na grade atual.
 
 ### Personalização
 
-O salvamento que já existe em `schools` passa a aceitar `mapa_estilo`, validando que cada cor é hex de 6 dígitos e que `modo` é `escuro`, `claro` ou `personalizado`.
+O salvamento que já existe em `schools` passa a aceitar `mapa_estilo`, validando que cada cor é hex de 6 dígitos e que `modo` é `escuro`, `claro` ou `personalizado`. O campo também entra no contrato público da escola, para a Personalização ler o que está salvo.
 
 ---
 
@@ -174,8 +178,10 @@ Substitui o conteúdo de `front/src/screens/Home/index.jsx` quando a escola tem 
 
 ### Componentes
 
+- `screens/Home/index.jsx`: decide entre o mapa e a grade atual (movida para `screens/Home/GradeArmarios.jsx`).
+- `screens/Home/MapaArmarios.jsx`: estado da navegação, seleção e modal.
 - `screens/Home/Planta.jsx`: grade CSS com o pátio e um botão por corredor.
-- `screens/Home/Parede.jsx`: SVG da parede. O desenho vem de funções puras em `screens/Home/desenhoParede.js`, portadas do protótipo.
+- `screens/Home/Parede.jsx`: SVG da parede. A geometria vem de `screens/Home/mapa/geometria.js`, o desenho de `screens/Home/mapa/desenhoParede.js` e as cores de `screens/Home/mapa/estiloMapa.js`, todos funções puras portadas do protótipo.
 - `screens/Home/Trilha.jsx`: régua de posição, cada parada é um alvo de toque.
 - `screens/Home/BarraSelecao.jsx`: armário escolhido e botão "Alugar".
 - `utils/useCelular.js`: `matchMedia('(max-width: 640px), (pointer: coarse) and (max-width: 1024px)')`.
@@ -201,7 +207,7 @@ Nova seção "Mapa de armários" na tela `screens/Personalizacao`, abaixo das co
 
 - Modo: Escuro (padrão), Claro, Personalizado.
 - Cores: fundo da cena, parede, faixa baixa, vidro, portas, armário claro, armário escuro, seleção.
-- Cor de cada corredor (grava em `corredores.cor`).
+- Cor de cada corredor (grava em `mapa_estilo.corredores`).
 - Prévia pequena de uma porta e um bloco com as cores escolhidas.
 - "Voltar ao padrão" limpa `mapa_estilo`.
 
