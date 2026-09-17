@@ -1,0 +1,55 @@
+diff --git a/front/src/screens/Home/Parede.jsx b/front/src/screens/Home/Parede.jsx
+index 5a3c47d..daa6921 100644
+--- a/front/src/screens/Home/Parede.jsx
++++ b/front/src/screens/Home/Parede.jsx
+@@ -37,6 +37,19 @@ function posicionarCena({ cena, trilho, focoEsq, focoDir }, lay, parada, celular
+   return quadro;
+ }
+ 
++// Acha em qual parada está um armário, pelo bloco que o contém: o centro do
++// bloco é o mesmo valor usado para montar lay.paradas.
++function paradaDoArmario(lay, armarioId) {
++  for (const item of lay.itens) {
++    if (item.tipo !== 'bloco') continue;
++    const estaNesteBloco = item.colunas.some((coluna) => coluna.some((a) => a?.id === armarioId));
++    if (!estaNesteBloco) continue;
++    const centro = item.x + item.largura / 2;
++    return lay.paradas.findIndex((p) => p.centro === centro);
++  }
++  return -1;
++}
++
+ const Seta = ({ direcao }) => (
+   <svg viewBox="0 0 24 24" aria-hidden="true">
+     <path d={direcao === 'esq' ? 'M15 5l-7 7 7 7' : 'M9 5l7 7-7 7'} fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+@@ -160,6 +173,22 @@ export default function Parede({ corredor, lay, paleta, celular, parada, aoMudar
+     aoTocarArmario(id);
+   };
+ 
++  // O SVG do corredor inteiro fica sempre no DOM; tabular pode focar um
++  // armário fora da parada atual. Sem isto o navegador rola .mapa-cena
++  // nativamente para mostrar o foco, e a câmera (que usa transform, não
++  // scroll) fica desalinhada para sempre.
++  const aoFocarCena = (e) => {
++    const g = e.target.closest?.('.armario');
++    if (!g) return;
++    const cena = cenaRef.current;
++    if (cena) { cena.scrollLeft = 0; cena.scrollTop = 0; }
++    const indice = paradaDoArmario(lay, g.dataset.id);
++    // Adiado: mudar a parada aqui, na mesma tarefa do evento de foco, faz o
++    // useLayoutEffect que redimensiona o svg rodar antes de o navegador
++    // terminar de focar o elemento, e o foco cai pro <body>.
++    if (indice !== -1 && indice !== parada) setTimeout(() => aoMudarParada(indice), 0);
++  };
++
+   return (
+     <div
+       ref={cenaRef}
+@@ -168,6 +197,7 @@ export default function Parede({ corredor, lay, paleta, celular, parada, aoMudar
+       onPointerMove={aoMover}
+       onPointerUp={aoSoltar}
+       onPointerCancel={() => { arrastoRef.current = null; }}
++      onFocus={aoFocarCena}
+     >
+       <div
+         ref={trilhoRef}
