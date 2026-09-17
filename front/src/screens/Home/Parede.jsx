@@ -131,12 +131,14 @@ export default function Parede({ corredor, lay, paleta, celular, parada, aoMudar
     const arrasto = arrastoRef.current;
     arrastoRef.current = null;
     if (!arrasto?.moveu) return;
+    // o click que vem depois do arrasto não pode selecionar armário nem
+    // mover a câmera de novo, mesmo quando o arrasto foi curto demais
+    // para trocar de parada
+    ignorarCliqueRef.current = true;
+    setTimeout(() => { ignorarCliqueRef.current = false; }, 0);
     const deslocamento = e.clientX - arrasto.x;
     if (Math.abs(deslocamento) <= 45) return;
     irPara(parada + (deslocamento < 0 ? 1 : -1));
-    // o click que vem depois do arrasto não pode selecionar armário
-    ignorarCliqueRef.current = true;
-    setTimeout(() => { ignorarCliqueRef.current = false; }, 0);
   };
 
   const armarioDoEvento = (e) => {
@@ -175,8 +177,8 @@ export default function Parede({ corredor, lay, paleta, celular, parada, aoMudar
         dangerouslySetInnerHTML={{ __html: svg }}
       />
       <div className="mapa-vinheta" />
-      <div ref={focoEsqRef} className="mapa-foco" onClick={() => irPara(parada - 1)} />
-      <div ref={focoDirRef} className="mapa-foco" onClick={() => irPara(parada + 1)} />
+      <div ref={focoEsqRef} className="mapa-foco" onClick={() => { if (!ignorarCliqueRef.current) irPara(parada - 1); }} />
+      <div ref={focoDirRef} className="mapa-foco" onClick={() => { if (!ignorarCliqueRef.current) irPara(parada + 1); }} />
       <span className="mapa-local">{lay.paradas[parada]?.local}</span>
       <button type="button" className="mapa-seta mapa-seta--esq" onClick={() => irPara(parada - 1)} disabled={parada === 0} aria-label="Bloco anterior">
         <Seta direcao="esq" />
