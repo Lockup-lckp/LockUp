@@ -51,8 +51,8 @@ test('célula sem armário vira porta vazia, sem grupo clicável', () => {
 
 test('estoque não tem placa; sala e laboratório têm', () => {
     const { svg } = desenhar();
-    assert.equal((svg.match(/SALA DE AULA/g) || []).length, 1);
-    assert.equal((svg.match(/LABORATÓRIO/g) || []).length, 1);
+    assert.equal((svg.match(/>SALA DE AULA<\/text>/g) || []).length, 1);
+    assert.equal((svg.match(/>LABORATÓRIO<\/text>/g) || []).length, 1);
     assert.match(svg, />SALÃO NOBRE<\/text>/);
 });
 
