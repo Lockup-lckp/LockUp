@@ -149,7 +149,7 @@ export default function MapaArmarios({ mapa }) {
         valorArmario={escola?.valor_armario}
         atingiuLimite={atingiuLimite}
         limiteArmarios={limiteArmarios}
-        aoFechar={() => setModalAberto(false)}
+        aoFechar={() => { setModalAberto(false); setSelecionadoId(null); }}
         aoConfirmar={irParaCheckout}
       />
     </div>
