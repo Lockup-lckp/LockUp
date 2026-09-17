@@ -20,6 +20,12 @@ test('personalizado aplica só as cores editáveis por cima do escuro', () => {
     assert.equal(paleta.cano, '#B14238');
 });
 
+test('personalizado ignora cor que não é hex', () => {
+    const paleta = paletaDoMapa({ modo: 'personalizado', parede: '"/><image href=x onerror=alert(1)>', porta: '#abcdef' });
+    assert.equal(paleta.parede, '#16243D');
+    assert.equal(paleta.porta, '#abcdef');
+});
+
 test('as cores editáveis existem todas na paleta', () => {
     const paleta = paletaDoMapa(null);
     for (const { campo } of CORES_EDITAVEIS) assert.ok(paleta[campo], campo);

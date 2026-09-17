@@ -69,9 +69,9 @@ export const obterMapa = async (req, res) => {
             .select('*')
             .eq('school_id', schoolId);
 
-        // 42P01 = tabela inexistente. Antes da migração rodar, a escola simplesmente
+        // 42P01 (Postgres) ou PGRST205 (PostgREST atual) = tabela inexistente. Antes da migração rodar, a escola simplesmente
         // não tem mapa e o portal continua na grade.
-        if (erroCorredores?.code === '42P01') return res.json({ corredores: [] });
+        if (['42P01', 'PGRST205'].includes(erroCorredores?.code)) return res.json({ corredores: [] });
         if (erroCorredores) throw erroCorredores;
         if (!corredores.length) return res.json({ corredores: [] });
 

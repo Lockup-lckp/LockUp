@@ -33,7 +33,8 @@ export function paletaDoMapa(estilo) {
     const paleta = { ...BASE[estilo?.modo === 'claro' ? 'claro' : 'escuro'] };
     if (estilo?.modo === 'personalizado') {
         for (const { campo } of CORES_EDITAVEIS) {
-            if (estilo[campo]) paleta[campo] = estilo[campo];
+            // a cor entra num SVG injetado na página: só hex vale
+            if (/^#[0-9a-fA-F]{6}$/.test(estilo[campo] ?? '')) paleta[campo] = estilo[campo];
         }
     }
     return paleta;

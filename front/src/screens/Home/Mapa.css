@@ -199,5 +199,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mapa-trilho, .mapa-foco, .mapa-cartao, .mapa-seta { transition-duration: 1ms; }
+  .mapa-trilho, .mapa-foco, .mapa-cartao, .mapa-seta, .mapa .armario .porta-armario { transition-duration: 1ms; }
 }
