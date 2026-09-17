@@ -9,6 +9,7 @@ import { useEscola } from '../../theme/contextoEscola.js';
 import Carregando from '../../components/Carregando.jsx';
 import CampoCor from './CampoCor.jsx';
 import SecaoMapa from './SecaoMapa.jsx';
+import { CORES_EDITAVEIS } from '../Home/mapa/estiloMapa.js';
 import { useMapaEscola } from '../../utils/useMapaEscola.js';
 import './Personalizacao.css';
 
@@ -344,6 +345,19 @@ export default function Personalizacao() {
     if (![corPrimaria, corSecundaria, corFundo].every(hexValido)) {
       setFeedback({ tipo: 'erro', texto: 'Confira as cores: o formato é #RRGGBB.' });
       return;
+    }
+
+    // Digitando no CampoCor, o estado passa por valores parciais ("#12") antes
+    // de chegar num hex válido. Sem esta checagem, salvar nesse instante manda
+    // um mapa_estilo inválido e o backend rejeita o payload inteiro — inclusive
+    // as outras alterações pendentes que nada têm a ver com o mapa.
+    if (mapaEstilo) {
+      const coresDoMapa = CORES_EDITAVEIS.map(({ campo }) => mapaEstilo[campo]).filter((v) => v != null);
+      const coresDosCorredores = Object.values(mapaEstilo.corredores ?? {});
+      if (![...coresDoMapa, ...coresDosCorredores].every(hexValido)) {
+        setFeedback({ tipo: 'erro', texto: 'Confira as cores do mapa de armários: use o formato #RRGGBB.' });
+        return;
+      }
     }
 
     setSalvando(true);
