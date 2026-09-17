@@ -14,8 +14,18 @@ export const armariosService = {
       return await response.json();
     } catch (error) {
       console.error(`Falha ao buscar armários para a escola ${schoolCode}:`, error);
-      throw error; 
+      throw error;
     }
+  },
+
+  // Planta, parede e armários posicionados. Escola sem mapa responde { corredores: [] }.
+  buscarMapa: async (schoolCode) => {
+    const response = await fetch(`${API_URL}/escola/${schoolCode}/mapa`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Erro ao buscar o mapa da instituição');
+    return await response.json();
   },
 
   // Busca os detalhes de um armário específico por ID
