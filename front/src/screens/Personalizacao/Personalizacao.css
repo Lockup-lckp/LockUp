@@ -415,23 +415,80 @@
 }
 
 .perso-contraste {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.65rem 0.85rem;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.6rem 0.75rem;
+  padding: 0.75rem 0.85rem;
   border-radius: var(--radius-control);
   background: color-mix(in srgb, var(--on-bg) 5%, transparent);
   border: 1px solid var(--border-color);
   font-size: 0.8rem;
   color: var(--on-bg-muted);
 }
-.perso-contraste strong {
-  font-family: var(--font-display, sans-serif);
-  font-size: 1.05rem;
-  color: var(--on-bg);
-  font-variant-numeric: tabular-nums;
+.perso-contraste__rotulo { grid-column: 1; }
+
+/* A cor crua, sem o ajuste de legibilidade: é o que a escola escolheu. */
+.perso-contraste__amostra {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  background: var(--amostra-fundo);
+  color: var(--amostra-cor);
+  border: 1px solid var(--border-color);
 }
+.perso-contraste__letra {
+  font-family: var(--font-display, sans-serif);
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.perso-contraste__texto {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-display, sans-serif);
+  font-size: 1rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.perso-contraste__barra {
+  flex: none;
+  width: 2.75rem;
+  height: 0.6rem;
+  border-radius: 999px;
+  background: var(--amostra-cor);
+}
+
+.perso-contraste__selo {
+  grid-column: 2;
+  grid-row: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--selo);
+  background: color-mix(in srgb, var(--selo) 12%, transparent);
+}
+.perso-contraste__selo::before {
+  content: '';
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+.perso-contraste__selo--otimo { --selo: var(--success); }
+.perso-contraste__selo--aceitavel { --selo: var(--warning); }
+.perso-contraste__selo--dificil { --selo: var(--danger); }
 
 /* ── Confirmação de saída ───────────────────────────────────────── */
 

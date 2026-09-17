@@ -40,6 +40,9 @@ export default function Planta({ planta, corredores, montados, aoEscolher }) {
                 {lay.salas && <span className="mapa-cartao__salas">{lay.salas}</span>}
               </span>
               <span className="mapa-cartao__livres"><b>{lay.livres}</b><span>livres</span></span>
+              <svg className="mapa-cartao__seta" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </span>
           </button>
         );

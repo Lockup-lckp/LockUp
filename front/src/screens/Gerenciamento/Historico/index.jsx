@@ -104,11 +104,11 @@ export default function HistoricoPagamentos() {
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-[var(--primary-text)] font-display">Histórico de Pagamentos</h1>
-          <p className="text-xs text-gray-400 mt-1">Locações pagas e aprovadas da instituição, por ciclo letivo.</p>
+          <p className="text-xs text-[var(--on-bg-muted)] mt-1">Locações pagas e aprovadas da instituição, por ciclo letivo.</p>
         </div>
 
         <div className="flex items-center gap-2">
-          <label htmlFor="ano-relatorio" className="text-xs text-gray-400">Ciclo:</label>
+          <label htmlFor="ano-relatorio" className="text-xs text-[var(--on-bg-muted)]">Ciclo:</label>
           <select
             id="ano-relatorio"
             value={anoSelecionado}
@@ -143,16 +143,16 @@ export default function HistoricoPagamentos() {
       </div>
 
       {erro && (
-        <div className="mb-4 p-3 bg-red-950/40 border border-red-900/50 rounded-xl text-red-400 text-sm">
+        <div className="mb-4 p-3 bg-[var(--danger)]/10 border border-[var(--danger)]/30 rounded-xl text-[var(--danger)] text-sm">
           ⚠️ {erro}
         </div>
       )}
 
       {/* Saldo do ano selecionado */}
       <div className="bg-[var(--surface-color)]/60 border border-[var(--primary-color)]/30 rounded-xl p-6 mb-6">
-        <span className="text-xs text-gray-400 uppercase tracking-wider">Saldo de {anoSelecionado}</span>
+        <span className="text-xs text-[var(--on-bg-muted)] uppercase tracking-wider">Saldo de {anoSelecionado}</span>
         <p className="text-3xl font-bold text-[var(--primary-text)] font-display mt-1">{formatarMoeda(saldoAnual)}</p>
-        <p className="text-xs text-gray-500 mt-2">
+        <p className="text-xs text-[var(--on-bg-muted)] mt-2">
           {historicoDoAno.length} lançamento{historicoDoAno.length === 1 ? '' : 's'} neste ciclo
           {totalDevolvido > 0 && ` · ${formatarMoeda(totalDevolvido)} devolvido em estornos`}
           {quantidadeIsenta > 0 && ` · ${quantidadeIsenta} ${quantidadeIsenta === 1 ? 'armário concedido' : 'armários concedidos'}`}
@@ -163,17 +163,17 @@ export default function HistoricoPagamentos() {
       <div className="overflow-x-auto w-full border border-[var(--border-color)] bg-[var(--surface-color)]/60 rounded-xl backdrop-blur-md">
         <table className="w-full text-left border-collapse min-w-150 lckp-tabela-cartao">
           <thead>
-            <tr className="border-b border-[var(--border-color)] bg-[var(--surface-raised)] text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            <tr className="border-b border-[var(--border-color)] bg-[var(--surface-raised)] text-xs font-semibold text-[var(--on-bg-muted)] uppercase tracking-wider">
               <th className="p-4">Data</th>
               <th className="p-4">Armário</th>
               <th className="p-4">Aluno</th>
               <th className="p-4 text-right">Valor</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[var(--border-color)] text-sm text-gray-300">
+          <tbody className="divide-y divide-[var(--border-color)] text-sm text-[var(--on-bg)]">
             {historicoPaginado.length === 0 ? (
               <tr>
-                <td colSpan="4" className="p-8 text-center text-gray-500">
+                <td colSpan="4" className="p-8 text-center text-[var(--on-bg-muted)]">
                   Nenhuma locação paga encontrada em {anoSelecionado}.
                 </td>
               </tr>
@@ -190,19 +190,19 @@ export default function HistoricoPagamentos() {
                         gateway: os dois somam no faturamento, mas só um tem
                         comprovante no extrato bancário da escola. */}
                     {item.estorno && (
-                      <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-amber-950/60 text-amber-400 border border-amber-900/50">
+                      <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-[var(--warning)]/10 text-[var(--warning)] border border-[var(--warning)]/30">
                         Devolução
                       </span>
                     )}
                     {/* Uma linha de R$ 0,00 sem rótulo parece defeito. Isento
                         diz que foi decisão da escola, não valor perdido. */}
                     {!item.estorno && item.origem === 'presencial' && (
-                      <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-amber-950/60 text-amber-400 border border-amber-900/50">
+                      <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-[var(--warning)]/10 text-[var(--warning)] border border-[var(--warning)]/30">
                         {Number(item.valor) === 0 ? 'Isento' : 'Secretaria'}
                       </span>
                     )}
                   </td>
-                  <td data-label="Valor" className={`p-4 text-right font-semibold whitespace-nowrap ${item.estorno ? 'text-amber-400' : 'text-[var(--on-bg)]'}`}>{formatarMoeda(item.valor)}</td>
+                  <td data-label="Valor" className={`p-4 text-right font-semibold whitespace-nowrap ${item.estorno ? 'text-[var(--warning)]' : 'text-[var(--on-bg)]'}`}>{formatarMoeda(item.valor)}</td>
                 </tr>
               ))
             )}
@@ -211,7 +211,7 @@ export default function HistoricoPagamentos() {
 
         {historicoDoAno.length > 0 && (
           <div className="p-4 bg-[var(--surface-raised)] border-t border-[var(--border-color)] flex flex-col sm:flex-row justify-between items-center gap-4">
-            <span className="text-xs text-gray-400 text-center sm:text-left">
+            <span className="text-xs text-[var(--on-bg-muted)] text-center sm:text-left">
               Página <span className="text-[var(--primary-text)] font-bold">{paginaAtual}</span> de {totalPaginas}
             </span>
 
@@ -219,14 +219,14 @@ export default function HistoricoPagamentos() {
               <button
                 onClick={() => setPaginaAtual((p) => Math.max(p - 1, 1))}
                 disabled={paginaAtual === 1}
-                className="px-3 py-1.5 bg-[var(--surface-color)] border border-[var(--border-color)] rounded-lg text-xs font-semibold text-gray-300 hover:bg-[var(--surface-raised)] hover:text-[var(--on-bg)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-3 py-1.5 bg-[var(--surface-color)] border border-[var(--border-color)] rounded-lg text-xs font-semibold text-[var(--on-bg)] hover:bg-[var(--surface-raised)] hover:text-[var(--on-bg)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 ← Anterior
               </button>
               <button
                 onClick={() => setPaginaAtual((p) => Math.min(p + 1, totalPaginas))}
                 disabled={paginaAtual === totalPaginas}
-                className="px-3 py-1.5 bg-[var(--surface-color)] border border-[var(--border-color)] rounded-lg text-xs font-semibold text-gray-300 hover:bg-[var(--surface-raised)] hover:text-[var(--on-bg)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-3 py-1.5 bg-[var(--surface-color)] border border-[var(--border-color)] rounded-lg text-xs font-semibold text-[var(--on-bg)] hover:bg-[var(--surface-raised)] hover:text-[var(--on-bg)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Próxima →
               </button>

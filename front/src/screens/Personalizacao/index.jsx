@@ -519,9 +519,25 @@ export default function Personalizacao() {
 
           <PreviaDoTema tokens={tokensDaPrevia} />
 
+          {/* Amostra, não número: "2.98:1" não diz nada a quem escolhe a cor
+              da escola. Aqui a cor principal aparece crua sobre o fundo, do
+              jeito que ficaria sem o ajuste automático. */}
           <div className="perso-contraste">
-            <span>Sua cor principal sobre o fundo</span>
-            <strong>{razaoPrimaria.toFixed(2)}:1</strong>
+            <span className="perso-contraste__rotulo">Sua cor principal sobre o fundo</span>
+            <div
+              className="perso-contraste__amostra"
+              style={{ '--amostra-fundo': corFundo, '--amostra-cor': corPrimaria }}
+              aria-hidden="true"
+            >
+              <span className="perso-contraste__letra">Aa</span>
+              <span className="perso-contraste__texto">Título da escola</span>
+              <span className="perso-contraste__barra" />
+            </div>
+            <span
+              className={`perso-contraste__selo perso-contraste__selo--${razaoPrimaria >= 4.5 ? 'otimo' : razaoPrimaria >= 3 ? 'aceitavel' : 'dificil'}`}
+            >
+              {razaoPrimaria >= 4.5 ? 'Boa leitura' : razaoPrimaria >= 3 ? 'Leitura razoável' : 'Leitura difícil'}
+            </span>
           </div>
           <p className="perso-ajuda">
             {razaoPrimaria >= 4.5

@@ -17,10 +17,10 @@ const STATUS_LABEL = {
 };
 
 const STATUS_BADGE_CLASS = {
-  disponivel: 'bg-emerald-950/60 text-emerald-400 border border-emerald-900/50',
-  alugado: 'bg-blue-950/60 text-blue-400 border border-blue-900/50',
-  manutencao: 'bg-amber-950/60 text-amber-400 border border-amber-900/50',
-  funcionario: 'bg-violet-950/60 text-violet-400 border border-violet-900/50',
+  disponivel: 'bg-[var(--success)]/10 text-[var(--success)] border border-[var(--success)]/30',
+  alugado: 'bg-[var(--info)]/10 text-[var(--info)] border border-[var(--info)]/30',
+  manutencao: 'bg-[var(--warning)]/10 text-[var(--warning)] border border-[var(--warning)]/30',
+  funcionario: 'bg-violet-500/10 text-[color-mix(in_srgb,#8b5cf6_75%,var(--on-bg))] border border-violet-500/30',
 };
 
 // Busca de alunos no modal de vinculo.
@@ -455,7 +455,7 @@ export default function GerenciamentoArmarios() {
 
   if (escolaNaoIdentificada) {
     return (
-      <div className="p-6 text-center text-red-400 font-medium bg-[var(--bg-color)] min-h-screen flex items-center justify-center">
+      <div className="p-6 text-center text-[var(--danger)] font-medium bg-[var(--bg-color)] min-h-screen flex items-center justify-center">
         Não foi possível identificar a instituição correspondente.
       </div>
     );
@@ -471,7 +471,7 @@ export default function GerenciamentoArmarios() {
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-[var(--primary-text)] font-display">Gerenciamento de Armários</h1>
-          <p className="text-xs text-gray-400 mt-1">Instituição ativa: <span className="text-[var(--on-bg)] font-semibold uppercase">{schoolCode}</span></p>
+          <p className="text-xs text-[var(--on-bg-muted)] mt-1">Instituição ativa: <span className="text-[var(--on-bg)] font-semibold uppercase">{schoolCode}</span></p>
         </div>
 
         {/* `flex-wrap` porque agora são três controles: busca, filtro de bloco
@@ -505,7 +505,7 @@ export default function GerenciamentoArmarios() {
           {corredorFiltro && (
             <button
               onClick={() => setCorredorParaExcluir(corredorFiltro)}
-              className="w-full sm:w-auto shrink-0 px-4 py-2 bg-red-950/40 hover:bg-red-900/40 text-red-400 border border-red-900/50 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap text-center"
+              className="w-full sm:w-auto shrink-0 px-4 py-2 bg-[var(--danger)]/10 hover:bg-[var(--danger)]/10 text-[var(--danger)] border border-[var(--danger)]/30 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap text-center"
             >
               Excluir {nomearCorredor(escola, corredorFiltro).toLowerCase()}
             </button>
@@ -521,7 +521,7 @@ export default function GerenciamentoArmarios() {
       </div>
 
       {erro && (
-        <div className="mb-4 p-3 bg-red-950/40 border border-red-900/50 rounded-xl text-red-400 text-sm">
+        <div className="mb-4 p-3 bg-[var(--danger)]/10 border border-[var(--danger)]/30 rounded-xl text-[var(--danger)] text-sm">
           ⚠️ {erro}
         </div>
       )}
@@ -534,7 +534,7 @@ export default function GerenciamentoArmarios() {
             do `data-label` em cada <td>. */}
         <table className="w-full text-left border-collapse min-w-175 lckp-tabela-cartao">
           <thead>
-            <tr className="border-b border-[var(--border-color)] bg-[var(--surface-raised)] text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            <tr className="border-b border-[var(--border-color)] bg-[var(--surface-raised)] text-xs font-semibold text-[var(--on-bg-muted)] uppercase tracking-wider">
               <th className="p-4">Identificação</th>
               <th className="p-4">{rotuloCorredor(escola)}</th>
               <th className="p-4">Estado</th>
@@ -542,10 +542,10 @@ export default function GerenciamentoArmarios() {
               <th className="p-4 text-center">Ações</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[var(--border-color)] text-sm text-gray-300">
+          <tbody className="divide-y divide-[var(--border-color)] text-sm text-[var(--on-bg)]">
             {armariosPaginados.length === 0 ? (
               <tr>
-                <td colSpan="5" className="p-8 text-center text-gray-500">
+                <td colSpan="5" className="p-8 text-center text-[var(--on-bg-muted)]">
                   Nenhum armário encontrado cadastrado para esta escola.
                 </td>
               </tr>
@@ -577,7 +577,7 @@ export default function GerenciamentoArmarios() {
                         </button>
                       </div>
                     ) : (
-                      <span className="text-gray-500 italic">Nenhum</span>
+                      <span className="text-[var(--on-bg-muted)] italic">Nenhum</span>
                     )}
                   </td>
                   <td data-label="Ações" className="p-4">
@@ -594,7 +594,7 @@ export default function GerenciamentoArmarios() {
                       {armario.status === 'disponivel' && (
                         <button
                           onClick={() => abrirModalFuncionario(armario)}
-                          className="px-2.5 py-1 bg-violet-950/40 hover:bg-violet-900/40 text-violet-400 border border-violet-900/40 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap"
+                          className="px-2.5 py-1 bg-violet-500/10 hover:bg-violet-500/10 text-[color-mix(in_srgb,#8b5cf6_75%,var(--on-bg))] border border-violet-500/30 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap"
                         >
                           Atribuir a Funcionário
                         </button>
@@ -605,8 +605,8 @@ export default function GerenciamentoArmarios() {
                           onClick={() => handleAlterarStatus(armario.id, armario.status)}
                           className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors whitespace-nowrap ${
                             armario.status === 'manutencao'
-                              ? 'bg-emerald-950/40 text-emerald-400 border-emerald-900/40 hover:bg-emerald-900/40'
-                              : 'bg-amber-950/40 text-amber-400 border-amber-900/40 hover:bg-amber-900/40'
+                              ? 'bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/30 hover:bg-[var(--success)]/10'
+                              : 'bg-[var(--warning)]/10 text-[var(--warning)] border-[var(--warning)]/30 hover:bg-[var(--warning)]/10'
                           }`}
                         >
                           {armario.status === 'manutencao' ? 'Disponibilizar' : 'Manutenção'}
@@ -618,8 +618,8 @@ export default function GerenciamentoArmarios() {
                         disabled={armario.status === 'alugado' || armario.status === 'funcionario'}
                         className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors whitespace-nowrap ${
                           armario.status === 'alugado' || armario.status === 'funcionario'
-                            ? 'bg-gray-800 text-gray-600 border-transparent cursor-not-allowed'
-                            : 'bg-red-950/40 text-red-400 border-red-900/40 hover:bg-red-900/40'
+                            ? 'bg-[var(--surface-raised)] text-[var(--on-bg-muted)] border-transparent cursor-not-allowed'
+                            : 'bg-[var(--danger)]/10 text-[var(--danger)] border-[var(--danger)]/30 hover:bg-[var(--danger)]/10'
                         }`}
                       >
                         Excluir
@@ -635,7 +635,7 @@ export default function GerenciamentoArmarios() {
         {/* Rodapé e Controles de Paginação */}
         {armariosFiltrados.length > 0 && (
           <div className="p-4 bg-[var(--surface-raised)] border-t border-[var(--border-color)] flex flex-col sm:flex-row justify-between items-center gap-4">
-            <span className="text-xs text-gray-400 text-center sm:text-left">
+            <span className="text-xs text-[var(--on-bg-muted)] text-center sm:text-left">
               Exibindo {indiceInicial + 1} a {Math.min(indiceFinal, armariosFiltrados.length)} de{' '}
               <span className="text-[var(--on-bg)] font-semibold">{armariosFiltrados.length}</span> armários
             </span>
@@ -644,20 +644,20 @@ export default function GerenciamentoArmarios() {
               <button
                 onClick={() => setPaginaAtual(prev => Math.max(prev - 1, 1))}
                 disabled={paginaAtual === 1}
-                className="px-3 py-1.5 bg-[var(--surface-color)] border border-[var(--border-color)] rounded-lg text-xs font-semibold text-gray-300 hover:bg-[var(--surface-raised)] hover:text-[var(--on-bg)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-3 py-1.5 bg-[var(--surface-color)] border border-[var(--border-color)] rounded-lg text-xs font-semibold text-[var(--on-bg)] hover:bg-[var(--surface-raised)] hover:text-[var(--on-bg)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 ← Anterior
               </button>
 
-              <span className="text-xs text-gray-300 px-1 whitespace-nowrap">
+              <span className="text-xs text-[var(--on-bg)] px-1 whitespace-nowrap">
                 Página <span className="text-[var(--primary-text)] font-bold">{paginaAtual}</span> de{' '}
-                <span className="text-gray-400">{totalPaginas}</span>
+                <span className="text-[var(--on-bg-muted)]">{totalPaginas}</span>
               </span>
 
               <button
                 onClick={() => setPaginaAtual(prev => Math.min(prev + 1, totalPaginas))}
                 disabled={paginaAtual === totalPaginas}
-                className="px-3 py-1.5 bg-[var(--surface-color)] border border-[var(--border-color)] rounded-lg text-xs font-semibold text-gray-300 hover:bg-[var(--surface-raised)] hover:text-[var(--on-bg)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-3 py-1.5 bg-[var(--surface-color)] border border-[var(--border-color)] rounded-lg text-xs font-semibold text-[var(--on-bg)] hover:bg-[var(--surface-raised)] hover:text-[var(--on-bg)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Próxima →
               </button>
@@ -675,14 +675,14 @@ export default function GerenciamentoArmarios() {
               <div className="flex justify-between items-start gap-2">
                 <div>
                   <h3 className="text-base sm:text-lg font-bold text-[var(--on-bg)]">Vincular Aluno ao Armário {armarioSelecionado?.nome}</h3>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-[var(--on-bg-muted)] mt-1">
                     Mostrando apenas alunos associados a esta instituição de ensino. Administradores estão ocultados.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={fecharModalVinculo}
-                  className="text-gray-400 hover:text-[var(--on-bg)] transition-colors text-sm font-medium bg-transparent border-none cursor-pointer shrink-0"
+                  className="text-[var(--on-bg-muted)] hover:text-[var(--on-bg)] transition-colors text-sm font-medium bg-transparent border-none cursor-pointer shrink-0"
                 >
                   ✕ Fechar
                 </button>
@@ -694,7 +694,7 @@ export default function GerenciamentoArmarios() {
                   placeholder="Pesquisar aluno por nome ou e-mail..."
                   value={termoBuscaUsuario}
                   onChange={e => setTermoBuscaUsuario(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-xl text-sm text-[var(--on-bg)] outline-none focus:border-[var(--primary-color)] transition-colors placeholder:text-gray-500"
+                  className="w-full px-4 py-2.5 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-xl text-sm text-[var(--on-bg)] outline-none focus:border-[var(--primary-color)] transition-colors placeholder:text-[var(--on-bg-muted)]"
                 />
               </div>
 
@@ -703,7 +703,7 @@ export default function GerenciamentoArmarios() {
                   opção — e o backend recusaria o semestral de qualquer forma. */}
               {escola?.permite_semestral && (
                 <div className="mt-4">
-                  <p className="text-xs font-semibold text-gray-400 mb-2">Modalidade desta locação</p>
+                  <p className="text-xs font-semibold text-[var(--on-bg-muted)] mb-2">Modalidade desta locação</p>
                   <div className="grid grid-cols-2 gap-2">
                     {[
                       {
@@ -731,7 +731,7 @@ export default function GerenciamentoArmarios() {
                           className={`flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-xl border text-left transition-colors ${
                             ativa
                               ? 'bg-[var(--primary-color)]/15 border-[var(--primary-color)] text-[var(--on-bg)]'
-                              : 'bg-[var(--bg-color)] border-[var(--border-color)] text-gray-300 hover:border-[var(--border-color)]'
+                              : 'bg-[var(--bg-color)] border-[var(--border-color)] text-[var(--on-bg)] hover:border-[var(--border-color)]'
                           }`}
                         >
                           <span className="text-sm font-bold">{opcao.titulo}</span>
@@ -742,7 +742,7 @@ export default function GerenciamentoArmarios() {
                               ? Number(opcao.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
                               : 'valor não configurado'}
                           </span>
-                          <span className="text-[11px] text-gray-500">
+                          <span className="text-[11px] text-[var(--on-bg-muted)]">
                             até {String(opcao.dia).padStart(2, '0')}/{String(opcao.mes).padStart(2, '0')}
                           </span>
                         </button>
@@ -760,7 +760,7 @@ export default function GerenciamentoArmarios() {
                   rotina que encerra o ciclo letivo, ficando com o aluno para
                   sempre. */}
               <div className="mt-4">
-                <p className="text-xs font-semibold text-gray-400 mb-2">Registrar pagamento?</p>
+                <p className="text-xs font-semibold text-[var(--on-bg-muted)] mb-2">Registrar pagamento?</p>
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     { id: true, titulo: 'Sim', nota: 'Entra no faturamento' },
@@ -776,11 +776,11 @@ export default function GerenciamentoArmarios() {
                         className={`flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-xl border text-left transition-colors ${
                           ativa
                             ? 'bg-[var(--primary-color)]/15 border-[var(--primary-color)] text-[var(--on-bg)]'
-                            : 'bg-[var(--bg-color)] border-[var(--border-color)] text-gray-300'
+                            : 'bg-[var(--bg-color)] border-[var(--border-color)] text-[var(--on-bg)]'
                         }`}
                       >
                         <span className="text-sm font-bold">{opcao.titulo}</span>
-                        <span className="text-[11px] text-gray-500">{opcao.nota}</span>
+                        <span className="text-[11px] text-[var(--on-bg-muted)]">{opcao.nota}</span>
                       </button>
                     );
                   })}
@@ -788,11 +788,11 @@ export default function GerenciamentoArmarios() {
 
                 {registrarPagamento ? (
                   <div className="mt-3">
-                    <label htmlFor="valor-cobrado" className="text-xs font-semibold text-gray-400 block mb-1.5">
+                    <label htmlFor="valor-cobrado" className="text-xs font-semibold text-[var(--on-bg-muted)] block mb-1.5">
                       Quanto foi cobrado
                     </label>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-400 shrink-0">R$</span>
+                      <span className="text-sm text-[var(--on-bg-muted)] shrink-0">R$</span>
                       <input
                         id="valor-cobrado"
                         type="text"
@@ -802,20 +802,20 @@ export default function GerenciamentoArmarios() {
                         placeholder={valorDaTabela > 0
                           ? valorDaTabela.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
                           : 'valor não configurado'}
-                        className="w-full px-3 py-2 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-xl text-sm text-[var(--on-bg)] outline-none focus:border-[var(--primary-color)] transition-colors placeholder:text-gray-500"
+                        className="w-full px-3 py-2 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-xl text-sm text-[var(--on-bg)] outline-none focus:border-[var(--primary-color)] transition-colors placeholder:text-[var(--on-bg-muted)]"
                       />
                     </div>
                     {/* O campo vazio NÃO é erro: é o caso comum. Dizer isso
                         evita que a secretaria digite o valor de tabela à mão
                         toda vez, e evita o erro de digitação junto. */}
-                    <p className="text-[11px] text-gray-500 mt-1.5">
+                    <p className="text-[11px] text-[var(--on-bg-muted)] mt-1.5">
                       Deixe em branco para cobrar o valor da instituição
                       {valorDaTabela > 0 && ` (${valorDaTabela.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })})`}.
                       Preencha só se o valor combinado foi outro.
                     </p>
                   </div>
                 ) : (
-                  <p className="text-[11px] text-gray-500 mt-2 leading-relaxed">
+                  <p className="text-[11px] text-[var(--on-bg-muted)] mt-2 leading-relaxed">
                     A locação entra no extrato com <strong className="text-[var(--on-bg)]">R$ 0,00</strong> e
                     não altera o faturamento. O armário continua expirando no fim do ciclo,
                     como qualquer outro.
@@ -827,8 +827,8 @@ export default function GerenciamentoArmarios() {
             <div className="p-3 sm:p-4 overflow-y-auto flex-1 divide-y divide-[var(--border-color)]/60">
               {termoBuscaUsuario.trim().length < MINIMO_PARA_BUSCAR ? (
                 <div className="text-center py-10">
-                  <p className="text-gray-400 text-sm">Digite o nome ou o e-mail do aluno.</p>
-                  <p className="text-xs text-gray-600 mt-1">
+                  <p className="text-[var(--on-bg-muted)] text-sm">Digite o nome ou o e-mail do aluno.</p>
+                  <p className="text-xs text-[var(--on-bg-muted)] mt-1">
                     A lista aparece a partir de {MINIMO_PARA_BUSCAR} letras.
                   </p>
                 </div>
@@ -836,14 +836,14 @@ export default function GerenciamentoArmarios() {
                 <div className="py-10"><Carregando rotulo="Buscando alunos" /></div>
               ) : erroBuscaAlunos ? (
                 <div className="text-center py-10">
-                  <p className="text-red-400 text-sm">{erroBuscaAlunos}</p>
+                  <p className="text-[var(--danger)] text-sm">{erroBuscaAlunos}</p>
                 </div>
               ) : usuariosFiltradosModal.length === 0 ? (
                 <div className="text-center py-10">
-                  <p className="text-gray-400 text-sm">
+                  <p className="text-[var(--on-bg-muted)] text-sm">
                     Nenhum aluno encontrado para &ldquo;{termoBuscaUsuario.trim()}&rdquo;.
                   </p>
-                  <p className="text-xs text-gray-600 mt-1">Contas de administradores não constam nesta alocação.</p>
+                  <p className="text-xs text-[var(--on-bg-muted)] mt-1">Contas de administradores não constam nesta alocação.</p>
                 </div>
               ) : (
                 usuariosFiltradosModal.map((usr) => (
@@ -852,7 +852,7 @@ export default function GerenciamentoArmarios() {
                       <p className="text-sm font-semibold text-[var(--on-bg)] group-hover:text-[var(--primary-text)] transition-colors truncate">
                         {usr.nome_completo || 'Sem Nome Cadastrado'}
                       </p>
-                      <p className="text-xs text-gray-400 mt-0.5 truncate">
+                      <p className="text-xs text-[var(--on-bg-muted)] mt-0.5 truncate">
                         {usr.email_institucional || 'Sem e-mail institucional'}
                       </p>
                     </div>
@@ -868,14 +868,14 @@ export default function GerenciamentoArmarios() {
             </div>
 
             <div className="p-4 border-t border-[var(--border-color)] bg-[var(--surface-raised)] flex flex-col sm:flex-row justify-between items-center gap-3">
-              <span className="text-xs text-gray-500 font-medium text-center sm:text-left">
+              <span className="text-xs text-[var(--on-bg-muted)] font-medium text-center sm:text-left">
                 {termoBuscaUsuario.trim().length < MINIMO_PARA_BUSCAR
                   ? 'Busque o aluno pelo nome ou e-mail'
                   : `${usuariosFiltradosModal.length} aluno(s) encontrado(s)`}
               </span>
               <button
                 onClick={fecharModalVinculo}
-                className="w-full sm:w-auto px-5 py-2 bg-[var(--surface-raised)] hover:bg-[var(--surface-color)] border border-[var(--border-color)] rounded-xl text-xs font-semibold text-gray-300 transition-colors"
+                className="w-full sm:w-auto px-5 py-2 bg-[var(--surface-raised)] hover:bg-[var(--surface-color)] border border-[var(--border-color)] rounded-xl text-xs font-semibold text-[var(--on-bg)] transition-colors"
               >
                 Cancelar
               </button>
@@ -910,10 +910,10 @@ export default function GerenciamentoArmarios() {
               </h3>
             </div>
 
-            <div className="p-4 flex flex-col gap-3 text-sm text-gray-300">
+            <div className="p-4 flex flex-col gap-3 text-sm text-[var(--on-bg)]">
               {ocupadosNoCorredor.length > 0 ? (
                 <>
-                  <div className="p-3 bg-red-950/40 border border-red-900/50 rounded-lg text-red-400 text-xs">
+                  <div className="p-3 bg-[var(--danger)]/10 border border-[var(--danger)]/30 rounded-lg text-[var(--danger)] text-xs">
                     ⚠️ {ocupadosNoCorredor.length} armário{ocupadosNoCorredor.length === 1 ? '' : 's'} deste{' '}
                     {rotuloCorredor(escola).toLowerCase()} {ocupadosNoCorredor.length === 1 ? 'está ocupado' : 'estão ocupados'}.
                   </div>
@@ -936,7 +936,7 @@ export default function GerenciamentoArmarios() {
                 type="button"
                 onClick={() => setCorredorParaExcluir(null)}
                 disabled={excluindoCorredor}
-                className="px-4 py-2 text-sm text-gray-300 hover:text-[var(--on-bg)] transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm text-[var(--on-bg)] hover:text-[var(--on-bg)] transition-colors disabled:opacity-50"
               >
                 Cancelar
               </button>
@@ -944,7 +944,7 @@ export default function GerenciamentoArmarios() {
                 type="button"
                 onClick={handleExcluirCorredor}
                 disabled={excluindoCorredor || ocupadosNoCorredor.length > 0 || armariosDoCorredorAlvo.length === 0}
-                className="px-4 py-2 bg-red-950/60 hover:bg-red-900/60 text-red-300 border border-red-900/50 rounded-xl text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-[var(--danger)]/10 hover:bg-[var(--danger)]/10 text-[var(--danger)] border border-[var(--danger)]/30 rounded-xl text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {excluindoCorredor ? 'Excluindo...' : 'Excluir permanentemente'}
               </button>
@@ -961,19 +961,19 @@ export default function GerenciamentoArmarios() {
           >
             <div className="p-4 border-b border-[var(--border-color)] bg-[var(--surface-raised)]">
               <h3 className="text-base font-bold text-[var(--on-bg)]">Adicionar Armários em Lote</h3>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-[var(--on-bg-muted)] mt-1">
                 {`Informe o ${rotuloCorredor(escola).toLowerCase()} e o intervalo de números.`}
               </p>
             </div>
 
             <div className="p-4 flex flex-col gap-3">
               {erroLote && (
-                <div className="p-2.5 bg-red-950/40 border border-red-900/50 rounded-lg text-red-400 text-xs">
+                <div className="p-2.5 bg-[var(--danger)]/10 border border-[var(--danger)]/30 rounded-lg text-[var(--danger)] text-xs">
                   ⚠️ {erroLote}
                 </div>
               )}
 
-              <label className="flex flex-col gap-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+              <label className="flex flex-col gap-1 text-xs font-semibold text-[var(--on-bg-muted)] uppercase tracking-wide">
                 {rotuloCorredor(escola)}
                 <input
                   type="text"
@@ -990,7 +990,7 @@ export default function GerenciamentoArmarios() {
                   lado a lado somavam ~352px dentro dos 311px que sobram do
                   modal num celular de 375px, e transbordavam. */}
               <div className="flex flex-col min-[380px]:flex-row gap-3">
-                <label className="flex-1 min-w-0 flex flex-col gap-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                <label className="flex-1 min-w-0 flex flex-col gap-1 text-xs font-semibold text-[var(--on-bg-muted)] uppercase tracking-wide">
                   Armário Início
                   <input
                     type="number"
@@ -1002,7 +1002,7 @@ export default function GerenciamentoArmarios() {
                   />
                 </label>
 
-                <label className="flex-1 min-w-0 flex flex-col gap-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                <label className="flex-1 min-w-0 flex flex-col gap-1 text-xs font-semibold text-[var(--on-bg-muted)] uppercase tracking-wide">
                   Armário Fim
                   <input
                     type="number"
@@ -1021,7 +1021,7 @@ export default function GerenciamentoArmarios() {
                 type="button"
                 onClick={() => setModalLoteAberto(false)}
                 disabled={criandoLote}
-                className="px-4 py-1.5 bg-[var(--surface-raised)] hover:bg-[var(--surface-color)] border border-[var(--border-color)] rounded-lg text-xs font-semibold text-gray-300 transition-colors disabled:opacity-50"
+                className="px-4 py-1.5 bg-[var(--surface-raised)] hover:bg-[var(--surface-color)] border border-[var(--border-color)] rounded-lg text-xs font-semibold text-[var(--on-bg)] transition-colors disabled:opacity-50"
               >
                 Cancelar
               </button>
@@ -1046,19 +1046,19 @@ export default function GerenciamentoArmarios() {
           >
             <div className="p-4 border-b border-[var(--border-color)] bg-[var(--surface-raised)]">
               <h3 className="text-base font-bold text-[var(--on-bg)]">Atribuir Armário {armarioFuncionario?.nome} a Funcionário</h3>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-[var(--on-bg-muted)] mt-1">
                 Não cria login nem usuário — só grava o nome de quem usa o armário.
               </p>
             </div>
 
             <div className="p-4 flex flex-col gap-3">
               {erroFuncionario && (
-                <div className="p-2.5 bg-red-950/40 border border-red-900/50 rounded-lg text-red-400 text-xs">
+                <div className="p-2.5 bg-[var(--danger)]/10 border border-[var(--danger)]/30 rounded-lg text-[var(--danger)] text-xs">
                   ⚠️ {erroFuncionario}
                 </div>
               )}
 
-              <label className="flex flex-col gap-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+              <label className="flex flex-col gap-1 text-xs font-semibold text-[var(--on-bg-muted)] uppercase tracking-wide">
                 Nome do funcionário
                 <input
                   type="text"
@@ -1076,14 +1076,14 @@ export default function GerenciamentoArmarios() {
                 type="button"
                 onClick={() => { setModalFuncionarioAberto(false); setArmarioFuncionario(null); }}
                 disabled={salvandoFuncionario}
-                className="px-4 py-1.5 bg-[var(--surface-raised)] hover:bg-[var(--surface-color)] border border-[var(--border-color)] rounded-lg text-xs font-semibold text-gray-300 transition-colors disabled:opacity-50"
+                className="px-4 py-1.5 bg-[var(--surface-raised)] hover:bg-[var(--surface-color)] border border-[var(--border-color)] rounded-lg text-xs font-semibold text-[var(--on-bg)] transition-colors disabled:opacity-50"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={salvandoFuncionario}
-                className="px-4 py-1.5 bg-violet-950/60 hover:bg-violet-900/60 border border-violet-900/50 rounded-lg text-xs font-semibold text-violet-400 transition-colors disabled:opacity-50"
+                className="px-4 py-1.5 bg-violet-500/10 hover:bg-violet-500/10 border border-violet-500/30 rounded-lg text-xs font-semibold text-[color-mix(in_srgb,#8b5cf6_75%,var(--on-bg))] transition-colors disabled:opacity-50"
               >
                 {salvandoFuncionario ? 'Salvando...' : 'Atribuir Armário'}
               </button>

@@ -10,17 +10,31 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
-  /* 64px da NavBar + 48px do padding do <main> */
-  height: calc(100dvh - 112px);
+  /* Ocupa a área inteira do <main> (anula o padding de 24px dele) para o
+     fundo do mapa não ficar num recorte sobre a cor da escola. 64px = NavBar. */
+  margin: -24px;
+  padding: 20px 24px 12px;
+  height: calc(100dvh - 64px);
   min-height: 460px;
   color: var(--mapa-texto);
+  background:
+    radial-gradient(1100px 700px at 10% -10%, color-mix(in srgb, var(--mapa-selecao) 6%, transparent), transparent 60%),
+    radial-gradient(900px 600px at 100% 0%, rgba(61, 123, 234, .09), transparent 55%),
+    var(--mapa-fundo);
+  font: 15px/1.45 Roboto, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mapa-titulo, .mapa-cartao__nome, .mapa-cartao__sigla, .mapa-cartao__livres span,
+.mapa-barra__nome, .mapa-barra__sigla, .mapa-voltar, .mapa-pino, .mapa-selecao__texto strong {
+  font-family: Montserrat, 'Segoe UI', sans-serif;
 }
 
 .mapa button { font: inherit; color: inherit; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .mapa button:focus-visible, .mapa .armario:focus-visible { outline: 2px solid var(--mapa-selecao); outline-offset: 3px; }
 
 .mapa-cabecalho { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 10px 20px; }
-.mapa-titulo { margin: 0; font-size: clamp(22px, 2.3vw, 30px); font-weight: 800; line-height: 1.1; color: var(--mapa-texto); }
+.mapa-titulo { margin: 0; font-size: clamp(23px, 2.4vw, 32px); font-weight: 800; line-height: 1.1; letter-spacing: -.01em; color: var(--mapa-texto); }
 .mapa-dica { margin: 4px 0 0; color: var(--mapa-texto-suave); }
 
 .mapa-pino {
@@ -57,6 +71,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .mapa-cartao:hover { border-color: color-mix(in srgb, var(--cor) 75%, transparent); }
+  .mapa-cartao:hover .mapa-cartao__seta { transform: translateX(3px); opacity: 1; }
 }
 
 .mapa-cartao__corpo { flex: 1; display: flex; align-items: center; gap: 16px; padding: 16px 20px; min-width: 0; }
@@ -71,7 +86,8 @@
 .mapa-cartao__nome-curto { display: none; }
 .mapa-cartao__salas { font-size: 13px; color: var(--mapa-texto-suave); }
 .mapa-cartao__livres { flex: none; display: grid; justify-items: end; gap: 2px; }
-.mapa-cartao__livres b { font-size: 30px; line-height: 1; font-variant-numeric: tabular-nums; }
+.mapa-cartao__livres b { font: 700 30px/1 'Roboto Condensed', Roboto, sans-serif; font-variant-numeric: tabular-nums; }
+.mapa-cartao__seta { flex: none; width: 22px; height: 22px; color: var(--cor); opacity: .7; transition: transform 160ms var(--mapa-saida), opacity 160ms ease; }
 .mapa-cartao__livres span { font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--mapa-texto-suave); }
 
 @container (max-width: 230px) {
@@ -82,6 +98,7 @@
   .mapa-cartao__nome-curto { display: inline; }
   .mapa-cartao__livres { justify-items: center; }
   .mapa-cartao__livres b { font-size: clamp(26px, 18cqi, 42px); }
+  .mapa-cartao__seta { display: none; }
   .mapa-cartao__sigla { width: clamp(50px, 34cqi, 84px); height: clamp(50px, 34cqi, 84px); font-size: clamp(22px, 15cqi, 36px); }
 }
 
@@ -180,7 +197,7 @@
 .mapa-selecao__alugar:active { transform: scale(.96); }
 
 @media (max-width: 640px) {
-  .mapa { margin-inline: -12px; gap: 12px; }
+  .mapa { padding: 14px 12px 10px; gap: 12px; }
   .mapa-planta { grid-template-columns: var(--colunas-r); grid-template-rows: var(--linhas-r); gap: 10px; }
   .mapa-planta > * { grid-area: var(--area-r); }
   .mapa-patio { border-radius: 17px; padding-left: var(--recuo-r, 0px); }
@@ -195,7 +212,7 @@
 
 /* totem: tela grande em pé, tudo maior para ser tocado de pé */
 @media (min-width: 900px) and (max-aspect-ratio: 1/1) {
-  .mapa { zoom: 1.5; height: calc((100dvh - 112px) / 1.5); }
+  .mapa { zoom: 1.5; margin: -16px; height: calc((100dvh - 64px) / 1.5); }
 }
 
 @media (prefers-reduced-motion: reduce) {
