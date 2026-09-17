@@ -225,3 +225,30 @@ Nova seção "Mapa de armários" na tela `screens/Personalizacao`, abaixo das co
 - Branch `feat/mapa-corredores` a partir de `main`.
 - PR para `main`. A `develop` está 85 commits atrás, e os PRs recentes (#13, #14) foram direto para `main`.
 - O mapa anterior foi revertido em `ba6dc8f`. Esta entrega não reaproveita aquele código; o ponto de alinhamento com o time é o próprio PR.
+
+---
+
+## 7. Estado da entrega (17/09/2026)
+
+Implementado na branch `feat/mapa-corredores` (sem push e sem PR ainda). Backend 12 testes, front 18 testes, lint 0, build ok. Telas conferidas com dados simulados em 390×844, 1440×860 e 1080×1920, incluindo a volta para a grade em escola sem mapa e a seção de cores na Personalização.
+
+Desvios aprovados em relação ao plano:
+
+- CHECK de bloco usa `coalesce(cardinality(larguras), 0) > 0`.
+- Clique depois de arrastar não move a câmera nem seleciona armário.
+- Fechar o modal desmarca o armário (contrato do `ModalArmario`).
+- A Personalização não salva com cor do mapa incompleta.
+- Endpoint do mapa trata `42P01` e `PGRST205` como tabela ausente; a paleta só aceita hex.
+
+Pendências antes de ir para produção:
+
+1. Rodar no SQL Editor `Backend/sql/2026-09-16-mapa-corredores.sql` e depois `Backend/sql/2026-09-16-mapa-bento-quirino.sql`, e revisar as três consultas de conferência (vários blocos têm numeração estimada).
+2. Teste ponta a ponta com a service key: escolher armário livre real, abrir o modal e chegar no checkout.
+3. Conferir no navegador se navegar com Tab até um armário fora da parada desloca a cena.
+4. Abrir o PR para `main` e alinhar com o time.
+
+Para depois (fora desta entrega):
+
+- A rota antiga `GET /armarios/escola/:schoolCode` ainda devolve o ocupante de cada armário para qualquer usuário da escola.
+- Testes automatizados do endpoint do mapa e da interação da parede.
+- Limite de 1000 linhas do Supabase para escolas muito grandes.
