@@ -7,6 +7,9 @@ import { useNavigate } from 'react-router-dom';
 import { escolaService } from '../../services/escolaService';
 import { useEscola } from '../../theme/contextoEscola.js';
 import Carregando from '../../components/Carregando.jsx';
+import CampoCor from './CampoCor.jsx';
+import SecaoMapa from './SecaoMapa.jsx';
+import { useMapaEscola } from '../../utils/useMapaEscola.js';
 import './Personalizacao.css';
 
 // A estilização do sistema é FIXA na marca LCKP — a escola não escolhe cores.
@@ -103,45 +106,6 @@ function CampoLogo({ titulo, ajuda, url, campo, posicao, aoMudarPosicao, aoEnvia
   );
 }
 
-// Um seletor de cor com leitura de contraste ao lado.
-//
-// O nativo <input type="color"> abre o seletor do sistema operacional, que o
-// administrador ja sabe usar. O campo de texto ao lado existe porque marca de
-// escola chega como codigo ("nosso bordo e #741012"), nao como ponto num
-// gradiente.
-function CampoCor({ titulo, ajuda, valor, aoMudar }) {
-  const valida = /^#[0-9a-fA-F]{6}$/.test(valor);
-
-  return (
-    <div className="perso-field">
-      <label className="lckp-label">{titulo}</label>
-      <div className="perso-cor">
-        <input
-          type="color"
-          className="perso-cor__amostra"
-          value={valida ? valor : '#000000'}
-          onChange={(e) => aoMudar(e.target.value.toUpperCase())}
-          aria-label={titulo}
-        />
-        <input
-          type="text"
-          className="lckp-input perso-cor__hex"
-          value={valor}
-          onChange={(e) => {
-            const bruto = e.target.value.trim();
-            aoMudar(bruto.startsWith('#') ? bruto.toUpperCase() : ('#' + bruto).toUpperCase());
-          }}
-          spellCheck={false}
-          maxLength={7}
-          aria-label={`${titulo} em hexadecimal`}
-        />
-      </div>
-      {!valida && <p className="perso-ajuda perso-ajuda--alerta">Use o formato #RRGGBB.</p>}
-      {ajuda && <p className="perso-ajuda">{ajuda}</p>}
-    </div>
-  );
-}
-
 // Prévia do tema, desenhada com os tokens que o motor produziria.
 //
 // Não é uma imitação: os valores vêm de calcularTokens, o mesmo cálculo que o
@@ -214,6 +178,10 @@ export default function Personalizacao() {
   const [corFundo, setCorFundo] = useState('#0A1F44');
   const [temaModo, setTemaModo] = useState('auto');
 
+  // Cores do mapa de armários. null = tema escuro padrão.
+  const [mapaEstilo, setMapaEstilo] = useState(null);
+  const { mapa: mapaDaEscola } = useMapaEscola(escola?.codigo);
+
   // A tela tinha quatro cartões empilhados e um botão no fim. Em abas, cada
   // assunto cabe na tela sem rolagem e o botão de salvar fica sempre visível.
   const [aba, setAba] = useState('identidade');
@@ -258,6 +226,7 @@ export default function Personalizacao() {
     setCorSecundaria(escola.secondary_color || '#C8912E');
     setCorFundo(escola.bg_color || '#0A1F44');
     setTemaModo(escola.tema_modo || 'auto');
+    setMapaEstilo(escola.mapa_estilo ?? null);
   }
 
   // Há alteração pendente?
@@ -291,13 +260,14 @@ export default function Personalizacao() {
       [String(permiteSemestral), String(Boolean(escola.permite_semestral))],
       [valorSemestral, comoTexto(escola.valor_armario_semestral)],
       [encSemestralDia, comoTexto(escola.encerramento_semestral_dia, '6')],
-      [encSemestralMes, comoTexto(escola.encerramento_semestral_mes, '7')]
+      [encSemestralMes, comoTexto(escola.encerramento_semestral_mes, '7')],
+      [JSON.stringify(mapaEstilo), JSON.stringify(escola.mapa_estilo ?? null)]
     ];
     return pares.some(([agora, salvo]) => agora !== salvo);
   }, [escola, corPrimaria, corSecundaria, corFundo, temaModo, logo1Posicao, logo2Posicao,
       rotuloCorredor, tipoMatricula, maxArmarios, valorArmario, aberturaDia, aberturaMes,
       encerramentoDia, encerramentoMes, permiteSemestral, valorSemestral,
-      encSemestralDia, encSemestralMes]);
+      encSemestralDia, encSemestralMes, mapaEstilo]);
 
   // Sair da tela com alteração pendente pede confirmação. A logo não entra na
   // conta: o upload grava direto, então ela já está salva quando aparece.
@@ -384,6 +354,7 @@ export default function Personalizacao() {
       secondary_color: corSecundaria,
       bg_color: corFundo,
       tema_modo: temaModo,
+      mapa_estilo: mapaEstilo,
       logo_1_posicao: logo1Posicao,
       logo_2_posicao: logo2Posicao,
       rotulo_corredor: rotuloCorredor,
@@ -573,6 +544,8 @@ export default function Personalizacao() {
             aoEnviar={handleEnviarLogo}
           />
         </div>
+
+        <SecaoMapa estilo={mapaEstilo} aoMudar={setMapaEstilo} corredores={mapaDaEscola?.corredores ?? []} />
 
       </div>
       )}

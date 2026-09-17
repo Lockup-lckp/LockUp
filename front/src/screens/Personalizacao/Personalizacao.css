@@ -463,3 +463,28 @@
   .perso-header__acoes { width: 100%; justify-content: space-between; }
   .perso-saida__acoes .lckp-btn { flex: 1; justify-content: center; }
 }
+
+/* Prévia do mapa de armários: uma porta e dois blocos com as cores escolhidas. */
+.perso-mapa__subtitulo { margin: 18px 0 6px; font-size: 14px; }
+
+.perso-mapa-previa { border-radius: 14px; padding: 14px; margin: 10px 0 16px; }
+
+.perso-mapa-previa__parede {
+  position: relative; height: 130px; border-radius: 8px; overflow: hidden;
+  display: flex; align-items: flex-end; gap: 8px; padding: 0 16px 10px;
+}
+
+.perso-mapa-previa__vidro { position: absolute; left: 0; right: 0; top: 8px; height: 22px; opacity: .9; }
+.perso-mapa-previa__faixa { position: absolute; left: 0; right: 0; bottom: 0; height: 42%; }
+.perso-mapa-previa__porta { position: relative; width: 38px; height: 92px; border-radius: 2px; }
+
+.perso-mapa-previa__bloco {
+  position: relative; width: 52px; height: 74px; padding: 4px; border-radius: 3px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 3px;
+}
+
+.perso-mapa-previa__bloco i { border-radius: 2px; }
+.perso-mapa-previa__bloco .livre { background: #3D7BEA; }
+.perso-mapa-previa__bloco .ocupado { background: #DC4438; }
+.perso-mapa-previa__bloco .manutencao { background: repeating-linear-gradient(45deg, #F0BE2C 0 4px, #6F5D22 4px 6px); }
+.perso-mapa-previa__bloco [data-selecionado] { outline: 2px solid; outline-offset: 1px; }
